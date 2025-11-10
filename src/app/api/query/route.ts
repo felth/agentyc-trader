@@ -32,6 +32,40 @@ type Match = {
   };
 };
 
+const withTimeout = <T>(p: Promise<T>, ms = 3000): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("timeout")), ms);
+    p
+      .then((v) => {
+        clearTimeout(t);
+        resolve(v);
+      })
+      .catch((e) => {
+        clearTimeout(t);
+        reject(e);
+      });
+  });
+
+async function isReachableImage(url: string): Promise<boolean> {
+  try {
+    const res = await withTimeout(
+      fetch(url, {
+        method: "HEAD",
+        redirect: "follow",
+        cache: "no-store",
+      }),
+      3000
+    );
+    if (!res.ok) {
+      return false;
+    }
+    const ct = res.headers.get("content-type") || "";
+    return ct.toLowerCase().startsWith("image/");
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -92,10 +126,20 @@ export async function POST(req: NextRequest) {
       .join("\n");
 
     // Collect up to 3 images from the filtered matches
-    const images = usable
-      .map((m) => m.metadata?.image_url)
-      .filter(Boolean)
-      .slice(0, 3) as string[];
+    const rawImages = usable
+      .map((m) => m.metadata?.image_url as string | undefined)
+      .filter(Boolean) as string[];
+
+    const reachableImages: string[] = [];
+    for (const u of rawImages) {
+      if (reachableImages.length >= 3) break;
+      const ok = await isReachableImage(u);
+      if (ok) {
+        reachableImages.push(u);
+      } else {
+        console.warn("Skipping unreachable image_url:", u);
+      }
+    }
 
     // 4) Typed chat messages (no function/tool messages → no 'name' needed)
     type ChatMsg = OpenAI.Chat.Completions.ChatCompletionMessageParam;
@@ -108,26 +152,26 @@ export async function POST(req: NextRequest) {
         "You are a precise trading assistant. Use ONLY the provided lessons. Be concise and actionable. If nothing is relevant, reply exactly: 'No relevant lessons — add more data.'",
     };
 
-    const parts: ContentPart[] = [
-      {
-        type: "text",
-        text:
-          `Query: ${query}\n\n` +
-          `Top matches:\n${context || "(none)"}\n\n` +
-          `Write succinct insights (bullets fine).`,
-      },
-    ];
-
-    for (const url of images) {
-      parts.push({
-        type: "image_url",
-        image_url: { url },
-      });
-    }
+    const userContent: ContentPart[] =
+      reachableImages.length > 0
+        ? [
+            { type: "text", text: `Query: ${query}\nUse lessons below to answer.` },
+            ...reachableImages.map<ContentPart>((url) => ({
+              type: "image_url",
+              image_url: { url },
+            })),
+            { type: "text", text: `Lessons:\n${context}` },
+          ]
+        : [
+            {
+              type: "text",
+              text: `Query: ${query}\n\nLessons:\n${context}`,
+            },
+          ];
 
     const userMessage: ChatMsg = {
       role: "user",
-      content: parts,
+      content: userContent,
     };
 
     // 5) Call OpenAI (fallback if GPT-5 not available)

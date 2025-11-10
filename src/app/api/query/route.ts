@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const query: string = (body?.query ?? "").toString().trim();
     const topK: number = Number(body?.topK ?? 5);
-    const minScore = Number(process.env.MIN_SCORE ?? "0.60");
+    const minScore = 0.79;
 
     if (!query) {
       return NextResponse.json(

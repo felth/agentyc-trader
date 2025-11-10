@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const query: string = (body?.query ?? "").toString().trim();
     const topK: number = Number(body?.topK ?? 5);
-    const minScore = typeof body?.minScore === "number" ? body.minScore : 0.8;
+    const minScore = Number(process.env.MIN_SCORE ?? "0.60");
 
     if (!query) {
       return NextResponse.json(
@@ -64,8 +64,6 @@ export async function POST(req: NextRequest) {
       vector,
       topK,
       includeMetadata: true,
-      // If you want to scope to your own rows only, uncomment:
-      // filter: { source: "finelo" },
     });
 
     const matches: Match[] = (results.matches as any[])?.map((m) => ({

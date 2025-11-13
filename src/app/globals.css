@@ -1,11 +1,22 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme inline {
+  --color-ultra-black: #000000;
+  --color-ultra-card: #111111;
+  --color-ultra-cardAlt: #181818;
+  --color-ultra-accent: #F56300;
+  --color-ultra-accentHover: #CC4E00;
+  --color-ultra-accentPressed: #A84100;
+  --color-ultra-border: #2A2A2A;
+  --color-ultra-positive: #32D74B;
+  --color-ultra-negative: #FF453A;
+  --radius-2xl: 1.5rem;
+}
 
 body {
-  background-color: #000000;
-  color: #ffffff;
   min-height: 100vh;
+  background: var(--color-ultra-black);
+  color: white;
   font-family: var(--font-sans, "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   -webkit-font-smoothing: antialiased;
 }

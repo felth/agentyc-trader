@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Trade } from "../../../../types/trades";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+type RouteParams = { id: string };
+
+export async function GET(req: NextRequest, context: { params: Promise<RouteParams> }) {
+  const { id } = await context.params;
   const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const { data, error } = await sb
     .from("trades")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (error || !data) {
@@ -17,7 +20,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ ok: true, trade: data as Trade });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<RouteParams> }) {
+  const { id } = await context.params;
   const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const updates: Partial<Trade> = await req.json();
 
@@ -28,7 +32,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data, error } = await sb
     .from("trades")
     .update(updates)
-    .eq("id", params.id)
+    .eq("id", id)
     .select()
     .single();
 

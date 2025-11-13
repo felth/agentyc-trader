@@ -62,15 +62,16 @@ export async function POST(req: NextRequest) {
       temperature: 0.2
     });
 
-    let rawContent = chat.choices?.[0]?.message?.content;
-
+    const rawContent = chat.choices?.[0]?.message?.content as
+      | string
+      | Array<{ text?: string }>;
     // message.content can be string or array of content parts
     let contentText: string;
     if (typeof rawContent === "string") {
       contentText = rawContent;
     } else if (Array.isArray(rawContent)) {
       contentText = rawContent
-        .map((part: any) => {
+        .map((part) => {
           if (typeof part === "string") return part;
           if (typeof part?.text === "string") return part.text;
           return "";

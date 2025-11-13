@@ -34,10 +34,10 @@ export default function JournalPage() {
   };
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-semibold mb-4">Agentyc Trader — Journal</h1>
+    <main className="space-y-4">
+      <h1 className="text-2xl font-semibold text-ultra-accent">Journal</h1>
 
-      <form onSubmit={onSubmit} className="flex gap-2 mb-4">
+      <form onSubmit={onSubmit} className="flex gap-2">
         <label htmlFor="q" className="sr-only">
           Query
         </label>
@@ -46,25 +46,25 @@ export default function JournalPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Ask your lessons… e.g., false breakouts volume confirmation"
-          className="flex-1 border rounded px-3 py-2"
+          className="flex-1 border border-ultra-border bg-ultra-cardAlt text-white rounded px-3 py-2 placeholder:text-gray-500 focus:ring-2 focus:ring-ultra-accent/60 focus:outline-none"
           disabled={isPending}
         />
         <button
           type="submit"
-          className="px-4 py-2 border rounded bg-black text-white disabled:opacity-50"
+          className="px-4 py-2 rounded bg-ultra-accent text-black font-medium hover:bg-ultra-accentHover disabled:opacity-50"
           disabled={isPending || !q.trim()}
         >
           {isPending ? "Searching…" : "Search"}
         </button>
       </form>
 
-      <section aria-live="polite" className="space-y-3">
-        {isPending && <div className="text-sm text-gray-600">Loading…</div>}
+      <section role="status" className="space-y-3">
+        {isPending && <div className="text-sm text-gray-400">Loading…</div>}
 
-        {res?.error && <div className="text-sm text-red-600">Error: {res.error}</div>}
+        {res?.error && <div className="text-sm text-ultra-negative">Error: {res.error}</div>}
 
         {res?.ok && (res.matches?.length ?? 0) === 0 && (
-          <div className="text-sm text-gray-600">No relevant lessons — add more data.</div>
+          <div className="text-sm text-gray-400">No relevant lessons — add more data.</div>
         )}
 
         {res?.ok && res.matches?.length > 0 && (
@@ -73,9 +73,11 @@ export default function JournalPage() {
               <MatchCard key={m.id || i} m={m} />
             ))}
             {res.insights && (
-              <div className="mt-3 p-3 border rounded bg-white/60">
-                <div className="text-sm font-medium mb-1">AI Insight</div>
-                <div className="text-sm text-gray-800 whitespace-pre-wrap">{res.insights}</div>
+              <div className="mt-3 p-3 border border-ultra-border rounded-2xl bg-ultra-card">
+                <div className="text-sm font-medium text-ultra-accent mb-1">
+                  AI Insight
+                </div>
+                <div className="text-sm text-gray-200 whitespace-pre-wrap">{res.insights}</div>
               </div>
             )}
           </>

@@ -55,23 +55,21 @@ export default function TradesTab() {
     <TabPage>
       {/* Header */}
       <div className="relative h-48 rounded-[2rem] overflow-hidden group mb-5">
-        {/* Background Image - Add your photo here */}
-        {/* <div 
+        {/* Background Image */}
+        <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: "url('/hero-trades.jpeg')"
           }}
-        /> */}
+        />
         
-        {/* Gradient fallback */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#F56300]/25 via-[#F56300]/5 to-black/90" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.15),_transparent_70%)]" />
-        
-        {/* Dark Overlay - Uncomment when adding photo */}
-        {/* <div className="absolute inset-0 bg-black/30" />
+        {/* Dark Overlay - Multiple layers for depth */}
+        <div className="absolute inset-0 bg-black/30" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30" /> */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30" />
+        
+        {/* Subtle accent gradient overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.1),_transparent_70%)]" />
         <div className="relative h-full flex flex-col justify-between px-6 py-5">
           <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Trades</p>
           <div className="space-y-1">

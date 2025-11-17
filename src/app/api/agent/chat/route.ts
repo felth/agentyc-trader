@@ -6,6 +6,8 @@ import OpenAI from "openai";
 
 import { Pinecone } from "@pinecone-database/pinecone";
 
+import { AGENT_DEFAULT_SOURCES } from "../../../../lib/sources";
+
 
 
 type AgentChatRequest = {
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
 
       includeMetadata: true,
 
-      filter: { source: { $in: ['finelo', 'journal'] } } // Internal only
+      filter: { source: { $in: AGENT_DEFAULT_SOURCES } }
 
     });
 

@@ -28,6 +28,8 @@ export async function POST(req: NextRequest) {
 
     const lesson_id = (body?.lesson_id ?? "").trim();
 
+    const source = (body?.source ?? "journal").trim();
+
 
 
     if (!lesson_id) {
@@ -168,6 +170,8 @@ export async function POST(req: NextRequest) {
 
           image_url,
 
+          source,
+
         },
 
       },
@@ -190,7 +194,7 @@ export async function POST(req: NextRequest) {
 
 
 
-      const insertPayload = [{ lesson_id, concept, notes, image_url }];
+      const insertPayload = [{ lesson_id, concept, notes, image_url, source }];
 
       const { error: sbError } = await supabase.from("lessons").insert(insertPayload);
 

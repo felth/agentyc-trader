@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     const rawImageUrl = (body?.image_url ?? "").trim();
     let lesson_id = (body?.lesson_id ?? "").trim();
     const manual_notes = (body?.manual_notes ?? "").trim();
+    const source = (body?.source ?? "journal").trim();
 
     if (!rawImageUrl) {
       return NextResponse.json(
@@ -164,7 +165,8 @@ export async function POST(req: NextRequest) {
           concept,
           notes,
           image_url: rawImageUrl,
-          tags
+          tags,
+          source
         }
       }
     ]);
@@ -182,7 +184,8 @@ export async function POST(req: NextRequest) {
         notes,
         summary: concept,
         tags,
-        image_url: rawImageUrl
+        image_url: rawImageUrl,
+        source
       }
     ]);
 

@@ -20,7 +20,7 @@ type IngestBody = {
 
   tags?: string[];
 
-  source?: string; // e.g. "finelo", "book:naked-trader", "pdf:xyz", "journal"
+  source?: string; // e.g. "playbook", "book:naked-trader", "pdf:xyz", "journal"
 
 };
 
@@ -28,7 +28,7 @@ function normalizeSource(raw?: string | null): string {
 
   const trimmed = (raw ?? "").trim();
 
-  // For now default to "manual" – when ingesting Finelo, we will explicitly pass "finelo"
+  // For now default to "manual" – when ingesting playbook, we will explicitly pass "playbook"
 
   return trimmed.length > 0 ? trimmed : "manual";
 

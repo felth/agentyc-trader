@@ -46,7 +46,7 @@ type AgentChatResponse = {
 
 
 
-type SourceType = "finelo" | "journal" | "book" | "manual";
+type SourceType = "playbook" | "journal" | "book" | "manual";
 
 
 
@@ -72,7 +72,7 @@ export default function AgentPage() {
 
   const [lastSources, setLastSources] = useState<string[]>([]);
 
-  const [source, setSource] = useState<SourceType>("finelo");
+  const [source, setSource] = useState<SourceType>("playbook");
 
   const [concept, setConcept] = useState("");
 
@@ -280,17 +280,17 @@ export default function AgentPage() {
 
 
 
-  const sources = ["finelo", "journal", "book", "manual"] as const;
+  const sources = ["playbook", "journal", "book", "manual"] as const;
 
 
 
   return (
 
-    <div className="flex min-h-screen flex-col bg-black pb-24">
+    <div className="flex flex-col bg-black">
 
       {/* Header */}
 
-      <header className="px-4 pt-6 pb-3">
+      <header className="flex-shrink-0 px-4 pt-16 pb-3">
 
         <div className="rounded-3xl bg-gradient-to-b from-[#151515] to-[#050505] px-5 py-4 border border-white/5 shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
 
@@ -304,7 +304,7 @@ export default function AgentPage() {
 
           <p className="mt-1 text-[13px] text-gray-400">
 
-            Chat with your trading coach, grounded in your Finelo lessons and journal. Ask about setups, risk, or today's plan.
+            Chat with your trading coach, grounded in your playbook rules and journal lessons. Ask about setups, risk, or today's plan.
 
           </p>
 
@@ -316,7 +316,7 @@ export default function AgentPage() {
 
       {/* Source Selector */}
 
-      <div className="px-4 mb-3">
+      <div className="flex-shrink-0 px-4 mb-3">
 
         <label className="text-xs uppercase text-gray-400 mb-1 block">Source</label>
 
@@ -358,7 +358,7 @@ export default function AgentPage() {
 
       {/* Memory Core Panel */}
 
-      <div className="px-4 mb-4">
+      <div className="flex-shrink-0 px-4 mb-3 max-h-[40vh] overflow-y-auto">
 
         <div className="rounded-3xl bg-ultra-card border border-ultra-border p-4 space-y-3">
 
@@ -366,7 +366,7 @@ export default function AgentPage() {
 
             <h2 className="text-sm font-semibold text-white mb-1">Memory Core</h2>
 
-            <p className="text-xs text-gray-400">Paste notes to store in your trading brain.</p>
+            <p className="text-xs text-gray-400">Store your playbook rules and trading lessons.</p>
 
           </div>
 
@@ -378,7 +378,7 @@ export default function AgentPage() {
 
             onChange={(e) => setConcept(e.target.value)}
 
-            placeholder="Concept (e.g. Finelo: breakout timing rule)"
+            placeholder="Concept (e.g. Playbook: breakout timing rule)"
 
             className="w-full px-3 py-2 rounded-xl bg-ultra-cardAlt border border-ultra-border text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent"
 
@@ -456,13 +456,11 @@ export default function AgentPage() {
 
       {/* Chat area */}
 
-      <main className="flex-1 px-4 pb-3">
+      <main className="flex-1 min-h-0 px-4 pb-3">
 
-        <div className="h-full rounded-3xl bg-ultra-card/80 border border-ultra-border shadow-[0_18px_45px_rgba(0,0,0,0.85)] overflow-hidden">
+        <div className="rounded-3xl bg-ultra-card/80 border border-ultra-border shadow-[0_18px_45px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 32rem)', maxHeight: '500px' }}>
 
-          <div className="flex h-full flex-col">
-
-            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
 
               {history.map((msg, idx) => (
 
@@ -524,107 +522,131 @@ export default function AgentPage() {
 
 
 
-              <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />
+
+          </div>
+
+
+
+          {error && (
+
+            <div className="flex-shrink-0 px-4 pb-2">
+
+              <div className="rounded-xl border border-ultra-negative/40 bg-ultra-negative/10 px-3 py-2 text-[12px] text-ultra-negative">
+
+                {error}
+
+              </div>
+
+            </div>
+
+          )}
+
+
+
+          {!loading && lastSources.length > 0 && (
+
+            <div className="flex-shrink-0 px-4 pb-2">
+
+              <p className="text-[10px] text-gray-500">Sources: {lastSources.join(", ")}</p>
+
+            </div>
+
+          )}
+
+
+
+          <form
+
+            onSubmit={handleSubmit}
+
+            className="flex-shrink-0 flex items-end gap-2 border-t border-ultra-border bg-black/80 px-4 py-3"
+
+          >
+
+            <div className="flex-1 min-w-0">
+
+              <div className="rounded-2xl bg-ultra-cardAlt px-3 py-2 border border-ultra-border focus-within:border-ultra-accent/80 transition-colors">
+
+                <textarea
+
+                  rows={1}
+
+                  value={input}
+
+                  onChange={(e) => {
+
+                    setInput(e.target.value);
+
+                    e.target.style.height = 'auto';
+
+                    e.target.style.height = e.target.scrollHeight + 'px';
+
+                  }}
+
+                  onKeyDown={(e) => {
+
+                    if (e.key === 'Enter' && !e.shiftKey) {
+
+                      e.preventDefault();
+
+                      const form = e.currentTarget.closest('form');
+
+                      if (form) {
+
+                        form.requestSubmit();
+
+                      }
+
+                    }
+
+                  }}
+
+                  placeholder="Ask your agent about today's trades…"
+
+                  className="w-full resize-none bg-transparent text-[13px] text-white placeholder:text-gray-500 focus:outline-none max-h-24 overflow-y-auto"
+
+                  disabled={loading}
+
+                />
+
+              </div>
+
+              <p className="mt-1 text-[10px] text-gray-500">
+
+                Agent uses only your ingested lessons (playbook, journal, books) – no random internet advice.
+
+              </p>
 
             </div>
 
 
 
-            {error && (
+            <button
 
-              <div className="px-4 pb-2">
+              type="submit"
 
-                <div className="rounded-xl border border-ultra-negative/40 bg-ultra-negative/10 px-3 py-2 text-[12px] text-ultra-negative">
+              disabled={loading || !input.trim()}
 
-                  {error}
+              className={[
 
-                </div>
+                "flex-shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors",
 
-              </div>
+                loading || !input.trim()
 
-            )}
+                  ? "bg-ultra-card text-gray-500"
 
+                  : "bg-ultra-accent text-white shadow-[0_0_20px_rgba(245,99,0,0.8)] hover:bg-ultra-accentHover"
 
-
-            {!loading && lastSources.length > 0 && (
-
-              <div className="px-4 pb-2">
-
-                <p className="text-[10px] text-gray-500">Sources: {lastSources.join(", ")}</p>
-
-              </div>
-
-            )}
-
-
-
-            <form
-
-              onSubmit={handleSubmit}
-
-              className="flex items-end gap-2 border-t border-ultra-border bg-black/80 px-4 py-3"
+              ].join(" ")}
 
             >
 
-              <div className="flex-1">
+              {loading ? "Sending…" : "Send"}
 
-                <div className="rounded-2xl bg-ultra-cardAlt px-3 py-2 border border-ultra-border focus-within:border-ultra-accent/80 transition-colors">
+            </button>
 
-                  <textarea
-
-                    rows={1}
-
-                    value={input}
-
-                    onChange={(e) => setInput(e.target.value)}
-
-                    placeholder="Ask your agent about today's trades…"
-
-                    className="w-full resize-none bg-transparent text-[13px] text-white placeholder:text-gray-500 focus:outline-none"
-
-                    disabled={loading}
-
-                  />
-
-                </div>
-
-                <p className="mt-1 text-[10px] text-gray-500">
-
-                  Agent uses only your ingested lessons (Finelo, journal, books) – no random internet advice.
-
-                </p>
-
-              </div>
-
-
-
-              <button
-
-                type="submit"
-
-                disabled={loading || !input.trim()}
-
-                className={[
-
-                  "rounded-full px-4 py-2 text-[13px] font-semibold transition-colors",
-
-                  loading || !input.trim()
-
-                    ? "bg-ultra-card text-gray-500"
-
-                    : "bg-ultra-accent text-white shadow-[0_0_20px_rgba(245,99,0,0.8)] hover:bg-ultra-accentHover"
-
-                ].join(" ")}
-
-              >
-
-                {loading ? "Sending…" : "Send"}
-
-              </button>
-
-            </form>
-
-          </div>
+          </form>
 
         </div>
 

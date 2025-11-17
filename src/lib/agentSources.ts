@@ -1,5 +1,5 @@
 export const DEFAULT_AGENT_SOURCES: string[] = [
-  "finelo",
+  "playbook",
   "journal",
 ];
 

@@ -14,11 +14,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="h-full">
       <body className="bg-ultra-black text-white min-h-screen">
         <div className="relative min-h-screen">
           <TopNav />
-          <main className="pb-28">{children}</main>
+          <main className="pb-24">{children}</main>
           <BottomNav />
         </div>
       </body>

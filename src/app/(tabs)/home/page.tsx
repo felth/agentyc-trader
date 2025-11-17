@@ -29,17 +29,20 @@ const activities = [
   {
     title: "Closed XAUUSD +1.1R",
     subtitle: "Partial profit at fib extension",
-    rightLabel: "2m ago"
+    rightLabel: "2m ago",
+    icon: <span className="text-lg">📈</span>
   },
   {
     title: "Journaled FRX-12 pattern",
-    subtitle: "Pinned today’s lesson",
-    rightLabel: "25m ago"
+    subtitle: "Pinned today's lesson",
+    rightLabel: "25m ago",
+    icon: <span className="text-lg">📝</span>
   },
   {
     title: "Backtest session completed",
     subtitle: "20 trade samples logged",
-    rightLabel: "1h ago"
+    rightLabel: "1h ago",
+    icon: <span className="text-lg">⚙️</span>
   }
 ];
 
@@ -72,8 +75,8 @@ export default function HomeTab() {
         }
       />
 
-      <section className="space-y-2">
-        <SectionHeader title="Daily Goals" />
+      <section className="space-y-3 mb-6">
+        <SectionHeader title="Daily Goals" actionIcon="✎" />
         <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4">
           {goalRings.map((goal) => (
             <GoalRingCard key={goal.label} {...goal} />
@@ -81,7 +84,7 @@ export default function HomeTab() {
         </div>
       </section>
 
-      <section className="space-y-2">
+      <section className="space-y-3 mb-6">
         <SectionHeader title="At a Glance" actionIcon="✎" actionText="Edit" />
         <StatTileGrid>
           {statTiles.map((tile) => (
@@ -90,16 +93,30 @@ export default function HomeTab() {
         </StatTileGrid>
       </section>
 
-      <section className="space-y-2">
-        <SectionHeader title="Recent Activity" actionText="See all" />
-        <ActivityList>
-          {activities.map((activity) => (
-            <ActivityCard key={activity.title} {...activity} />
-          ))}
-        </ActivityList>
+      <section className="space-y-3 relative mb-6">
+        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                "url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "blur(40px)"
+            }}
+          />
+        </div>
+        <div className="relative">
+          <SectionHeader title="Recent Activity" actionText="See all" />
+          <ActivityList>
+            {activities.map((activity) => (
+              <ActivityCard key={activity.title} {...activity} />
+            ))}
+          </ActivityList>
+        </div>
       </section>
 
-      <section className="space-y-2">
+      <section className="space-y-3 mb-6">
         <SectionHeader title="Weekly Trends" />
         <TrendList>
           {trends.map((trend) => (

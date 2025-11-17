@@ -18,7 +18,7 @@ export function GoalRingCard({
   const strokeDashoffset = circumference * (1 - Math.min(Math.max(progress, 0), 1));
 
   return (
-    <div className="flex flex-col items-center justify-center min-w-[110px] h-[140px] rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 px-4 py-3 space-y-2">
+    <div className="flex flex-col items-center justify-center min-w-[110px] h-[140px] rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 px-4 py-3 space-y-2 hover:bg-white/8 transition">
       <div className="relative">
         <svg width="100" height="100" className="-rotate-90">
           <circle
@@ -45,7 +45,7 @@ export function GoalRingCard({
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm font-semibold">{value}</span>
+          <span className="text-sm font-semibold text-white">{value}</span>
         </div>
       </div>
       <p className="text-xs text-slate-300 text-center">{label}</p>

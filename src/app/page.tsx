@@ -131,9 +131,9 @@ export default function HomePage() {
         />
         
         {/* Dark Overlay - Multiple layers for depth */}
-        <div className="absolute inset-0 bg-black/60" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40" />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-transparent to-black/60" />
+        <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30" />
         
         {/* Subtle accent gradient overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.1),_transparent_70%)]" />
@@ -168,7 +168,7 @@ export default function HomePage() {
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-white leading-tight">
               Hello, Liam
-            </h1>
+          </h1>
           </div>
         </div>
       </section>
@@ -412,6 +412,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-    </main>
+      </main>
   );
 }

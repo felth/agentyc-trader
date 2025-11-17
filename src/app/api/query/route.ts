@@ -72,6 +72,9 @@ export async function POST(req: NextRequest) {
     const query: string = (body?.query ?? "").toString().trim();
     const topK: number = Number(body?.topK ?? 5);
     const minScore = 0.79;
+    const sources = Array.isArray(body.sources) && body.sources.length > 0
+      ? body.sources
+      : null;
 
     if (!query) {
       return NextResponse.json(
@@ -93,11 +96,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2) Pinecone similarity search
+    // 2) Pinecone similarity search (optionally filtered by source)
+    const queryFilter = sources ? { source: { $in: sources } } : undefined;
     const results = await index.query({
       vector,
       topK,
       includeMetadata: true,
+      ...(queryFilter && { filter: queryFilter }),
     });
 
     const matches: Match[] = (results.matches as any[])?.map((m) => ({

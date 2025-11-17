@@ -1,32 +1,46 @@
+// src/app/api/agent/chat/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 
 import OpenAI from "openai";
 
 import { Pinecone } from "@pinecone-database/pinecone";
 
-import { DEFAULT_AGENT_SOURCES } from "../../../../lib/agentSources";
+import { DEFAULT_AGENT_SOURCES } from "@/lib/agentSources";
 
-type AgentChatRequest = {
+
+
+export const runtime = "nodejs";
+
+
+
+type HistoryItem = { role: "user" | "assistant"; content: string };
+
+
+
+interface AgentChatRequest {
 
   message: string;
 
-  history?: Array<{ role: "user" | "assistant"; content: string }>;
+  history?: HistoryItem[];
 
-  sources?: string[]; // optional override in future
+  sources?: string[];
 
-};
+}
 
-export const runtime = "nodejs";
+
 
 export async function POST(req: NextRequest) {
 
   try {
 
-    const body = (await req.json()) as AgentChatRequest;
+    const body: AgentChatRequest = await req.json();
 
-    const message = body.message?.trim();
 
-    if (!message) {
+
+    const userMessage = body.message?.trim();
+
+    if (!userMessage) {
 
       return NextResponse.json(
 
@@ -37,6 +51,20 @@ export async function POST(req: NextRequest) {
       );
 
     }
+
+
+
+    // Determine which sources to use
+
+    const incoming = Array.isArray(body.sources) ? body.sources : [];
+
+    const usedSources =
+
+      incoming.length > 0 ? incoming : DEFAULT_AGENT_SOURCES;
+
+
+
+    // Instantiate clients
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
@@ -50,29 +78,37 @@ export async function POST(req: NextRequest) {
 
     );
 
-    // Decide which sources to use (RAG scope)
 
-    const sources =
 
-      Array.isArray(body.sources) && body.sources.length > 0
-
-        ? body.sources
-
-        : DEFAULT_AGENT_SOURCES;
-
-    // Embed user message
+    // Embed the message
 
     const embed = await openai.embeddings.create({
 
       model: "text-embedding-3-large",
 
-      input: message,
+      input: userMessage
 
     });
 
-    const vector = embed.data[0].embedding;
 
-    // Query Pinecone using your data only (scoped by source)
+
+    const vector = embed.data?.[0]?.embedding;
+
+    if (!vector || vector.length === 0) {
+
+      return NextResponse.json(
+
+        { ok: false, error: "failed to generate embedding" },
+
+        { status: 500 }
+
+      );
+
+    }
+
+
+
+    // Query Pinecone using the allowed sources
 
     const results = await index.query({
 
@@ -84,11 +120,13 @@ export async function POST(req: NextRequest) {
 
       filter: {
 
-        source: { $in: sources },
+        source: { $in: usedSources }
 
-      },
+      }
 
     });
+
+
 
     const matches =
 
@@ -102,79 +140,91 @@ export async function POST(req: NextRequest) {
 
           score: m.score,
 
-          metadata: m.metadata,
+          metadata: m.metadata
 
         })) ?? [];
 
-    const context = matches
 
-      .map((m) => {
 
-        const md: any = m.metadata ?? {};
+    const context =
 
-        return `${md.lesson_id ?? ""} — ${md.concept ?? ""}\n${md.notes ?? ""}`;
+      matches
 
-      })
+        .map((m) => `${m.metadata?.concept}: ${m.metadata?.notes}`)
 
-      .join("\n\n");
+        .join("\n\n") || "No lessons available.";
+
+
+
+    // Build chat messages
 
     const history = body.history || [];
 
-    const messages = [
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
 
       {
 
-        role: "system" as const,
+        role: "system",
 
         content:
 
-          "You are Liam's trading agent. Answer using ONLY the provided lessons. Be concise, actionable, and cite lesson_ids where helpful.",
+          "You are Liam's trading agent. Only use the provided lessons. Do not invent facts. Be direct, actionable. Cite lesson IDs."
 
       },
 
-      ...history,
+      ...history.map(h => ({ role: h.role, content: h.content })),
 
       {
 
-        role: "user" as const,
+        role: "user",
 
-        content: `User query:\n${message}\n\nRelevant lessons:\n${context || "(none found in current scope)"}`,
+        content: `User query: ${userMessage}\n\nLessons:\n${context}`
 
-      },
+      }
 
     ];
 
-    const chat = await openai.chat.completions.create({
+
+
+    const completion = await openai.chat.completions.create({
 
       model: process.env.OPENAI_AGENT_MODEL || "gpt-4o-mini",
 
       messages,
 
-      temperature: 0.2,
+      temperature: 0.2
 
     });
 
-    const responseText = chat.choices[0].message.content || "No insight found.";
+
+
+    const reply =
+
+      completion.choices?.[0]?.message?.content ||
+
+      "No insight found.";
+
+
 
     return NextResponse.json({
 
       ok: true,
 
-      response: responseText,
+      response: reply,
 
       sources: matches,
 
-      usedSources: sources,
+      usedSources
 
     });
 
   } catch (err: any) {
 
-    console.error("Agent chat error:", err);
+    console.error("agent/chat error:", err);
 
     return NextResponse.json(
 
-      { ok: false, error: err?.message ?? "Server error in /api/agent/chat" },
+      { ok: false, error: err.message },
 
       { status: 500 }
 

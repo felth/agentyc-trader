@@ -292,7 +292,7 @@ export default function AgentPage() {
 
       <header className="flex-shrink-0 px-4 pt-16 pb-3 w-full overflow-x-hidden">
 
-        <div className="rounded-3xl bg-gradient-to-b from-[#151515] to-[#050505] px-5 py-4 border border-white/5 shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
+        <div className="rounded-3xl bg-gradient-to-br from-[#F56300]/10 via-black/60 to-black/90 backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-lg">
 
           <p className="text-xs uppercase tracking-[0.18em] text-gray-400 mb-1">
 
@@ -332,13 +332,13 @@ export default function AgentPage() {
 
               className={[
 
-                "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
 
                 source === s
 
-                  ? "bg-ultra-accent text-black border-ultra-accent"
+                  ? "bg-ultra-accent text-black border-ultra-accent shadow-[0_0_12px_rgba(245,99,0,0.5)]"
 
-                  : "bg-ultra-card text-gray-300 border-ultra-border"
+                  : "bg-white/5 backdrop-blur-sm text-gray-300 border-white/10 hover:bg-white/10"
 
               ].join(" ")}
 
@@ -358,9 +358,9 @@ export default function AgentPage() {
 
       {/* Memory Core Panel */}
 
-      <div className="flex-shrink-0 px-4 mb-3 max-h-[30vh] overflow-y-auto w-full">
+      <div className="flex-shrink-0 px-4 mb-4 w-full">
 
-        <div className="rounded-3xl bg-ultra-card border border-ultra-border p-4 space-y-3">
+        <div className="rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 p-4 space-y-3 shadow-lg">
 
           <div>
 
@@ -380,7 +380,7 @@ export default function AgentPage() {
 
             placeholder="Concept (e.g. Playbook: breakout timing rule)"
 
-            className="w-full px-3 py-2 rounded-xl bg-ultra-cardAlt border border-ultra-border text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent"
+            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent"
 
           />
 
@@ -394,7 +394,7 @@ export default function AgentPage() {
 
             rows={4}
 
-            className="w-full px-3 py-2 rounded-xl bg-ultra-cardAlt border border-ultra-border text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent resize-none"
+            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent resize-none"
 
           />
 
@@ -408,7 +408,7 @@ export default function AgentPage() {
 
             placeholder="Tags (comma separated, optional)"
 
-            className="w-full px-3 py-2 rounded-xl bg-ultra-cardAlt border border-ultra-border text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent"
+            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent"
 
           />
 
@@ -456,9 +456,9 @@ export default function AgentPage() {
 
       {/* Chat area */}
 
-      <main className="flex-1 min-h-0 px-4 pb-3 w-full overflow-x-hidden">
+      <main className="flex-1 min-h-0 px-4 pb-20 w-full overflow-x-hidden">
 
-        <div className="rounded-3xl bg-ultra-card/80 border border-ultra-border shadow-[0_18px_45px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col h-full">
+        <div className="rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-lg overflow-hidden flex flex-col" style={{ minHeight: '400px', maxHeight: 'calc(100vh - 28rem)' }}>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
 
@@ -490,7 +490,7 @@ export default function AgentPage() {
 
                         ? "bg-ultra-accent text-white shadow-[0_0_18px_rgba(245,99,0,0.75)]"
 
-                        : "bg-ultra-cardAlt text-gray-100 border border-white/5"
+                        : "bg-white/5 backdrop-blur-sm text-gray-100 border border-white/10"
 
                     ].join(" ")}
 
@@ -510,7 +510,7 @@ export default function AgentPage() {
 
                 <div className="flex justify-start">
 
-                  <div className="rounded-2xl bg-ultra-cardAlt px-3 py-2 text-[12px] text-gray-400 border border-white/5">
+                  <div className="rounded-2xl bg-white/5 backdrop-blur-sm px-3 py-2 text-[12px] text-gray-400 border border-white/10">
 
                     Thinking…
 
@@ -560,13 +560,13 @@ export default function AgentPage() {
 
             onSubmit={handleSubmit}
 
-            className="flex-shrink-0 flex items-end gap-2 border-t border-ultra-border bg-black/80 px-4 py-3 sticky bottom-0 z-10"
+            className="flex-shrink-0 flex items-end gap-2 border-t border-white/10 bg-black/40 backdrop-blur-sm px-4 py-3"
 
           >
 
             <div className="flex-1 min-w-0">
 
-              <div className="rounded-2xl bg-ultra-cardAlt px-3 py-2 border border-ultra-border focus-within:border-ultra-accent/80 transition-colors">
+              <div className="rounded-2xl bg-black/40 backdrop-blur-sm px-3 py-2 border border-white/10 focus-within:border-ultra-accent/80 transition-colors">
 
                 <textarea
 

@@ -64,15 +64,26 @@ export async function POST(req: NextRequest) {
 
 
 
-    // Decide which sources to use
+    // Decide which sources to use (normalize/trim)
 
-    const usedSources =
+    const incomingSources = body.sources && body.sources.length > 0
 
-      body.sources && body.sources.length > 0
+      ? body.sources.map((s) => s.trim()).filter(Boolean)
 
-        ? body.sources.map((s) => s.trim()).filter(Boolean)
+      : null;
 
-        : DEFAULT_AGENT_SOURCES;
+    const resolvedSources = incomingSources || DEFAULT_AGENT_SOURCES;
+
+    // Debug logging to verify request body
+    console.log("AGENT_REQUEST", {
+
+      bodySources: body.sources,
+
+      resolvedSources,
+
+      message: body.message
+
+    });
 
 
 
@@ -122,11 +133,11 @@ export async function POST(req: NextRequest) {
 
     const pineFilter =
 
-      usedSources.length > 0
+      resolvedSources.length > 0
 
         ? {
 
-            source: { $in: usedSources },
+            source: { $in: resolvedSources },
 
           }
 
@@ -304,7 +315,7 @@ export async function POST(req: NextRequest) {
 
       sources: sourcesOut,
 
-      usedSources,
+      usedSources: resolvedSources,
 
     });
 

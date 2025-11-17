@@ -15,8 +15,10 @@
 
 body {
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile keyboard */
   background: var(--color-ultra-black);
   color: white;
   font-family: var(--font-sans, "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }

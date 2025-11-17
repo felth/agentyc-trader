@@ -286,7 +286,7 @@ export default function AgentPage() {
 
   return (
 
-    <div className="flex flex-col bg-black w-full max-w-full overflow-x-hidden">
+    <div className="flex flex-col bg-black w-full max-w-full overflow-x-hidden min-h-0">
 
       {/* Header */}
 
@@ -358,7 +358,7 @@ export default function AgentPage() {
 
       {/* Memory Core Panel */}
 
-      <div className="flex-shrink-0 px-4 mb-3 max-h-[35vh] overflow-y-auto w-full max-w-full">
+      <div className="flex-shrink-0 px-4 mb-3 max-h-[30vh] overflow-y-auto w-full max-w-full">
 
         <div className="rounded-3xl bg-ultra-card border border-ultra-border p-4 space-y-3">
 
@@ -458,7 +458,7 @@ export default function AgentPage() {
 
       <main className="flex-1 min-h-0 px-4 pb-3 w-full max-w-full overflow-x-hidden">
 
-        <div className="rounded-3xl bg-ultra-card/80 border border-ultra-border shadow-[0_18px_45px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 32rem)', maxHeight: '500px' }}>
+        <div className="rounded-3xl bg-ultra-card/80 border border-ultra-border shadow-[0_18px_45px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col h-full">
 
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
 
@@ -560,7 +560,7 @@ export default function AgentPage() {
 
             onSubmit={handleSubmit}
 
-            className="flex-shrink-0 flex items-end gap-2 border-t border-ultra-border bg-black/80 px-4 py-3"
+            className="flex-shrink-0 flex items-end gap-2 border-t border-ultra-border bg-black/80 px-4 py-3 sticky bottom-0 z-10"
 
           >
 

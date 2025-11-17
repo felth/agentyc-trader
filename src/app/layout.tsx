@@ -9,7 +9,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   width: "device-width",
-  initialScale: 1
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-ultra-black text-white min-h-screen overflow-x-hidden">
         <div className="relative min-h-screen w-full max-w-full overflow-x-hidden">
           <TopNav />
-          <main className="pb-24 w-full max-w-full overflow-x-hidden">{children}</main>
+          <main className="pb-20 w-full max-w-full overflow-x-hidden">{children}</main>
           <BottomNav />
         </div>
       </body>

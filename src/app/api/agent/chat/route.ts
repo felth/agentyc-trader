@@ -6,8 +6,6 @@ import OpenAI from "openai";
 
 import { Pinecone } from "@pinecone-database/pinecone";
 
-import { createClient } from "@supabase/supabase-js";
-
 
 
 type AgentChatRequest = {
@@ -92,11 +90,11 @@ export async function POST(req: NextRequest) {
 
     const history = body.history || [];
 
-    const messages = [
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
 
       { role: "system", content: "You are Liam's trading agent. Answer using ONLY the provided lessons. Be concise, actionable. Cite lesson IDs." },
 
-      ...history,
+      ...history.map(h => ({ role: h.role, content: h.content })),
 
       { role: "user", content: `Query: ${message}\n\nLessons:\n${context}` }
 

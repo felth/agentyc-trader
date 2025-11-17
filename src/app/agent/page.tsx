@@ -46,6 +46,10 @@ type AgentChatResponse = {
 
 
 
+type SourceType = "finelo" | "journal" | "book" | "manual";
+
+
+
 export default function AgentPage() {
 
   const [history, setHistory] = useState<HistoryItem[]>([
@@ -68,6 +72,20 @@ export default function AgentPage() {
 
   const [lastSources, setLastSources] = useState<string[]>([]);
 
+  const [source, setSource] = useState<SourceType>("finelo");
+
+  const [concept, setConcept] = useState("");
+
+  const [notes, setNotes] = useState("");
+
+  const [tagsInput, setTagsInput] = useState("");
+
+  const [saving, setSaving] = useState(false);
+
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
 
@@ -81,6 +99,104 @@ export default function AgentPage() {
     }
 
   }, [history, loading]);
+
+
+
+  async function handleSave() {
+
+    if (!notes.trim()) {
+
+      setSaveStatus("error");
+
+      setSaveError("Please add some notes first.");
+
+      return;
+
+    }
+
+
+
+    const tags = tagsInput
+
+      .split(",")
+
+      .map((t) => t.trim())
+
+      .filter(Boolean);
+
+
+
+    setSaving(true);
+
+    setSaveStatus("idle");
+
+    setSaveError(null);
+
+
+
+    try {
+
+      const res = await fetch("/api/ingest", {
+
+        method: "POST",
+
+        headers: { "Content-Type": "application/json" },
+
+        body: JSON.stringify({
+
+          concept: concept.trim() || undefined,
+
+          notes: notes.trim(),
+
+          tags,
+
+          source,
+
+          lesson_id: undefined
+
+        })
+
+      });
+
+
+
+      const data = await res.json();
+
+
+
+      if (!data.ok) {
+
+        setSaveStatus("error");
+
+        setSaveError(data.error || "Failed to save lesson.");
+
+      } else {
+
+        setSaveStatus("success");
+
+        setConcept("");
+
+        setNotes("");
+
+        setTagsInput("");
+
+        setTimeout(() => setSaveStatus("idle"), 3000);
+
+      }
+
+    } catch (err: any) {
+
+      setSaveStatus("error");
+
+      setSaveError(err.message || "Network error saving lesson.");
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
+  }
 
 
 
@@ -120,7 +236,9 @@ export default function AgentPage() {
 
             message: trimmed,
 
-            history: newHistory.map((h) => ({ role: h.role, content: h.content }))
+            history: newHistory.map((h) => ({ role: h.role, content: h.content })),
+
+            sources: [source]
 
           })
 
@@ -158,129 +276,358 @@ export default function AgentPage() {
 
 
 
+  const sources = ["finelo", "journal", "book", "manual"] as const;
+
+
+
   return (
 
-    <div className="flex min-h-screen flex-col bg-ultra-black text-white">
+    <div className="flex min-h-screen flex-col bg-black pb-24">
 
-      <div className="flex-1 overflow-y-auto pt-16 pb-24">
+      {/* Header */}
 
-        <div className="max-w-md mx-auto px-4 pt-6 pb-6 space-y-4">
+      <header className="px-4 pt-6 pb-3">
 
-          {history.map((msg, idx) => (
+        <div className="rounded-3xl bg-gradient-to-b from-[#151515] to-[#050505] px-5 py-4 border border-white/5 shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
 
-            <div
+          <p className="text-xs uppercase tracking-[0.18em] text-gray-400 mb-1">
 
-              key={idx}
+            Trading Agent
+
+          </p>
+
+          <h1 className="text-xl font-semibold text-white">Hello, Liam</h1>
+
+          <p className="mt-1 text-[13px] text-gray-400">
+
+            Chat with your trading coach, grounded in your Finelo lessons and journal. Ask about setups, risk, or today's plan.
+
+          </p>
+
+        </div>
+
+      </header>
+
+
+
+      {/* Source Selector */}
+
+      <div className="px-4 mb-3">
+
+        <label className="text-xs uppercase text-gray-400 mb-1 block">Source</label>
+
+        <div className="flex gap-2">
+
+          {sources.map((s) => (
+
+            <button
+
+              key={s}
+
+              onClick={() => setSource(s)}
 
               className={[
 
-                "rounded-3xl px-4 py-3 max-w-[85%] break-words",
+                "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
 
-                msg.role === "user"
+                source === s
 
-                  ? "ml-auto bg-ultra-accent text-black"
+                  ? "bg-ultra-accent text-black border-ultra-accent"
 
-                  : "mr-auto bg-ultra-card border border-ultra-border text-white"
+                  : "bg-ultra-card text-gray-300 border-ultra-border"
 
               ].join(" ")}
 
             >
 
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
 
-            </div>
+            </button>
 
           ))}
-
-          {loading && (
-
-            <div className="mr-auto bg-ultra-card border border-ultra-border rounded-3xl px-4 py-3 max-w-[85%]">
-
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-
-                <span className="animate-pulse">●</span>
-
-                <span>Agent is thinking...</span>
-
-              </div>
-
-            </div>
-
-          )}
-
-          {error && (
-
-            <div className="mr-auto bg-ultra-negative/20 border border-ultra-negative/50 rounded-3xl px-4 py-3 max-w-[85%]">
-
-              <p className="text-sm text-ultra-negative">{error}</p>
-
-            </div>
-
-          )}
-
-          {lastSources.length > 0 && (
-
-            <div className="mr-auto bg-ultra-cardAlt border border-ultra-border rounded-2xl px-3 py-2 max-w-[85%]">
-
-              <p className="text-xs text-gray-400 mb-1">Sources: {lastSources.join(", ")}</p>
-
-            </div>
-
-          )}
-
-          <div ref={messagesEndRef} />
 
         </div>
 
       </div>
 
-      <form
 
-        onSubmit={handleSubmit}
 
-        className="fixed bottom-20 left-0 right-0 z-30 px-4 pb-4"
+      {/* Memory Core Panel */}
 
-      >
+      <div className="px-4 mb-4">
 
-        <div className="max-w-md mx-auto flex gap-2">
+        <div className="rounded-3xl bg-ultra-card border border-ultra-border p-4 space-y-3">
+
+          <div>
+
+            <h2 className="text-sm font-semibold text-white mb-1">Memory Core</h2>
+
+            <p className="text-xs text-gray-400">Paste notes to store in your trading brain.</p>
+
+          </div>
 
           <input
 
             type="text"
 
-            value={input}
+            value={concept}
 
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => setConcept(e.target.value)}
 
-            placeholder="Ask your agent..."
+            placeholder="Concept (e.g. Finelo: breakout timing rule)"
 
-            disabled={loading}
+            className="w-full px-3 py-2 rounded-xl bg-ultra-cardAlt border border-ultra-border text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent"
 
-            className="flex-1 rounded-full bg-ultra-card border border-ultra-border px-4 py-3 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-ultra-accent focus:ring-2 focus:ring-ultra-accent/20 disabled:opacity-50"
+          />
+
+          <textarea
+
+            value={notes}
+
+            onChange={(e) => setNotes(e.target.value)}
+
+            placeholder="Notes or lesson details..."
+
+            rows={4}
+
+            className="w-full px-3 py-2 rounded-xl bg-ultra-cardAlt border border-ultra-border text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent resize-none"
+
+          />
+
+          <input
+
+            type="text"
+
+            value={tagsInput}
+
+            onChange={(e) => setTagsInput(e.target.value)}
+
+            placeholder="Tags (comma separated, optional)"
+
+            className="w-full px-3 py-2 rounded-xl bg-ultra-cardAlt border border-ultra-border text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent"
 
           />
 
           <button
 
-            type="submit"
+            onClick={handleSave}
 
-            disabled={!input.trim() || loading}
+            disabled={saving}
 
-            className="rounded-full bg-ultra-accent text-black px-6 py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ultra-accentHover transition active:scale-95"
+            className={[
+
+              "inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+
+              saving
+
+                ? "bg-ultra-card text-gray-500 cursor-not-allowed"
+
+                : "bg-ultra-accent text-black hover:bg-ultra-accentHover"
+
+            ].join(" ")}
 
           >
 
-            Send
+            {saving ? "Saving…" : "Save to Memory"}
 
           </button>
 
+          {saveStatus === "success" && (
+
+            <p className="text-xs text-ultra-positive">Saved to memory.</p>
+
+          )}
+
+          {saveStatus === "error" && saveError && (
+
+            <p className="text-xs text-ultra-negative">Error: {saveError}</p>
+
+          )}
+
         </div>
 
-      </form>
+      </div>
+
+
+
+      {/* Chat area */}
+
+      <main className="flex-1 px-4 pb-3">
+
+        <div className="h-full rounded-3xl bg-ultra-card/80 border border-ultra-border shadow-[0_18px_45px_rgba(0,0,0,0.85)] overflow-hidden">
+
+          <div className="flex h-full flex-col">
+
+            <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+
+              {history.map((msg, idx) => (
+
+                <div
+
+                  key={idx}
+
+                  className={
+
+                    msg.role === "user"
+
+                      ? "flex justify-end"
+
+                      : "flex justify-start"
+
+                  }
+
+                >
+
+                  <div
+
+                    className={[
+
+                      "max-w-[78%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed",
+
+                      msg.role === "user"
+
+                        ? "bg-ultra-accent text-white shadow-[0_0_18px_rgba(245,99,0,0.75)]"
+
+                        : "bg-ultra-cardAlt text-gray-100 border border-white/5"
+
+                    ].join(" ")}
+
+                  >
+
+                    {msg.content}
+
+                  </div>
+
+                </div>
+
+              ))}
+
+
+
+              {loading && (
+
+                <div className="flex justify-start">
+
+                  <div className="rounded-2xl bg-ultra-cardAlt px-3 py-2 text-[12px] text-gray-400 border border-white/5">
+
+                    Thinking…
+
+                  </div>
+
+                </div>
+
+              )}
+
+
+
+              <div ref={messagesEndRef} />
+
+            </div>
+
+
+
+            {error && (
+
+              <div className="px-4 pb-2">
+
+                <div className="rounded-xl border border-ultra-negative/40 bg-ultra-negative/10 px-3 py-2 text-[12px] text-ultra-negative">
+
+                  {error}
+
+                </div>
+
+              </div>
+
+            )}
+
+
+
+            {!loading && lastSources.length > 0 && (
+
+              <div className="px-4 pb-2">
+
+                <p className="text-[10px] text-gray-500">Sources: {lastSources.join(", ")}</p>
+
+              </div>
+
+            )}
+
+
+
+            <form
+
+              onSubmit={handleSubmit}
+
+              className="flex items-end gap-2 border-t border-ultra-border bg-black/80 px-4 py-3"
+
+            >
+
+              <div className="flex-1">
+
+                <div className="rounded-2xl bg-ultra-cardAlt px-3 py-2 border border-ultra-border focus-within:border-ultra-accent/80 transition-colors">
+
+                  <textarea
+
+                    rows={1}
+
+                    value={input}
+
+                    onChange={(e) => setInput(e.target.value)}
+
+                    placeholder="Ask your agent about today's trades…"
+
+                    className="w-full resize-none bg-transparent text-[13px] text-white placeholder:text-gray-500 focus:outline-none"
+
+                    disabled={loading}
+
+                  />
+
+                </div>
+
+                <p className="mt-1 text-[10px] text-gray-500">
+
+                  Agent uses only your ingested lessons (Finelo, journal, books) – no random internet advice.
+
+                </p>
+
+              </div>
+
+
+
+              <button
+
+                type="submit"
+
+                disabled={loading || !input.trim()}
+
+                className={[
+
+                  "rounded-full px-4 py-2 text-[13px] font-semibold transition-colors",
+
+                  loading || !input.trim()
+
+                    ? "bg-ultra-card text-gray-500"
+
+                    : "bg-ultra-accent text-white shadow-[0_0_20px_rgba(245,99,0,0.8)] hover:bg-ultra-accentHover"
+
+                ].join(" ")}
+
+              >
+
+                {loading ? "Sending…" : "Send"}
+
+              </button>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      </main>
 
     </div>
 
   );
 
 }
-

@@ -288,86 +288,65 @@ export default function AgentPage() {
 
     <div className="flex flex-col bg-black w-full max-w-md mx-auto overflow-x-hidden min-h-0">
 
-      {/* Header */}
-
-      <header className="flex-shrink-0 px-4 pt-16 pb-3 w-full overflow-x-hidden">
-
-        <div className="rounded-3xl bg-gradient-to-br from-[#F56300]/10 via-black/60 to-black/90 backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-lg">
-
-          <p className="text-xs uppercase tracking-[0.18em] text-gray-400 mb-1">
-
-            Trading Agent
-
-          </p>
-
-          <h1 className="text-xl font-semibold text-white">Hello, Liam</h1>
-
-          <p className="mt-1 text-[13px] text-gray-400">
-
-            Chat with your trading coach, grounded in your playbook rules and journal lessons. Ask about setups, risk, or today's plan.
-
-          </p>
-
+      {/* Header - Premium Gradient */}
+      <header className="flex-shrink-0 px-4 pt-4 pb-3 w-full overflow-x-hidden">
+        <div className="relative h-40 rounded-[2rem] overflow-hidden group">
+          {/* Animated gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#F56300]/25 via-[#F56300]/5 to-black/90" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.15),_transparent_70%)]" />
+          
+          <div className="relative h-full flex flex-col justify-between px-6 py-5">
+            <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Trading Agent</p>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold tracking-tight text-white">Hello, Liam</h1>
+              <p className="text-sm text-white/70 leading-relaxed">
+                Chat with your trading coach, grounded in your playbook rules and journal lessons.
+              </p>
+            </div>
+          </div>
         </div>
-
       </header>
 
 
 
       {/* Source Selector */}
-
-      <div className="flex-shrink-0 px-4 mb-3 w-full overflow-x-hidden">
-
-        <label className="text-xs uppercase text-gray-400 mb-1 block">Source</label>
-
-        <div className="flex gap-2">
-
-          {sources.map((s) => (
-
-            <button
-
-              key={s}
-
-              onClick={() => setSource(s)}
-
-              className={[
-
-                "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
-
-                source === s
-
-                  ? "bg-ultra-accent text-black border-ultra-accent shadow-[0_0_12px_rgba(245,99,0,0.5)]"
-
-                  : "bg-white/5 backdrop-blur-sm text-gray-300 border-white/10 hover:bg-white/10"
-
-              ].join(" ")}
-
-            >
-
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-
-            </button>
-
-          ))}
-
+      <div className="flex-shrink-0 px-4 mb-4 w-full overflow-x-hidden">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Source</label>
         </div>
-
+        <div className="flex gap-2">
+          {sources.map((s) => (
+            <button
+              key={s}
+              onClick={() => setSource(s)}
+              className={[
+                "px-4 py-2 rounded-full text-xs font-bold border transition-all active:scale-95",
+                source === s
+                  ? "bg-ultra-accent text-black border-ultra-accent shadow-[0_0_16px_rgba(245,99,0,0.6)]"
+                  : "bg-white/[0.03] backdrop-blur-sm text-slate-300 border-white/10 hover:bg-white/[0.06] hover:border-white/15"
+              ].join(" ")}
+            >
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
 
 
       {/* Memory Core Panel */}
-
       <div className="flex-shrink-0 px-4 mb-4 w-full">
+        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all">
 
-        <div className="rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 p-4 space-y-3 shadow-lg">
-
-          <div>
-
-            <h2 className="text-sm font-semibold text-white mb-1">Memory Core</h2>
-
-            <p className="text-xs text-gray-400">Store your playbook rules and trading lessons.</p>
-
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-ultra-accent/20 border border-ultra-accent/30 flex items-center justify-center">
+              <span className="text-lg">🧠</span>
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white tracking-tight">Memory Core</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Store your playbook rules and trading lessons</p>
+            </div>
           </div>
 
           <input
@@ -380,7 +359,7 @@ export default function AgentPage() {
 
             placeholder="Concept (e.g. Playbook: breakout timing rule)"
 
-            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent"
+            className="w-full px-4 py-2.5 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
 
           />
 
@@ -394,7 +373,7 @@ export default function AgentPage() {
 
             rows={4}
 
-            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent resize-none"
+            className="w-full px-4 py-2.5 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors resize-none"
 
           />
 
@@ -408,7 +387,7 @@ export default function AgentPage() {
 
             placeholder="Tags (comma separated, optional)"
 
-            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-ultra-accent"
+            className="w-full px-4 py-2.5 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
 
           />
 
@@ -420,13 +399,13 @@ export default function AgentPage() {
 
             className={[
 
-              "inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+              "inline-flex items-center justify-center px-5 py-2.5 rounded-full text-xs font-bold transition-all active:scale-95",
 
               saving
 
-                ? "bg-ultra-card text-gray-500 cursor-not-allowed"
+                ? "bg-white/5 text-slate-500 cursor-not-allowed"
 
-                : "bg-ultra-accent text-black hover:bg-ultra-accentHover"
+                : "bg-ultra-accent text-black hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)]"
 
             ].join(" ")}
 
@@ -458,7 +437,7 @@ export default function AgentPage() {
 
       <main className="flex-1 min-h-0 px-4 pb-20 w-full overflow-x-hidden">
 
-        <div className="rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-lg overflow-hidden flex flex-col" style={{ minHeight: '400px', maxHeight: 'calc(100vh - 28rem)' }}>
+        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col" style={{ minHeight: '400px', maxHeight: 'calc(100vh - 28rem)' }}>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
 
@@ -484,13 +463,13 @@ export default function AgentPage() {
 
                     className={[
 
-                      "max-w-[78%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed",
+                      "max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed font-medium",
 
                       msg.role === "user"
 
-                        ? "bg-ultra-accent text-white shadow-[0_0_18px_rgba(245,99,0,0.75)]"
+                        ? "bg-ultra-accent text-white shadow-[0_0_20px_rgba(245,99,0,0.8)]"
 
-                        : "bg-white/5 backdrop-blur-sm text-gray-100 border border-white/10"
+                        : "bg-white/[0.05] backdrop-blur-sm text-slate-100 border border-white/10"
 
                     ].join(" ")}
 
@@ -510,7 +489,7 @@ export default function AgentPage() {
 
                 <div className="flex justify-start">
 
-                  <div className="rounded-2xl bg-white/5 backdrop-blur-sm px-3 py-2 text-[12px] text-gray-400 border border-white/10">
+                  <div className="rounded-2xl bg-white/[0.05] backdrop-blur-sm px-4 py-3 text-sm text-slate-400 border border-white/10">
 
                     Thinking…
 
@@ -560,13 +539,13 @@ export default function AgentPage() {
 
             onSubmit={handleSubmit}
 
-            className="flex-shrink-0 flex items-end gap-2 border-t border-white/10 bg-black/40 backdrop-blur-sm px-4 py-3"
+              className="flex-shrink-0 flex items-end gap-3 border-t border-white/10 bg-black/60 backdrop-blur-sm px-5 py-4"
 
           >
 
             <div className="flex-1 min-w-0">
 
-              <div className="rounded-2xl bg-black/40 backdrop-blur-sm px-3 py-2 border border-white/10 focus-within:border-ultra-accent/80 transition-colors">
+              <div className="rounded-2xl bg-black/50 backdrop-blur-sm px-4 py-3 border border-white/10 focus-within:border-ultra-accent/80 transition-all">
 
                 <textarea
 
@@ -604,7 +583,7 @@ export default function AgentPage() {
 
                   placeholder="Ask your agent about today's trades…"
 
-                  className="w-full resize-none bg-transparent text-[13px] text-white placeholder:text-gray-500 focus:outline-none max-h-24 overflow-y-auto"
+                  className="w-full resize-none bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none max-h-24 overflow-y-auto"
 
                   disabled={loading}
 
@@ -612,7 +591,7 @@ export default function AgentPage() {
 
               </div>
 
-              <p className="mt-1 text-[10px] text-gray-500">
+              <p className="mt-2 text-[10px] text-slate-500 font-medium">
 
                 Agent uses only your ingested lessons (playbook, journal, books) – no random internet advice.
 
@@ -630,11 +609,11 @@ export default function AgentPage() {
 
               className={[
 
-                "flex-shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors",
+                "flex-shrink-0 rounded-full px-6 py-3 text-sm font-bold transition-all active:scale-95",
 
                 loading || !input.trim()
 
-                  ? "bg-ultra-card text-gray-500"
+                  ? "bg-white/5 text-slate-500 cursor-not-allowed"
 
                   : "bg-ultra-accent text-white shadow-[0_0_20px_rgba(245,99,0,0.8)] hover:bg-ultra-accentHover"
 

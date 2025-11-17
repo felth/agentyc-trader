@@ -120,12 +120,23 @@ export default function HomePage() {
 
   return (
     <main className="space-y-5 pt-4 pb-24 max-w-md mx-auto px-4">
-      {/* Hero Header - Premium Gradient with Depth */}
+      {/* Hero Header - Drone Photo Background with Dark Overlay */}
       <section className="relative h-48 rounded-[2rem] overflow-hidden mb-5 group">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#F56300]/25 via-[#F56300]/5 to-black/90" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.15),_transparent_70%)]" />
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: "url('/hero-home.jpeg')"
+          }}
+        />
+        
+        {/* Dark Overlay - Multiple layers for depth */}
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-transparent to-black/60" />
+        
+        {/* Subtle accent gradient overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.1),_transparent_70%)]" />
         
         {/* Subtle animated shimmer */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000">

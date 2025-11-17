@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { BottomNav } from "../components/layout/BottomNav";
+import { TopNav } from "../components/layout/TopNav";
 
 export const metadata: Metadata = {
   title: "Agentyc Trader"
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="bg-ultra-black text-white min-h-screen">
         <div className="relative min-h-screen">
+          <TopNav />
           <main className="pb-28">{children}</main>
           <BottomNav />
         </div>

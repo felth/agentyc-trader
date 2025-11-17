@@ -28,15 +28,13 @@ const TABS: Tab[] = [
 
   { label: "Home", href: "/", icon: "🏠" },
 
-  { label: "Agent", href: "/agent", icon: "🤖" }, // NEW – second position
+  { label: "Agent", href: "/agent", icon: "🤖" },
 
   { label: "Performance", href: "/performance", icon: "📈" },
 
   { label: "Trades", href: "/trades", icon: "💼" },
 
-  { label: "Journal", href: "/journal", icon: "📓" },
-
-  { label: "Profile", href: "/profile", icon: "⚙️" }
+  { label: "Journal", href: "/journal", icon: "📓" }
 
 ];
 
@@ -54,7 +52,7 @@ export function BottomNav() {
 
       <div className="mx-auto w-full max-w-md px-4">
 
-        <div className="flex items-center justify-between rounded-full bg-[rgba(15,15,15,0.96)]/95 px-3 py-1 shadow-[0_18px_45px_rgba(0,0,0,0.8)] backdrop-blur-xl border border-white/8">
+        <div className="flex items-center justify-between gap-1 rounded-full bg-[rgba(15,15,15,0.96)]/95 px-2 py-1 shadow-[0_18px_45px_rgba(0,0,0,0.8)] backdrop-blur-xl border border-white/8">
 
           {TABS.map((tab) => {
 
@@ -68,19 +66,19 @@ export function BottomNav() {
 
                 href={tab.href}
 
-                className="flex-1"
+                className="flex-1 min-w-0"
 
                 aria-label={tab.label}
 
               >
 
-                <div className="flex flex-col items-center justify-center py-2 text-[11px] leading-tight">
+                <div className="flex items-center justify-center py-1.5 text-[10px] leading-tight">
 
                   <div
 
                     className={[
 
-                      "flex items-center justify-center rounded-full px-3 py-1 transition-all duration-150",
+                      "flex items-center justify-center rounded-full px-2.5 py-1.5 transition-all duration-150 whitespace-nowrap",
 
                       active
 
@@ -92,9 +90,9 @@ export function BottomNav() {
 
                   >
 
-                    <span className="mr-1 text-base">{tab.icon}</span>
+                    <span className="mr-1 text-sm leading-none">{tab.icon}</span>
 
-                    <span className="font-medium">{tab.label}</span>
+                    <span className="font-medium text-[11px]">{tab.label}</span>
 
                   </div>
 

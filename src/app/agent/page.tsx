@@ -162,7 +162,7 @@ export default function AgentPage() {
 
     <div className="flex min-h-screen flex-col bg-ultra-black text-white">
 
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 overflow-y-auto pt-16 pb-24">
 
         <div className="max-w-md mx-auto px-4 pt-6 pb-6 space-y-4">
 

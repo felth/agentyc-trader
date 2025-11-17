@@ -49,16 +49,22 @@ const timeline = [
 export default function JournalTab() {
   return (
     <TabPage>
-      <JournalTodayCard
-        moods={moods}
-        preview="Good focus today—stuck to the A setups for the most part. Need to reinforce the rule of waiting for volume confirmation before hitting the breakout. Afternoon energy dipped; consider shorter sessions on Fridays."
-      />
+      <div className="mb-6">
+        <JournalTodayCard
+          moods={moods}
+          preview="Good focus today—stuck to the A setups for the most part. Need to reinforce the rule of waiting for volume confirmation before hitting the breakout. Afternoon energy dipped; consider shorter sessions on Fridays."
+        />
+      </div>
 
-      <AIReflectionCard insight="AI suggests reinforcing your pre-trade checklist. Trades aligned with the higher timeframe and taken during the first 90 minutes performed best. Consider pausing when feeling restless to avoid revenge entries." />
+      <div className="mb-6">
+        <AIReflectionCard insight="AI suggests reinforcing your pre-trade checklist. Trades aligned with the higher timeframe and taken during the first 90 minutes performed best. Consider pausing when feeling restless to avoid revenge entries." />
+      </div>
 
-      <PatternTagsGrid patterns={patterns} title="Patterns & Tags" />
+      <div className="mb-6">
+        <PatternTagsGrid patterns={patterns} title="Patterns & Tags" />
+      </div>
 
-      <section className="space-y-2">
+      <section className="space-y-2 mb-6">
         <SectionHeader title="Recent Entries" actionText="See all" />
         <div className="space-y-3">
           {journalEntries.map((entry) => (
@@ -67,7 +73,9 @@ export default function JournalTab() {
         </div>
       </section>
 
-      <JournalTimeline items={timeline} />
+      <div>
+        <JournalTimeline items={timeline} />
+      </div>
     </TabPage>
   );
 }

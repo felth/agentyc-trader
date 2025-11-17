@@ -4,7 +4,7 @@
 
 
 
-import React, { useState, useRef, useEffect, FormEvent, useTransition } from "react";
+import React, { useState, useRef, useEffect, FormEvent } from "react";
 
 
 
@@ -66,7 +66,7 @@ export default function AgentPage() {
 
   const [input, setInput] = useState("");
 
-  const [loading, startTransition] = useTransition();
+  const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -222,55 +222,59 @@ export default function AgentPage() {
 
 
 
-    startTransition(async () => {
-
-      try {
-
-        const res = await fetch("/api/agent/chat", {
-
-          method: "POST",
-
-          headers: { "Content-Type": "application/json" },
-
-          body: JSON.stringify({
-
-            message: trimmed,
-
-            history: newHistory.map((h) => ({ role: h.role, content: h.content })),
-
-            sources: [source]
-
-          })
-
-        });
+    setLoading(true);
 
 
 
-        const data: AgentChatResponse = await res.json();
+    try {
+
+      const res = await fetch("/api/agent/chat", {
+
+        method: "POST",
+
+        headers: { "Content-Type": "application/json" },
+
+        body: JSON.stringify({
+
+          message: trimmed,
+
+          history: newHistory.map((h) => ({ role: h.role, content: h.content })),
+
+          sources: [source]
+
+        })
+
+      });
 
 
 
-        if (!data.ok || !data.response) {
+      const data: AgentChatResponse = await res.json();
 
-          setError(data.error || "The agent could not respond.");
 
-        } else {
 
-          const assistantMessage: HistoryItem = { role: "assistant", content: data.response };
+      if (!data.ok || !data.response) {
 
-          setHistory((prev) => [...prev, assistantMessage]);
+        setError(data.error || "The agent could not respond.");
 
-          setLastSources(data.usedSources || []);
+      } else {
 
-        }
+        const assistantMessage: HistoryItem = { role: "assistant", content: data.response };
 
-      } catch (err: any) {
+        setHistory((prev) => [...prev, assistantMessage]);
 
-        setError(err.message || "Network error talking to the agent.");
+        setLastSources(data.usedSources || []);
 
       }
 
-    });
+    } catch (err: any) {
+
+      setError(err.message || "Network error talking to the agent.");
+
+    } finally {
+
+      setLoading(false);
+
+    }
 
   }
 

@@ -286,11 +286,11 @@ export default function AgentPage() {
 
   return (
 
-    <div className="flex flex-col bg-black">
+    <div className="flex flex-col bg-black w-full max-w-full overflow-x-hidden">
 
       {/* Header */}
 
-      <header className="flex-shrink-0 px-4 pt-16 pb-3">
+      <header className="flex-shrink-0 px-4 pt-16 pb-3 w-full max-w-full overflow-x-hidden">
 
         <div className="rounded-3xl bg-gradient-to-b from-[#151515] to-[#050505] px-5 py-4 border border-white/5 shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
 
@@ -316,7 +316,7 @@ export default function AgentPage() {
 
       {/* Source Selector */}
 
-      <div className="flex-shrink-0 px-4 mb-3">
+      <div className="flex-shrink-0 px-4 mb-3 w-full max-w-full overflow-x-hidden">
 
         <label className="text-xs uppercase text-gray-400 mb-1 block">Source</label>
 
@@ -358,7 +358,7 @@ export default function AgentPage() {
 
       {/* Memory Core Panel */}
 
-      <div className="flex-shrink-0 px-4 mb-3 max-h-[40vh] overflow-y-auto">
+      <div className="flex-shrink-0 px-4 mb-3 max-h-[35vh] overflow-y-auto w-full max-w-full">
 
         <div className="rounded-3xl bg-ultra-card border border-ultra-border p-4 space-y-3">
 
@@ -456,7 +456,7 @@ export default function AgentPage() {
 
       {/* Chat area */}
 
-      <main className="flex-1 min-h-0 px-4 pb-3">
+      <main className="flex-1 min-h-0 px-4 pb-3 w-full max-w-full overflow-x-hidden">
 
         <div className="rounded-3xl bg-ultra-card/80 border border-ultra-border shadow-[0_18px_45px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 32rem)', maxHeight: '500px' }}>
 

@@ -50,9 +50,9 @@ export function BottomNav() {
 
     <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-safe" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
 
-      <div className="mx-auto w-full max-w-md px-3 pb-1.5">
+      <div className="mx-auto w-full max-w-full px-2 pb-1.5 overflow-x-hidden">
 
-        <div className="flex items-center justify-around gap-1 rounded-full bg-[rgba(15,15,15,0.98)]/98 px-2 py-0.5 shadow-[0_12px_30px_rgba(0,0,0,0.9)] backdrop-blur-xl border border-white/10">
+        <div className="flex items-center justify-evenly gap-0.5 rounded-full bg-[rgba(15,15,15,0.98)]/98 px-1 py-0.5 shadow-[0_12px_30px_rgba(0,0,0,0.9)] backdrop-blur-xl border border-white/10 w-full">
 
           {TABS.map((tab) => {
 
@@ -66,7 +66,7 @@ export function BottomNav() {
 
                 href={tab.href}
 
-                className="flex-shrink-0 flex items-center justify-center"
+                className="flex-1 min-w-0 flex items-center justify-center"
 
                 aria-label={tab.label}
 
@@ -76,7 +76,7 @@ export function BottomNav() {
 
                   className={[
 
-                    "flex items-center justify-center rounded-full px-2 py-1 transition-all duration-150 whitespace-nowrap",
+                    "flex flex-col items-center justify-center rounded-full px-1 py-1 transition-all duration-150 w-full max-w-full overflow-hidden",
 
                     active
 
@@ -88,9 +88,9 @@ export function BottomNav() {
 
                 >
 
-                  <span className="mr-0.5 text-[11px] leading-none">{tab.icon}</span>
+                  <span className="text-[10px] leading-none mb-0.5">{tab.icon}</span>
 
-                  <span className="font-medium text-[9px] leading-[1.1] tracking-tight">{tab.label}</span>
+                  <span className="font-medium text-[8px] leading-[1] tracking-tight truncate w-full text-center">{tab.label}</span>
 
                 </div>
 

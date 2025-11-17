@@ -14,7 +14,17 @@ export const runtime = "nodejs";
 
 
 
-type HistoryItem = { role: "user" | "assistant"; content: string };
+type Role = "user" | "assistant";
+
+
+
+type HistoryItem = {
+
+  role: Role;
+
+  content: string;
+
+};
 
 
 
@@ -34,11 +44,11 @@ export async function POST(req: NextRequest) {
 
   try {
 
-    const body: AgentChatRequest = await req.json();
-
-
+    const body = (await req.json()) as AgentChatRequest;
 
     const userMessage = body.message?.trim();
+
+
 
     if (!userMessage) {
 
@@ -54,17 +64,17 @@ export async function POST(req: NextRequest) {
 
 
 
-    // Determine which sources to use
-
-    const incoming = Array.isArray(body.sources) ? body.sources : [];
+    // Decide which sources to use
 
     const usedSources =
 
-      incoming.length > 0 ? incoming : DEFAULT_AGENT_SOURCES;
+      body.sources && body.sources.length > 0
+
+        ? body.sources.map((s) => s.trim()).filter(Boolean)
+
+        : DEFAULT_AGENT_SOURCES;
 
 
-
-    // Instantiate clients
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
@@ -80,25 +90,25 @@ export async function POST(req: NextRequest) {
 
 
 
-    // Embed the message
+    // 1) Embed the user message
 
     const embed = await openai.embeddings.create({
 
       model: "text-embedding-3-large",
 
-      input: userMessage
+      input: userMessage,
 
     });
 
 
 
-    const vector = embed.data?.[0]?.embedding;
+    const embedding = embed.data?.[0]?.embedding;
 
-    if (!vector || vector.length === 0) {
+    if (!embedding || embedding.length === 0) {
 
       return NextResponse.json(
 
-        { ok: false, error: "failed to generate embedding" },
+        { ok: false, error: "Failed to create embedding for agent query" },
 
         { status: 500 }
 
@@ -108,57 +118,111 @@ export async function POST(req: NextRequest) {
 
 
 
-    // Query Pinecone using the allowed sources
+    // 2) Query Pinecone, filtered by sources if provided
 
-    const results = await index.query({
+    const pineFilter =
 
-      vector,
+      usedSources.length > 0
+
+        ? {
+
+            source: { $in: usedSources },
+
+          }
+
+        : undefined;
+
+
+
+    const pineRes = await index.query({
+
+      vector: embedding,
 
       topK: 5,
 
       includeMetadata: true,
 
-      filter: {
-
-        source: { $in: usedSources }
-
-      }
+      filter: pineFilter,
 
     });
 
 
 
-    const matches =
+    const rawMatches = pineRes.matches ?? [];
 
-      results.matches
-
-        ?.filter((m) => (m.score ?? 0) > 0.7)
-
-        .map((m) => ({
-
-          id: m.id,
-
-          score: m.score,
-
-          metadata: m.metadata
-
-        })) ?? [];
+    const minScore = 0.6;
 
 
 
-    const context =
-
-      matches
-
-        .map((m) => `${m.metadata?.concept}: ${m.metadata?.notes}`)
-
-        .join("\n\n") || "No lessons available.";
+    const strongMatches = rawMatches.filter((m) => (m.score ?? 0) >= minScore);
 
 
 
-    // Build chat messages
+    // Fallback: if nothing clears the bar, still use the best 1–2 matches
 
-    const history = body.history || [];
+    const matchesToUse =
+
+      strongMatches.length > 0 ? strongMatches : rawMatches.slice(0, 2);
+
+
+
+    // 3) Build textual context from the matches
+
+    const context = matchesToUse
+
+      .map((m) => {
+
+        const md = (m.metadata ?? {}) as Record<string, unknown>;
+
+        const concept =
+
+          typeof md.concept === "string" ? (md.concept as string) : "";
+
+        const notes =
+
+          typeof md.notes === "string" ? (md.notes as string) : "";
+
+        const lessonId =
+
+          typeof md.lesson_id === "string" ? (md.lesson_id as string) : "";
+
+        const source =
+
+          typeof md.source === "string" ? (md.source as string) : "";
+
+
+
+        const headerParts = [
+
+          lessonId && `Lesson ${lessonId}`,
+
+          source && `(source: ${source})`,
+
+        ].filter(Boolean);
+
+
+
+        const header = headerParts.length > 0 ? headerParts.join(" ") : "";
+
+        const conceptLine = concept ? `Concept: ${concept}` : "";
+
+        const notesLine = notes ? `Notes: ${notes}` : "";
+
+
+
+        return [header, conceptLine, notesLine].filter(Boolean).join("\n");
+
+      })
+
+      .filter(Boolean)
+
+      .join("\n\n");
+
+
+
+    const history: HistoryItem[] = body.history ?? [];
+
+
 
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
 
@@ -168,23 +232,39 @@ export async function POST(req: NextRequest) {
 
         content:
 
-          "You are Liam's trading agent. Only use the provided lessons. Do not invent facts. Be direct, actionable. Cite lesson IDs."
+          "You are Liam's trading agent. Answer ONLY using the lessons in the 'Context' section. " +
+
+          "If the context is empty or clearly unrelated, say you don't have a playbook rule yet and ask what he wants to add. " +
+
+          "Be concise and actionable. When you use a lesson, mention its lesson_id.",
 
       },
 
-      ...history.map(h => ({ role: h.role, content: h.content })),
+      ...history.map((h) => ({
+
+        role: h.role,
+
+        content: h.content,
+
+      })),
 
       {
 
         role: "user",
 
-        content: `User query: ${userMessage}\n\nLessons:\n${context}`
+        content: `User question: ${userMessage}\n\nContext:\n${
 
-      }
+          context || "(no matching lessons)"
+
+        }`,
+
+      },
 
     ];
 
 
+
+    // 4) Call OpenAI chat completion
 
     const completion = await openai.chat.completions.create({
 
@@ -192,17 +272,27 @@ export async function POST(req: NextRequest) {
 
       messages,
 
-      temperature: 0.2
+      temperature: 0.2,
 
     });
 
 
 
-    const reply =
+    const reply = completion.choices[0]?.message?.content ?? "";
 
-      completion.choices?.[0]?.message?.content ||
 
-      "No insight found.";
+
+    // 5) Shape the sources for the client
+
+    const sourcesOut = matchesToUse.map((m) => ({
+
+      id: m.id,
+
+      score: m.score,
+
+      metadata: m.metadata,
+
+    }));
 
 
 
@@ -212,23 +302,21 @@ export async function POST(req: NextRequest) {
 
       response: reply,
 
-      sources: matches,
+      sources: sourcesOut,
 
-      usedSources
+      usedSources,
 
     });
 
-  } catch (err: any) {
+  } catch (err) {
+
+    const message =
+
+      err instanceof Error ? err.message : "Unknown error in agent/chat";
 
     console.error("agent/chat error:", err);
 
-    return NextResponse.json(
-
-      { ok: false, error: err.message },
-
-      { status: 500 }
-
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
 
   }
 

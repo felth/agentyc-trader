@@ -50,7 +50,7 @@ export function BottomNav() {
 
     <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-safe" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
 
-      <div className="mx-auto w-full max-w-full px-2 pb-1.5 overflow-x-hidden">
+      <div className="mx-auto w-full max-w-md px-2 pb-1.5 overflow-x-hidden">
 
         <div className="flex items-center justify-evenly gap-0.5 rounded-full bg-[rgba(15,15,15,0.98)]/98 px-1 py-0.5 shadow-[0_12px_30px_rgba(0,0,0,0.9)] backdrop-blur-xl border border-white/10 w-full">
 

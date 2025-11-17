@@ -190,278 +190,188 @@ export default function HomePage() {
 
 
 
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const date = now.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
+
   return (
 
-    <main className="space-y-4 pt-16 pb-24 max-w-md mx-auto px-4">
+    <main className="space-y-6 pt-16 pb-24 max-w-md mx-auto px-4">
 
-      {/* Hero */}
-
-      <header className="rounded-3xl bg-ultra-card p-4 border border-ultra-border">
-
-        <h1 className="text-xl font-semibold text-ultra-accent">Agent Dashboard</h1>
-
-        <p className="text-sm text-gray-400">November 17, 2025</p>
-
-      </header>
+      {/* Hero Header with Gradient */}
+      <section className="relative h-44 rounded-3xl overflow-hidden mb-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#F56300]/20 via-black/60 to-black/90" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+        <div className="relative h-full flex flex-col justify-between px-5 py-4">
+          <div className="flex items-center justify-between text-xs text-slate-300">
+            <span className="font-medium">{time}</span>
+            <div className="flex items-center gap-3">
+              <span role="img" aria-label="search" className="text-base">🔍</span>
+              <span role="img" aria-label="notifications" className="text-base">🔔</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs">📅</span>
+              <p className="text-xs text-slate-200 font-medium">{date}</p>
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight text-white">Hello, Liam</h1>
+          </div>
+        </div>
+      </section>
 
 
 
       {/* Market Overview */}
-
-      <section className="overflow-x-auto">
-
-        <h2 className="text-xs uppercase font-semibold text-ultra-accent mb-2">Market Overview</h2>
-
-        <div className="flex gap-3 pb-2">
-
+      <section className="space-y-3 mb-6">
+        <h2 className="text-xs uppercase tracking-wider font-semibold text-ultra-accent mb-3">Market Overview</h2>
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
           {marketTiles.map((tile) => (
-
-            <div key={tile.symbol} className="bg-ultra-cardAlt p-3 rounded-xl border border-ultra-border min-w-[120px]">
-
-              <p className="text-xs text-gray-400">{tile.label}</p>
-
-              <p className="text-sm font-medium">{tile.symbol}</p>
-
-              <p className={`text-xs ${tile.state === "trending-up" ? "text-ultra-positive" : tile.state === "trending-down" ? "text-ultra-negative" : "text-gray-300"}`}>
-
+            <div key={tile.symbol} className="rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 px-4 py-3 space-y-2 min-w-[140px] hover:bg-white/8 transition shadow-lg">
+              <p className="text-xs text-slate-400 uppercase tracking-wide">{tile.label}</p>
+              <p className="text-base font-semibold text-white">{tile.symbol}</p>
+              <p className={`text-sm font-medium ${tile.state === "trending-up" ? "text-ultra-positive" : tile.state === "trending-down" ? "text-ultra-negative" : "text-slate-300"}`}>
                 {tile.changePct > 0 ? "+" : ""}{tile.changePct.toFixed(2)}%
-
               </p>
-
-              <p className="text-xs text-gray-400">ADR: {tile.adrUsagePct}%</p>
-
+              <div className="pt-2 border-t border-white/5">
+                <p className="text-[11px] text-slate-500">ADR: {tile.adrUsagePct}%</p>
+              </div>
             </div>
-
           ))}
-
         </div>
-
       </section>
 
 
 
       {/* Open Trades */}
-
-      <section>
-
-        <h2 className="text-xs uppercase font-semibold text-ultra-accent mb-2">Open Trades</h2>
-
+      <section className="space-y-3 mb-6">
+        <h2 className="text-xs uppercase tracking-wider font-semibold text-ultra-accent mb-3">Open Trades</h2>
         {trades.length === 0 ? (
-
-          <p className="text-sm text-gray-400">No open trades yet.</p>
-
-        ) : (
-
-          <div className="space-y-3">
-
-            {trades.map((trade) => (
-
-              <div key={trade.id} className="bg-ultra-card p-4 rounded-2xl border border-ultra-border">
-
-                <div className="flex justify-between items-start">
-
-                  <div className="flex-1">
-
-                    <h3 className="text-lg font-semibold text-white">{trade.symbol}</h3>
-
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-
-                      trade.direction === "long"
-
-                        ? "bg-ultra-positive/20 text-ultra-positive"
-
-                        : "bg-ultra-negative/20 text-ultra-negative"
-
-                    }`}>
-
-                      {trade.direction.toUpperCase()}
-
-                    </span>
-
-                    <p className="text-sm text-gray-400 mt-1">{trade.notes || "—"}</p>
-
-                  </div>
-
-                  <div className="text-right ml-4">
-
-                    <p className="text-sm font-medium">Entry: ${trade.entry_price?.toFixed(2) || "—"}</p>
-
-                    <p className="text-xs text-gray-400">Risk: {trade.risk_per_trade?.toFixed(2) || "—"}R</p>
-
-                    <p className="text-xs text-gray-500">
-
-                      Opened: {trade.opened_at ? new Date(trade.opened_at).toLocaleDateString() : "—"}
-
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            ))}
-
+          <div className="rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 px-4 py-6 text-center">
+            <p className="text-sm text-slate-400">No open trades yet.</p>
           </div>
-
+        ) : (
+          <div className="space-y-3">
+            {trades.map((trade) => (
+              <div key={trade.id} className="rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 px-5 py-4 hover:bg-white/8 transition shadow-lg">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-lg font-semibold text-white">{trade.symbol}</h3>
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${
+                        trade.direction === "long"
+                          ? "bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/30"
+                          : "bg-ultra-negative/20 text-ultra-negative border border-ultra-negative/30"
+                      }`}>
+                        {trade.direction.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-400 leading-relaxed">{trade.notes || "—"}</p>
+                  </div>
+                  <div className="text-right ml-4 flex-shrink-0">
+                    <p className="text-sm font-semibold text-white">${trade.entry_price?.toFixed(2) || "—"}</p>
+                    <p className="text-xs text-slate-500 mt-1">Risk: {trade.risk_per_trade?.toFixed(2) || "—"}R</p>
+                    <p className="text-[10px] text-slate-600 mt-1">
+                      {trade.opened_at ? new Date(trade.opened_at).toLocaleDateString() : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
-
       </section>
 
 
 
       {/* Risk Status */}
-
-      <section>
-
-        <h2 className="text-xs uppercase font-semibold text-ultra-accent mb-2">Risk Status</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-          <div className="bg-ultra-card p-3 rounded-2xl border border-ultra-border">
-
-            <p className="text-xs text-gray-400">Daily Limit</p>
-
-            <p className="text-sm font-medium">{risk.dailyRiskLimitPct}%</p>
-
+      <section className="space-y-3 mb-6">
+        <h2 className="text-xs uppercase tracking-wider font-semibold text-ultra-accent mb-3">Risk Status</h2>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 px-4 py-3 space-y-1 hover:bg-white/8 transition">
+            <span className="text-xs text-slate-400">Daily Limit</span>
+            <div className="text-base font-semibold tracking-tight text-white">{risk.dailyRiskLimitPct}%</div>
           </div>
-
-          <div className="bg-ultra-card p-3 rounded-2xl border border-ultra-border">
-
-            <p className="text-xs text-gray-400">Current</p>
-
-            <p className={`text-sm font-medium ${risk.currentRiskPct > risk.dailyRiskLimitPct ? "text-ultra-negative" : "text-ultra-positive"}`}>
-
+          <div className="rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 px-4 py-3 space-y-1 hover:bg-white/8 transition">
+            <span className="text-xs text-slate-400">Current</span>
+            <div className={`text-base font-semibold tracking-tight ${risk.currentRiskPct > risk.dailyRiskLimitPct ? "text-ultra-negative" : "text-ultra-positive"}`}>
               {risk.currentRiskPct.toFixed(2)}%
-
-            </p>
-
+            </div>
           </div>
-
-          <div className="bg-ultra-card p-3 rounded-2xl border border-ultra-border">
-
-            <p className="text-xs text-gray-400">Today's R</p>
-
-            <p className="text-sm font-medium">{risk.todaysR.toFixed(2)}R</p>
-
+          <div className="rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 px-4 py-3 space-y-1 hover:bg-white/8 transition">
+            <span className="text-xs text-slate-400">Today's R</span>
+            <div className="text-base font-semibold tracking-tight text-white">{risk.todaysR.toFixed(2)}R</div>
           </div>
-
-          <div className="col-span-1 sm:col-span-3 bg-ultra-card p-3 rounded-2xl border border-ultra-border">
-
-            <p className="text-xs text-gray-400">Streak</p>
-
-            <p className="text-sm font-medium text-ultra-accent">{risk.streakLabel}</p>
-
-          </div>
-
         </div>
-
+        <div className="rounded-3xl bg-gradient-to-br from-[#F56300]/10 to-cyan-500/5 backdrop-blur-2xl border border-white/10 px-4 py-3 shadow-lg">
+          <span className="text-xs text-slate-400">Streak</span>
+          <div className="text-sm font-semibold text-ultra-accent mt-1">{risk.streakLabel}</div>
+        </div>
       </section>
 
 
 
       {/* Playbook Signals */}
-
-      <section>
-
-        <h2 className="text-xs uppercase font-semibold text-ultra-accent mb-2">Playbook Signals</h2>
-
+      <section className="space-y-3 mb-6">
+        <h2 className="text-xs uppercase tracking-wider font-semibold text-ultra-accent mb-3">Playbook Signals</h2>
         <div className="space-y-3">
-
           {signals.map((signal) => (
-
-            <div key={signal.id} className="bg-ultra-card p-4 rounded-2xl border border-ultra-border">
-
-              <div className="flex justify-between items-start">
-
-                <div>
-
-                  <h3 className="text-lg font-semibold text-white">{signal.symbol}</h3>
-
-                  <p className="text-sm text-gray-400">{signal.label}</p>
-
+            <div key={signal.id} className="rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 px-5 py-4 hover:bg-white/8 transition shadow-lg">
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-white mb-1">{signal.symbol}</h3>
+                  <p className="text-sm text-slate-400">{signal.label}</p>
+                  <p className="text-xs text-slate-500 mt-2 capitalize">{signal.type}</p>
                 </div>
-
-                <span className={`text-xs px-2 py-1 rounded-full ${
-
-                  signal.confidence === "high" ? "bg-ultra-positive text-ultra-positive" : "bg-ultra-negative text-ultra-negative"
-
+                <span className={`text-[10px] px-3 py-1.5 rounded-full font-medium flex-shrink-0 ${
+                  signal.confidence === "high" 
+                    ? "bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/30" 
+                    : signal.confidence === "medium"
+                    ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                    : "bg-ultra-negative/20 text-ultra-negative border border-ultra-negative/30"
                 }`}>
-
                   {signal.confidence.toUpperCase()}
-
                 </span>
-
               </div>
-
-              <p className="text-xs text-gray-500 mt-2">{signal.type}</p>
-
             </div>
-
           ))}
-
         </div>
-
       </section>
 
 
 
       {/* Today's Events */}
-
-      <section>
-
-        <h2 className="text-xs uppercase font-semibold text-ultra-accent mb-2">Today's Events</h2>
-
+      <section className="space-y-3 mb-6">
+        <h2 className="text-xs uppercase tracking-wider font-semibold text-ultra-accent mb-3">Today's Events</h2>
         <div className="space-y-3">
-
           {events.map((event) => (
-
-            <div key={event.id} className="bg-ultra-card p-4 rounded-2xl border border-ultra-border">
-
-              <div className="flex justify-between items-center">
-
-                <div>
-
-                  <h3 className="text-lg font-semibold text-white">{event.label}</h3>
-
-                  <p className="text-sm text-gray-400">{event.time}</p>
-
+            <div key={event.id} className="rounded-3xl bg-white/5 backdrop-blur-2xl border border-white/10 px-5 py-4 hover:bg-white/8 transition shadow-lg">
+              <div className="flex justify-between items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-white mb-1">{event.label}</h3>
+                  <p className="text-sm text-slate-400">{event.time}</p>
                 </div>
-
-                <span className={`text-xs px-2 py-1 rounded-full ${
-
-                  event.impact === "high" ? "bg-ultra-negative text-ultra-negative" : "bg-ultra-positive text-ultra-positive"
-
+                <span className={`text-[10px] px-3 py-1.5 rounded-full font-medium flex-shrink-0 ${
+                  event.impact === "high" 
+                    ? "bg-ultra-negative/20 text-ultra-negative border border-ultra-negative/30" 
+                    : event.impact === "medium"
+                    ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                    : "bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/30"
                 }`}>
-
                   {event.impact.toUpperCase()}
-
                 </span>
-
               </div>
-
             </div>
-
           ))}
-
         </div>
-
       </section>
 
-
-
       {/* Agent Summary */}
-
-      <section>
-
-        <h2 className="text-xs uppercase font-semibold text-ultra-accent mb-2">Agent Summary</h2>
-
-        <div className="bg-ultra-card p-4 rounded-2xl border border-ultra-border">
-
-          <p className="text-sm text-gray-400">AI summary of your day based on trades and lessons. (Coming soon)</p>
-
+      <section className="space-y-3 mb-6">
+        <h2 className="text-xs uppercase tracking-wider font-semibold text-ultra-accent mb-3">Agent Summary</h2>
+        <div className="rounded-3xl bg-gradient-to-br from-[#F56300]/10 to-cyan-500/5 backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-lg">
+          <p className="text-sm text-slate-400 leading-relaxed">AI summary of your day based on trades and lessons. (Coming soon)</p>
         </div>
-
       </section>
 
     </main>

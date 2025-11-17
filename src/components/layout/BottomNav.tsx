@@ -52,7 +52,7 @@ export function BottomNav() {
 
       <div className="mx-auto w-full max-w-md px-3 pb-1.5">
 
-        <div className="flex items-center justify-between gap-0 rounded-full bg-[rgba(15,15,15,0.98)]/98 px-0.5 py-0.5 shadow-[0_12px_30px_rgba(0,0,0,0.9)] backdrop-blur-xl border border-white/10">
+        <div className="flex items-center justify-around gap-1 rounded-full bg-[rgba(15,15,15,0.98)]/98 px-2 py-0.5 shadow-[0_12px_30px_rgba(0,0,0,0.9)] backdrop-blur-xl border border-white/10">
 
           {TABS.map((tab) => {
 
@@ -66,7 +66,7 @@ export function BottomNav() {
 
                 href={tab.href}
 
-                className="flex-1 min-w-0 flex items-center justify-center"
+                className="flex-shrink-0 flex items-center justify-center"
 
                 aria-label={tab.label}
 
@@ -76,7 +76,7 @@ export function BottomNav() {
 
                   className={[
 
-                    "flex items-center justify-center rounded-full px-1.5 py-1 transition-all duration-150 whitespace-nowrap",
+                    "flex items-center justify-center rounded-full px-2 py-1 transition-all duration-150 whitespace-nowrap",
 
                     active
 

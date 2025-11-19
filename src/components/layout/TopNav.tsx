@@ -6,9 +6,14 @@ import { usePathname } from "next/navigation";
 export function TopNav() {
   const pathname = usePathname();
 
+  // Hide TopNav on homepage since it has its own icon row
+  if (pathname === "/") {
+    return null;
+  }
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
-      <div className="w-full max-w-md mx-auto flex justify-end px-4 pt-4 pb-2 pointer-events-auto">
+      <div className="w-full max-w-md mx-auto flex justify-end pr-6 pt-4 pb-2 pointer-events-auto">
         <Link
           href="/profile"
           className={[

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 type Trade = {
   id: string;
@@ -53,6 +55,7 @@ type EventItem = {
 };
 
 export default function HomePage() {
+  const pathname = usePathname();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +150,7 @@ export default function HomePage() {
           {/* Top bar */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-white/90 tracking-tight">{time}</span>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95">
                 <span className="text-base">🔍</span>
               </button>
@@ -155,6 +158,18 @@ export default function HomePage() {
                 <span className="text-base">🔔</span>
                 <span className="absolute top-1 right-1 w-2 h-2 bg-ultra-accent rounded-full border border-black" />
               </button>
+              <Link
+                href="/profile"
+                className={[
+                  "w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center hover:bg-white/10 transition-all active:scale-95",
+                  pathname === "/profile"
+                    ? "bg-ultra-accent/20 border-ultra-accent/50"
+                    : "bg-white/5 border-white/10"
+                ].join(" ")}
+                aria-label="Settings"
+              >
+                <span className="text-base">⚙️</span>
+              </Link>
             </div>
           </div>
           

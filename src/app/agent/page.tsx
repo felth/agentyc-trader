@@ -289,92 +289,16 @@ export default function AgentPage() {
 
 
 
-      {/* Add to Memory Section */}
-      <div className="flex-shrink-0 px-4 mb-4 w-full space-y-3">
-        {/* Source Badge */}
+      {/* Source Badge */}
+      <div className="flex-shrink-0 px-4 mb-4 w-full">
         <div className="inline-flex items-center gap-2 rounded-full bg-ultra-card px-3 py-1 text-xs text-gray-300 mb-3">
           <span className="w-1.5 h-1.5 rounded-full bg-ultra-accent" />
           <span>Source: Playbook</span>
         </div>
-
-        {/* Memory Core - Manual Entry */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-
-          <div className="flex items-center gap-2">
-            <span className="text-base">✍️</span>
-            <h3 className="text-sm font-semibold text-white">Manual Entry (Playbook)</h3>
-          </div>
-
-          <p className="text-xs text-slate-400">
-            Write a note about a setup, rule, or lesson. The app will auto-generate a title and tags and add it to your Playbook.
-          </p>
-
-          <textarea
-
-            value={notes}
-
-            onChange={(e) => setNotes(e.target.value)}
-
-            placeholder="Write your trading rule, setup, or lesson..."
-
-            rows={4}
-
-            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors resize-none"
-
-            required
-
-          />
-
-          <button
-
-            onClick={handleSave}
-
-            disabled={saving || !notes.trim()}
-
-            className={[
-
-              "w-full px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95",
-
-              saving || !notes.trim()
-
-                ? "bg-white/5 text-slate-500 cursor-not-allowed"
-
-                : "bg-ultra-accent text-black hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)]"
-
-            ].join(" ")}
-
-          >
-
-            {saving ? "Saving…" : "Save"}
-
-          </button>
-
-          {saveStatus === "success" && (
-
-            <p className="text-xs text-ultra-positive">✓ Saved to Playbook.</p>
-
-          )}
-
-          {saveStatus === "error" && saveError && (
-
-            <p className="text-xs text-ultra-negative">✗ {saveError}</p>
-
-          )}
-
-        </div>
-
-
-
-        {/* Memory Upload Panel */}
-        <MemoryUploadPanel />
-
       </div>
 
-
-
       {/* Chat area */}
-
-      <main className="flex-1 min-h-0 px-4 pb-20 w-full overflow-x-hidden">
+      <main className="flex-1 min-h-0 px-4 mb-4 w-full overflow-x-hidden">
 
         <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col" style={{ minHeight: '400px', maxHeight: 'calc(100vh - 28rem)' }}>
 
@@ -569,6 +493,79 @@ export default function AgentPage() {
         </div>
 
       </main>
+
+      {/* Add to Memory Section */}
+      <div className="flex-shrink-0 px-4 mb-4 w-full space-y-3">
+        {/* Memory Upload Panel */}
+        <MemoryUploadPanel />
+
+        {/* Memory Core - Manual Entry */}
+        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+
+          <div className="flex items-center gap-2">
+            <span className="text-base">✍️</span>
+            <h3 className="text-sm font-semibold text-white">Manual Entry (Playbook)</h3>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            Write a note about a setup, rule, or lesson. The app will auto-generate a title and tags and add it to your Playbook.
+          </p>
+
+          <textarea
+
+            value={notes}
+
+            onChange={(e) => setNotes(e.target.value)}
+
+            placeholder="Write your trading rule, setup, or lesson..."
+
+            rows={4}
+
+            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors resize-none"
+
+            required
+
+          />
+
+          <button
+
+            onClick={handleSave}
+
+            disabled={saving || !notes.trim()}
+
+            className={[
+
+              "w-full px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95",
+
+              saving || !notes.trim()
+
+                ? "bg-white/5 text-slate-500 cursor-not-allowed"
+
+                : "bg-ultra-accent text-black hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)]"
+
+            ].join(" ")}
+
+          >
+
+            {saving ? "Saving…" : "Save"}
+
+          </button>
+
+          {saveStatus === "success" && (
+
+            <p className="text-xs text-ultra-positive">✓ Saved to Playbook.</p>
+
+          )}
+
+          {saveStatus === "error" && saveError && (
+
+            <p className="text-xs text-ultra-negative">✗ {saveError}</p>
+
+          )}
+
+        </div>
+
+      </div>
 
     </div>
 

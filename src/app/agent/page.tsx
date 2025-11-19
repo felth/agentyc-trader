@@ -348,18 +348,22 @@ export default function AgentPage() {
 
 
 
-      {/* Memory Core Panel */}
-      <div className="flex-shrink-0 px-4 mb-4 w-full">
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all">
+      {/* Add to Memory Section */}
+      <div className="flex-shrink-0 px-4 mb-4 w-full space-y-3">
+        {/* Unified Header */}
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-sm font-bold text-white tracking-tight">Add to Memory</h2>
+          <span className="text-[10px] text-gray-500 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+            Source: {source.charAt(0).toUpperCase() + source.slice(1)}
+          </span>
+        </div>
 
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-ultra-accent/20 border border-ultra-accent/30 flex items-center justify-center">
-              <span className="text-lg">🧠</span>
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-white tracking-tight">Memory Core</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Store your playbook rules and trading lessons</p>
-            </div>
+        {/* Memory Core - Manual Entry */}
+        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+
+          <div className="flex items-center gap-2">
+            <span className="text-base">✍️</span>
+            <h3 className="text-sm font-semibold text-white">Manual Entry</h3>
           </div>
 
           <input
@@ -370,9 +374,9 @@ export default function AgentPage() {
 
             onChange={(e) => setConcept(e.target.value)}
 
-            placeholder="Concept (e.g. Playbook: breakout timing rule)"
+            placeholder="Concept (e.g. breakout timing rule)"
 
-            className="w-full px-4 py-2.5 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
+            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
 
           />
 
@@ -384,71 +388,72 @@ export default function AgentPage() {
 
             placeholder="Notes or lesson details..."
 
-            rows={4}
+            rows={3}
 
-            className="w-full px-4 py-2.5 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors resize-none"
-
-          />
-
-          <input
-
-            type="text"
-
-            value={tagsInput}
-
-            onChange={(e) => setTagsInput(e.target.value)}
-
-            placeholder="Tags (comma separated, optional)"
-
-            className="w-full px-4 py-2.5 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
+            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors resize-none"
 
           />
 
-          <button
+          <div className="flex gap-2">
+            <input
 
-            onClick={handleSave}
+              type="text"
 
-            disabled={saving}
+              value={tagsInput}
 
-            className={[
+              onChange={(e) => setTagsInput(e.target.value)}
 
-              "inline-flex items-center justify-center px-5 py-2.5 rounded-full text-xs font-bold transition-all active:scale-95",
+              placeholder="Tags (optional)"
 
-              saving
+              className="flex-1 px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
 
-                ? "bg-white/5 text-slate-500 cursor-not-allowed"
+            />
 
-                : "bg-ultra-accent text-black hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)]"
+            <button
 
-            ].join(" ")}
+              onClick={handleSave}
 
-          >
+              disabled={saving || !notes.trim()}
 
-            {saving ? "Saving…" : "Save to Memory"}
+              className={[
 
-          </button>
+                "px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 whitespace-nowrap",
+
+                saving || !notes.trim()
+
+                  ? "bg-white/5 text-slate-500 cursor-not-allowed"
+
+                  : "bg-ultra-accent text-black hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)]"
+
+              ].join(" ")}
+
+            >
+
+              {saving ? "Saving…" : "Save"}
+
+            </button>
+
+          </div>
 
           {saveStatus === "success" && (
 
-            <p className="text-xs text-ultra-positive">Saved to memory.</p>
+            <p className="text-xs text-ultra-positive">✓ Saved to memory.</p>
 
           )}
 
           {saveStatus === "error" && saveError && (
 
-            <p className="text-xs text-ultra-negative">Error: {saveError}</p>
+            <p className="text-xs text-ultra-negative">✗ {saveError}</p>
 
           )}
 
         </div>
 
-      </div>
 
 
+        {/* Memory Upload Panel */}
+        <MemoryUploadPanel source={source} />
 
-      {/* Memory Upload Panel */}
-      <div className="flex-shrink-0 px-4 mb-4 w-full">
-        <MemoryUploadPanel />
       </div>
 
 

@@ -4,11 +4,13 @@ import React, { useState } from "react";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
-export function MemoryUploadPanel() {
+interface MemoryUploadPanelProps {
+  source: string;
+}
+
+export function MemoryUploadPanel({ source }: MemoryUploadPanelProps) {
 
   const [file, setFile] = useState<File | null>(null);
-
-  const [source, setSource] = useState<string>("playbook");
 
   const [manualNotes, setManualNotes] = useState("");
 
@@ -103,25 +105,19 @@ export function MemoryUploadPanel() {
 
   return (
 
-    <section className="rounded-[24px] border border-ultra-border bg-ultra-card/80 p-4 backdrop-blur">
+    <section className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
 
-      <h2 className="text-sm font-semibold text-ultra-accent mb-1">
-
-        Memory Upload
-
-      </h2>
-
-      <p className="text-xs text-gray-400 mb-3">
-
-        Upload PDFs, images, or notes to teach your trading agent. Everything is embedded into your private memory core.
-
-      </p>
+      <div className="flex items-center gap-2">
+        <span className="text-base">📁</span>
+        <h3 className="text-sm font-semibold text-white">Upload File</h3>
+        <span className="text-[10px] text-gray-500 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 ml-auto">
+          Source: {source.charAt(0).toUpperCase() + source.slice(1)}
+        </span>
+      </div>
 
       <form onSubmit={onSubmit} className="space-y-3">
 
         <div className="space-y-1">
-
-          <label className="text-xs text-gray-300">File</label>
 
           <input
 
@@ -139,99 +135,49 @@ export function MemoryUploadPanel() {
 
           <p className="text-[10px] text-gray-500">
 
-            Max 5MB. PDFs, screenshots, or text files are supported.
+            Max 5MB • PDFs, screenshots, or text files
 
           </p>
 
         </div>
 
-        <div className="flex gap-2 items-center">
+        <textarea
 
-          <label className="text-xs text-gray-300">Source</label>
+          value={manualNotes}
 
-          <select
+          onChange={(e) => setManualNotes(e.target.value)}
 
-            value={source}
+          rows={2}
 
-            onChange={(e) => setSource(e.target.value)}
+          className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors resize-none"
 
-            className="flex-1 rounded-full bg-ultra-cardAlt border border-ultra-border px-3 py-1 text-xs text-gray-100"
+          placeholder="Additional notes (optional)…"
 
-          >
-
-            <option value="playbook">Playbook</option>
-
-            <option value="journal">Journal</option>
-
-            <option value="book">Book</option>
-
-            <option value="pdf">PDF</option>
-
-            <option value="manual">Manual</option>
-
-          </select>
-
-        </div>
-
-        <div className="space-y-1">
-
-          <label className="text-xs text-gray-300">Manual notes (optional)</label>
-
-          <textarea
-
-            value={manualNotes}
-
-            onChange={(e) => setManualNotes(e.target.value)}
-
-            rows={3}
-
-            className="w-full rounded-2xl bg-ultra-cardAlt border border-ultra-border px-3 py-2 text-xs text-gray-100 resize-none"
-
-            placeholder="Add any context you want the agent to remember with this file…"
-
-          />
-
-        </div>
+        />
 
         <button
 
           type="submit"
 
-          disabled={status === "uploading"}
+          disabled={status === "uploading" || !file}
 
-          className="w-full rounded-full bg-ultra-accent px-4 py-2 text-xs font-semibold text-black disabled:opacity-60 disabled:cursor-not-allowed active:bg-ultra-accentPressed"
+          className="w-full rounded-full bg-ultra-accent px-4 py-2 text-xs font-bold text-black disabled:opacity-60 disabled:cursor-not-allowed hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)] active:scale-95 transition-all"
 
         >
 
-          {status === "uploading" ? "Uploading…" : "Upload to Memory"}
+          {status === "uploading" ? "Uploading…" : "Upload"}
 
         </button>
 
-        {status !== "idle" && (
+        {status === "success" && (
 
-          <p
+          <p className="text-xs text-ultra-positive">✓ {message}</p>
 
-            className={
+        )}
 
-              "text-[11px] mt-1 " +
+        {status === "error" && (
 
-              (status === "success"
-
-                ? "text-ultra-positive"
-
-                : status === "error"
-
-                ? "text-ultra-negative"
-
-                : "text-gray-400")
-
-            }
-
-          >
-
-            {message}
-
-          </p>
+          <p className="text-xs text-ultra-negative">✗ {message}</p>
 
         )}
 

@@ -126,6 +126,20 @@ export function MemoryUploadPanel() {
 
             onChange={onFileChange}
 
+            onFocus={(e) => {
+
+              // Prevent scroll when file input gets focused
+
+              const prevScrollY = window.scrollY;
+
+              setTimeout(() => {
+
+                window.scrollTo({ top: prevScrollY, left: 0, behavior: "instant" });
+
+              }, 0);
+
+            }}
+
             className="block w-full text-xs text-gray-200 file:mr-2 file:rounded-full file:border-0 file:bg-ultra-cardAlt file:px-3 file:py-1 file:text-xs file:text-gray-100 hover:file:bg-ultra-border"
 
           />
@@ -143,6 +157,20 @@ export function MemoryUploadPanel() {
           value={manualNotes}
 
           onChange={(e) => setManualNotes(e.target.value)}
+
+          onFocus={(e) => {
+
+            // Prevent scroll when textarea gets focused
+
+            const prevScrollY = window.scrollY;
+
+            setTimeout(() => {
+
+              window.scrollTo({ top: prevScrollY, left: 0, behavior: "instant" });
+
+            }, 0);
+
+          }}
 
           rows={2}
 

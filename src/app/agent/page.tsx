@@ -584,6 +584,20 @@ export default function AgentPage() {
 
             onChange={(e) => setNotes(e.target.value)}
 
+            onFocus={(e) => {
+
+              // Prevent scroll when textarea gets focused
+
+              const prevScrollY = window.scrollY;
+
+              setTimeout(() => {
+
+                window.scrollTo({ top: prevScrollY, left: 0, behavior: "instant" });
+
+              }, 0);
+
+            }}
+
             placeholder="Write your trading rule, setup, or lesson..."
 
             rows={4}

@@ -8,6 +8,8 @@ import { createClient } from "@supabase/supabase-js";
 
 import { normalizeSource } from "@/lib/agentSources";
 
+import { ensureConceptAndTags } from "@/lib/lessonUtils";
+
 
 
 export const runtime = "nodejs";
@@ -343,13 +345,13 @@ export async function POST(req: NextRequest) {
 
 
 
-    const embedContent = [concept, notes].filter(Boolean).join("\n");
+    // Ensure we have notes before proceeding
 
-    if (!embedContent) {
+    if (!notes || !notes.trim()) {
 
       return NextResponse.json(
 
-        { ok: false, error: "No usable content extracted from file" },
+        { ok: false, error: "No lesson text extracted from file" },
 
         { status: 400 }
 
@@ -357,7 +359,29 @@ export async function POST(req: NextRequest) {
 
     }
 
+    // Combine extracted tags with manual tags
 
+    const allTagsInput = [...extractedTags, ...tags];
+
+    // Auto-generate concept/tags if missing
+
+    const ensured = await ensureConceptAndTags({
+
+      openai,
+
+      notes: notes.trim(),
+
+      concept,
+
+      tags: allTagsInput,
+
+    });
+
+    concept = ensured.concept;
+
+    const allTags = ensured.tags;
+
+    const embedContent = [concept, notes].filter(Boolean).join("\n");
 
     const embedding = await openai.embeddings.create({
 
@@ -380,10 +404,6 @@ export async function POST(req: NextRequest) {
       );
 
     }
-
-
-
-    const allTags = [...extractedTags, ...tags];
 
     const vectorId = `${lessonId}-${Date.now()}`;
 

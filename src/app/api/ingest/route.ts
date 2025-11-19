@@ -6,6 +6,8 @@ import { Pinecone } from "@pinecone-database/pinecone";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { ensureConceptAndTags } from "@/lib/lessonUtils";
+
 export const runtime = "nodejs";
 
 type IngestBody = {
@@ -40,23 +42,13 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json()) as IngestBody;
 
-    const concept = (body.concept ?? "").trim();
+    const rawNotes = (body.notes ?? "").trim();
 
-    const notes = (body.notes ?? "").trim();
-
-    const image_url = (body.image_url ?? "").trim();
-
-    const tags = Array.isArray(body.tags) ? body.tags.map(String) : [];
-
-    const source = normalizeSource(body.source);
-
-    let lesson_id = (body.lesson_id ?? "").trim();
-
-    if (!concept && !notes) {
+    if (!rawNotes) {
 
       return NextResponse.json(
 
-        { ok: false, error: "concept or notes required" },
+        { ok: false, error: "notes required" },
 
         { status: 400 }
 
@@ -64,19 +56,51 @@ export async function POST(req: NextRequest) {
 
     }
 
+    const notes = rawNotes;
+
+    let concept: string | undefined = (body.concept ?? "").trim() || undefined;
+
+    let tags: string[] | undefined = Array.isArray(body.tags) ? body.tags.map(String) : [];
+
+    const image_url = (body.image_url ?? "").trim();
+
+    const source = normalizeSource(body.source);
+
+    let lesson_id = (body.lesson_id ?? "").trim();
+
     if (!lesson_id) {
 
       lesson_id = `lesson-${Date.now()}`;
 
     }
 
-    const textForEmbed = [concept, notes].filter(Boolean).join("\n");
+    // Create OpenAI client BEFORE calling ensureConceptAndTags
 
     const openai = new OpenAI({
 
       apiKey: process.env.OPENAI_API_KEY!,
 
     });
+
+    // Auto-generate concept/tags if missing
+
+    const ensured = await ensureConceptAndTags({
+
+      openai,
+
+      notes,
+
+      concept,
+
+      tags,
+
+    });
+
+    concept = ensured.concept;
+
+    tags = ensured.tags;
+
+    const textForEmbed = [concept, notes].filter(Boolean).join("\n");
 
     const embed = await openai.embeddings.create({
 

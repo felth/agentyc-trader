@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { TabPage } from "../../../components/layout/TabPage";
 
 type Trade = {
@@ -21,6 +23,9 @@ type Trade = {
 const filters = ["All", "Open", "Closed", "Week", "Month"];
 
 export default function TradesTab() {
+  const pathname = usePathname();
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const [activeFilter, setActiveFilter] = useState("All");
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,8 +76,34 @@ export default function TradesTab() {
         {/* Subtle accent gradient overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.1),_transparent_70%)]" />
         <div className="relative h-full flex flex-col justify-between px-6 py-5">
-          <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Trades</p>
+          {/* Top bar */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-white/90 tracking-tight">{time}</span>
+            <div className="flex items-center gap-3">
+              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95">
+                <span className="text-base">🔍</span>
+              </button>
+              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95 relative">
+                <span className="text-base">🔔</span>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-ultra-accent rounded-full border border-black" />
+              </button>
+              <Link
+                href="/profile"
+                className={[
+                  "w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center hover:bg-white/10 transition-all active:scale-95",
+                  pathname === "/profile"
+                    ? "bg-ultra-accent/20 border-ultra-accent/50"
+                    : "bg-white/5 border-white/10"
+                ].join(" ")}
+                aria-label="Settings"
+              >
+                <span className="text-base">⚙️</span>
+              </Link>
+            </div>
+          </div>
+
           <div className="space-y-1">
+            <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Trades</p>
             <h1 className="text-2xl font-bold tracking-tight text-white">Your Positions</h1>
             <p className="text-sm text-white/70">{openTrades.length} open · {closedTrades.length} recent</p>
           </div>

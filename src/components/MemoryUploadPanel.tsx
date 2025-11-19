@@ -4,11 +4,7 @@ import React, { useState } from "react";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
-interface MemoryUploadPanelProps {
-  source: string;
-}
-
-export function MemoryUploadPanel({ source }: MemoryUploadPanelProps) {
+export function MemoryUploadPanel() {
 
   const [file, setFile] = useState<File | null>(null);
 
@@ -48,7 +44,7 @@ export function MemoryUploadPanel({ source }: MemoryUploadPanelProps) {
 
     formData.append("file", file);
 
-    formData.append("source", source);
+    formData.append("source", "playbook");
 
     if (manualNotes.trim()) formData.append("manual_notes", manualNotes.trim());
 
@@ -110,10 +106,11 @@ export function MemoryUploadPanel({ source }: MemoryUploadPanelProps) {
       <div className="flex items-center gap-2">
         <span className="text-base">📁</span>
         <h3 className="text-sm font-semibold text-white">Upload File</h3>
-        <span className="text-[10px] text-gray-500 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 ml-auto">
-          Source: {source.charAt(0).toUpperCase() + source.slice(1)}
-        </span>
       </div>
+
+      <p className="text-xs text-gray-400 mb-2">
+        Files uploaded here are added to your Playbook memory.
+      </p>
 
       <form onSubmit={onSubmit} className="space-y-3">
 

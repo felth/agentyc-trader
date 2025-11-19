@@ -48,10 +48,6 @@ type AgentChatResponse = {
 
 
 
-type SourceType = "playbook" | "journal" | "book" | "manual";
-
-
-
 export default function AgentPage() {
 
   const [history, setHistory] = useState<HistoryItem[]>([
@@ -73,8 +69,6 @@ export default function AgentPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [lastSources, setLastSources] = useState<string[]>([]);
-
-  const [source, setSource] = useState<SourceType>("playbook");
 
   const [concept, setConcept] = useState("");
 
@@ -152,7 +146,7 @@ export default function AgentPage() {
 
           tags,
 
-          source,
+          source: "playbook",
 
           lesson_id: undefined
 
@@ -242,7 +236,7 @@ export default function AgentPage() {
 
           history: newHistory.map((h) => ({ role: h.role, content: h.content })),
 
-          sources: [source]
+          sources: ["playbook"]
 
         })
 
@@ -279,10 +273,6 @@ export default function AgentPage() {
     }
 
   }
-
-
-
-  const sources = ["playbook", "journal", "book", "manual"] as const;
 
 
 
@@ -323,39 +313,12 @@ export default function AgentPage() {
 
 
 
-      {/* Source Selector */}
-      <div className="flex-shrink-0 px-4 mb-4 w-full overflow-x-hidden">
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Source</label>
-        </div>
-        <div className="flex gap-2">
-          {sources.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSource(s)}
-              className={[
-                "px-4 py-2 rounded-full text-xs font-bold border transition-all active:scale-95",
-                source === s
-                  ? "bg-ultra-accent text-black border-ultra-accent shadow-[0_0_16px_rgba(245,99,0,0.6)]"
-                  : "bg-white/[0.03] backdrop-blur-sm text-slate-300 border-white/10 hover:bg-white/[0.06] hover:border-white/15"
-              ].join(" ")}
-            >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-
-
       {/* Add to Memory Section */}
       <div className="flex-shrink-0 px-4 mb-4 w-full space-y-3">
-        {/* Unified Header */}
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-sm font-bold text-white tracking-tight">Add to Memory</h2>
-          <span className="text-[10px] text-gray-500 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
-            Source: {source.charAt(0).toUpperCase() + source.slice(1)}
-          </span>
+        {/* Source Badge */}
+        <div className="inline-flex items-center gap-2 rounded-full bg-ultra-card px-3 py-1 text-xs text-gray-300 mb-3">
+          <span className="w-1.5 h-1.5 rounded-full bg-ultra-accent" />
+          <span>Source: Playbook</span>
         </div>
 
         {/* Memory Core - Manual Entry */}
@@ -452,7 +415,7 @@ export default function AgentPage() {
 
 
         {/* Memory Upload Panel */}
-        <MemoryUploadPanel source={source} />
+        <MemoryUploadPanel />
 
       </div>
 

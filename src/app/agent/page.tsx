@@ -70,11 +70,7 @@ export default function AgentPage() {
 
   const [lastSources, setLastSources] = useState<string[]>([]);
 
-  const [concept, setConcept] = useState("");
-
   const [notes, setNotes] = useState("");
-
-  const [tagsInput, setTagsInput] = useState("");
 
   const [saving, setSaving] = useState(false);
 
@@ -112,16 +108,6 @@ export default function AgentPage() {
 
 
 
-    const tags = tagsInput
-
-      .split(",")
-
-      .map((t) => t.trim())
-
-      .filter(Boolean);
-
-
-
     setSaving(true);
 
     setSaveStatus("idle");
@@ -140,15 +126,9 @@ export default function AgentPage() {
 
         body: JSON.stringify({
 
-          concept: concept.trim() || undefined,
-
           notes: notes.trim(),
 
-          tags,
-
-          source: "playbook",
-
-          lesson_id: undefined
+          source: "playbook"
 
         })
 
@@ -170,11 +150,7 @@ export default function AgentPage() {
 
         setSaveStatus("success");
 
-        setConcept("");
-
         setNotes("");
-
-        setTagsInput("");
 
         setTimeout(() => setSaveStatus("idle"), 3000);
 
@@ -326,22 +302,12 @@ export default function AgentPage() {
 
           <div className="flex items-center gap-2">
             <span className="text-base">✍️</span>
-            <h3 className="text-sm font-semibold text-white">Manual Entry</h3>
+            <h3 className="text-sm font-semibold text-white">Manual Entry (Playbook)</h3>
           </div>
 
-          <input
-
-            type="text"
-
-            value={concept}
-
-            onChange={(e) => setConcept(e.target.value)}
-
-            placeholder="Concept (e.g. breakout timing rule)"
-
-            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
-
-          />
+          <p className="text-xs text-slate-400">
+            Write a note about a setup, rule, or lesson. The app will auto-generate a title and tags and add it to your Playbook.
+          </p>
 
           <textarea
 
@@ -349,58 +315,43 @@ export default function AgentPage() {
 
             onChange={(e) => setNotes(e.target.value)}
 
-            placeholder="Notes or lesson details..."
+            placeholder="Write your trading rule, setup, or lesson..."
 
-            rows={3}
+            rows={4}
 
             className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors resize-none"
 
+            required
+
           />
 
-          <div className="flex gap-2">
-            <input
+          <button
 
-              type="text"
+            onClick={handleSave}
 
-              value={tagsInput}
+            disabled={saving || !notes.trim()}
 
-              onChange={(e) => setTagsInput(e.target.value)}
+            className={[
 
-              placeholder="Tags (optional)"
+              "w-full px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95",
 
-              className="flex-1 px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
+              saving || !notes.trim()
 
-            />
+                ? "bg-white/5 text-slate-500 cursor-not-allowed"
 
-            <button
+                : "bg-ultra-accent text-black hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)]"
 
-              onClick={handleSave}
+            ].join(" ")}
 
-              disabled={saving || !notes.trim()}
+          >
 
-              className={[
+            {saving ? "Saving…" : "Save"}
 
-                "px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 whitespace-nowrap",
-
-                saving || !notes.trim()
-
-                  ? "bg-white/5 text-slate-500 cursor-not-allowed"
-
-                  : "bg-ultra-accent text-black hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)]"
-
-              ].join(" ")}
-
-            >
-
-              {saving ? "Saving…" : "Save"}
-
-            </button>
-
-          </div>
+          </button>
 
           {saveStatus === "success" && (
 
-            <p className="text-xs text-ultra-positive">✓ Saved to memory.</p>
+            <p className="text-xs text-ultra-positive">✓ Saved to Playbook.</p>
 
           )}
 

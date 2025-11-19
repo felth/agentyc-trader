@@ -30,9 +30,7 @@ const patterns = [
 export default function JournalTab() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [concept, setConcept] = useState("");
   const [notes, setNotes] = useState("");
-  const [tagsInput, setTagsInput] = useState("");
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
@@ -65,11 +63,7 @@ export default function JournalTab() {
       return;
     }
 
-    const tags = tagsInput
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-
+    const tags: string[] = [];
     if (selectedMood) {
       tags.push(`mood:${selectedMood}`);
     }
@@ -83,11 +77,9 @@ export default function JournalTab() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          concept: concept.trim() || undefined,
           notes: notes.trim(),
-          tags,
+          tags: tags.length > 0 ? tags : undefined,
           source: "journal",
-          lesson_id: undefined,
         }),
       });
 
@@ -98,9 +90,7 @@ export default function JournalTab() {
         setSaveError(data.error || "Failed to save journal entry.");
       } else {
         setSaveStatus("success");
-        setConcept("");
         setNotes("");
-        setTagsInput("");
         setSelectedMood(null);
         setTimeout(() => setSaveStatus("idle"), 2000);
         fetchEntries();
@@ -196,14 +186,6 @@ export default function JournalTab() {
             </div>
           </div>
 
-          <input
-            type="text"
-            value={concept}
-            onChange={(e) => setConcept(e.target.value)}
-            placeholder="Title (optional, e.g. 'Breakout timing — ES 5m')"
-            className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
-          />
-
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -213,27 +195,18 @@ export default function JournalTab() {
             required
           />
 
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              placeholder="Tags (optional)"
-              className="flex-1 px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={saving || !notes.trim()}
-              className={[
-                "px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 whitespace-nowrap",
-                saving || !notes.trim()
-                  ? "bg-white/5 text-slate-500 cursor-not-allowed"
-                  : "bg-ultra-accent text-black hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)]",
-              ].join(" ")}
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={saving || !notes.trim()}
+            className={[
+              "w-full px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95",
+              saving || !notes.trim()
+                ? "bg-white/5 text-slate-500 cursor-not-allowed"
+                : "bg-ultra-accent text-black hover:bg-ultra-accentHover shadow-[0_0_16px_rgba(245,99,0,0.5)]",
+            ].join(" ")}
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
 
           {saveStatus === "success" && (
             <p className="text-xs text-ultra-positive">✓ Saved to journal. Your agent can now learn from this.</p>

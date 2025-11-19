@@ -76,7 +76,7 @@ export function MemoryUploadPanel() {
 
       setStatus("success");
 
-      setMessage(`Saved lesson: ${json.concept || json.lesson_id}`);
+      setMessage("Uploaded and added to Playbook.");
 
       setFile(null);
 
@@ -105,11 +105,11 @@ export function MemoryUploadPanel() {
 
       <div className="flex items-center gap-2">
         <span className="text-base">📁</span>
-        <h3 className="text-sm font-semibold text-white">Upload File</h3>
+        <h3 className="text-sm font-semibold text-white">Upload File (Playbook)</h3>
       </div>
 
       <p className="text-xs text-gray-400 mb-2">
-        Files uploaded here are added to your Playbook memory.
+        Upload screenshots, PDFs, or notes. The app will extract the lesson, auto-generate a title and tags, and add it to your Playbook.
       </p>
 
       <form onSubmit={onSubmit} className="space-y-3">
@@ -148,7 +148,7 @@ export function MemoryUploadPanel() {
 
           className="w-full px-3 py-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors resize-none"
 
-          placeholder="Additional notes (optional)…"
+          placeholder="Extra notes (optional)…"
 
         />
 

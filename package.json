@@ -14,8 +14,10 @@
   "dependencies": {
     "@pinecone-database/pinecone": "^6.1.2",
     "@supabase/supabase-js": "^2.77.0",
+    "@types/pdf-parse": "^1.1.5",
     "next": "16.0.1",
     "openai": "^6.8.1",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },

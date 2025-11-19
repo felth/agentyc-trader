@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 
       includeMetadata: true,
 
-      filter: pineFilter,
+      ...(pineFilter && { filter: pineFilter }),
 
     });
 

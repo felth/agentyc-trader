@@ -84,13 +84,14 @@ export default function AgentPage() {
 
   useEffect(() => {
 
-    if (messagesEndRef.current) {
+    // Only scroll to bottom when loading completes (new message just added)
+    if (!loading && messagesEndRef.current) {
 
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
 
     }
 
-  }, [history, loading]);
+  }, [loading]);
 
 
 

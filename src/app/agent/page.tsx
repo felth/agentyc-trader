@@ -84,6 +84,22 @@ export default function AgentPage() {
 
   useEffect(() => {
 
+    // Prevent scroll restoration on page load
+    if (typeof window !== "undefined") {
+
+      window.history.scrollRestoration = "manual";
+
+      // Reset scroll position to top on mount
+      window.scrollTo(0, 0);
+
+    }
+
+  }, []);
+
+
+
+  useEffect(() => {
+
     // Only scroll to bottom when loading completes (new message just added)
     if (!loading && messagesEndRef.current) {
 

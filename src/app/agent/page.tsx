@@ -79,6 +79,7 @@ export default function AgentPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const hasScrolledRef = useRef(false);
 
 
 
@@ -89,8 +90,43 @@ export default function AgentPage() {
 
       window.history.scrollRestoration = "manual";
 
-      // Reset scroll position to top on mount
-      window.scrollTo(0, 0);
+      // Prevent any scrolling on mount - run immediately and after layout
+      const preventScroll = () => {
+
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+
+        document.documentElement.scrollTop = 0;
+
+        document.body.scrollTop = 0;
+
+      };
+
+      preventScroll();
+
+      // Prevent after layout calculations and render cycles
+      requestAnimationFrame(() => {
+
+        preventScroll();
+
+        requestAnimationFrame(preventScroll);
+
+      });
+
+      const timeoutId = setTimeout(preventScroll, 0);
+
+      const timeoutId2 = setTimeout(preventScroll, 50);
+
+      const timeoutId3 = setTimeout(preventScroll, 150);
+
+      return () => {
+
+        clearTimeout(timeoutId);
+
+        clearTimeout(timeoutId2);
+
+        clearTimeout(timeoutId3);
+
+      };
 
     }
 
@@ -100,14 +136,28 @@ export default function AgentPage() {
 
   useEffect(() => {
 
-    // Only scroll to bottom when loading completes (new message just added)
-    if (!loading && messagesEndRef.current) {
+    // Only scroll to bottom when loading completes AFTER user has sent a message
+    // Don't scroll on initial mount
+    if (!loading && messagesEndRef.current && hasScrolledRef.current) {
 
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
 
     }
 
   }, [loading]);
+
+
+
+  // Track when user sends a message so we know to scroll on response
+  useEffect(() => {
+
+    if (history.length > 1) {
+
+      hasScrolledRef.current = true;
+
+    }
+
+  }, [history]);
 
 
 

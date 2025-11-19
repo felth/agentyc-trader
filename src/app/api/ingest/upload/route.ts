@@ -16,6 +16,38 @@ export const runtime = "nodejs";
 
 
 
+function chunkText(input: string, chunkSize = 1200, overlap = 200): string[] {
+
+  const words = input.split(/\s+/);
+
+  const chunks: string[] = [];
+
+  let start = 0;
+
+  while (start < words.length) {
+
+    const end = start + chunkSize;
+
+    const slice = words.slice(start, end).join(" ").trim();
+
+    if (slice.length > 0) {
+
+      chunks.push(slice);
+
+    }
+
+    start = end - overlap;
+
+    if (start < 0) start = 0;
+
+  }
+
+  return chunks;
+
+}
+
+
+
 function detectFileType(mime: string, name: string): "image" | "pdf" | "text" | "unsupported" {
 
   if (mime.startsWith("image/")) return "image";
@@ -102,9 +134,21 @@ export async function POST(req: NextRequest) {
 
     const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
 
-    const index = pc.index(
+    // Existing playbook index (distilled lessons)
+
+    const playbookIndex = pc.index(
 
       process.env.PINECONE_INDEX!,
+
+      process.env.PINECONE_HOST!
+
+    );
+
+    // NEW corpus index (long-form chunks)
+
+    const corpusIndex = pc.index(
+
+      process.env.PINECONE_CORPUS_INDEX!,
 
       process.env.PINECONE_HOST!
 
@@ -125,6 +169,8 @@ export async function POST(req: NextRequest) {
     let notes = "";
 
     let extractedTags: string[] = [];
+
+    let fullRawText = ""; // Store full text for deep chunking (PDF/text only)
 
 
 
@@ -259,6 +305,9 @@ export async function POST(req: NextRequest) {
 
       const rawText = (parsed.text || "").slice(0, 16000);
 
+      // Store full raw text for deep chunking (before summarization)
+      fullRawText = rawText;
+
       const pdfSystem = [
 
         "You summarise PDF documents into concise trading lessons.",
@@ -326,6 +375,9 @@ export async function POST(req: NextRequest) {
       concept = text.trim().slice(0, 80) || "Uploaded Note";
 
       const notesFromText = text.trim();
+
+      // Store full raw text for deep chunking
+      fullRawText = notesFromText;
 
       notes = [notesFromText, manualNotes].filter(Boolean).join("\n\n");
 
@@ -407,7 +459,7 @@ export async function POST(req: NextRequest) {
 
     const vectorId = `${lessonId}-${Date.now()}`;
 
-    await index.upsert([
+    await playbookIndex.upsert([
 
       {
 
@@ -456,6 +508,94 @@ export async function POST(req: NextRequest) {
         image_url: fileType === "image" ? "upload://inline" : ""
 
       });
+
+
+
+    // After distilled lesson is prepared, add deep chunking for PDFs and text
+
+    if ((fileType === "pdf" || fileType === "text") && fullRawText.trim()) {
+
+      // Use the FULL raw text for deep corpus, not just the distilled notes
+
+      const chunks = chunkText(fullRawText);
+
+      if (chunks.length > 0) {
+
+        // 1) Create embeddings in batch for all chunks
+
+        const embeddingResponses = await Promise.all(
+
+          chunks.map(chunk =>
+
+            openai.embeddings.create({
+
+              model: "text-embedding-3-large",
+
+              input: chunk
+
+            })
+
+          )
+
+        );
+
+        // 2) Upsert into the corpus index
+
+        await corpusIndex.upsert(
+
+          embeddingResponses.map((res, i) => ({
+
+            id: `${lessonId}-chunk-${i}`,
+
+            values: res.data[0].embedding,
+
+            metadata: {
+
+              source: normalizedSource,
+
+              book_title: file.name || "",
+
+              chunk_index: i,
+
+              content: chunks[i]
+
+            }
+
+          }))
+
+        );
+
+        // 3) Mirror into Supabase document_chunks
+
+        const chunkRows = chunks.map((chunk, i) => ({
+
+          source: normalizedSource,
+
+          book_title: file.name || null,
+
+          chunk_index: i,
+
+          content: chunk,
+
+          metadata: {}
+
+        }));
+
+        const { error: chunkError } = await supabase
+
+          .from("document_chunks")
+
+          .insert(chunkRows);
+
+        if (chunkError) {
+
+          console.error("Supabase insert error (document_chunks):", chunkError);
+
+        }
+
+      }
+
+    }
 
 
 

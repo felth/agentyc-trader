@@ -403,7 +403,7 @@ export default function AgentPage() {
       {/* Chat area */}
       <main className="flex-1 min-h-0 px-4 mb-4 w-full overflow-x-hidden">
 
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col" style={{ minHeight: '400px', maxHeight: 'calc(100vh - 28rem)' }}>
+        <div className="rounded-2xl bg-black/60 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col" style={{ minHeight: '400px', maxHeight: 'calc(100vh - 28rem)' }}>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
 
@@ -435,7 +435,7 @@ export default function AgentPage() {
 
                         ? "bg-ultra-accent text-white shadow-[0_0_20px_rgba(245,99,0,0.8)]"
 
-                        : "bg-white/[0.05] backdrop-blur-sm text-slate-100 border border-white/10"
+                        : "bg-slate-800/80 backdrop-blur-sm text-slate-100 border border-white/20 shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
 
                     ].join(" ")}
 
@@ -455,7 +455,7 @@ export default function AgentPage() {
 
                 <div className="flex justify-start">
 
-                  <div className="rounded-2xl bg-white/[0.05] backdrop-blur-sm px-4 py-3 text-sm text-slate-400 border border-white/10">
+                  <div className="rounded-2xl bg-slate-800/80 backdrop-blur-sm px-4 py-3 text-sm text-slate-400 border border-white/20 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
 
                     Thinking…
 

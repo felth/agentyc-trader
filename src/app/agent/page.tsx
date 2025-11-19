@@ -6,6 +6,8 @@
 
 import React, { useState, useRef, useEffect, FormEvent } from "react";
 
+import { MemoryUploadPanel } from "@/components/MemoryUploadPanel";
+
 
 
 type Role = "user" | "assistant";
@@ -440,6 +442,13 @@ export default function AgentPage() {
 
         </div>
 
+      </div>
+
+
+
+      {/* Memory Upload Panel */}
+      <div className="flex-shrink-0 px-4 mb-4 w-full">
+        <MemoryUploadPanel />
       </div>
 
 

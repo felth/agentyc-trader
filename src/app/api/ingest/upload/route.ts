@@ -6,13 +6,15 @@ import { Pinecone } from "@pinecone-database/pinecone";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { normalizeSource } from "@/lib/agentSources";
+
 
 
 export const runtime = "nodejs";
 
 
 
-function detectFileType(mime: string, name: string) {
+function detectFileType(mime: string, name: string): "image" | "pdf" | "text" | "unsupported" {
 
   if (mime.startsWith("image/")) return "image";
 
@@ -22,19 +24,9 @@ function detectFileType(mime: string, name: string) {
 
   const ext = name.split(".").pop()?.toLowerCase();
 
-  if (["txt", "md"].includes(ext || "")) return "text";
+  if (ext && ["txt", "md"].includes(ext)) return "text";
 
   return "unsupported";
-
-}
-
-
-
-function normalizeSource(raw?: string | null): string {
-
-  const trimmed = (raw ?? "").trim();
-
-  return trimmed.length > 0 ? trimmed : "manual";
 
 }
 
@@ -76,11 +68,23 @@ export async function POST(req: NextRequest) {
 
 
 
-    const source = normalizeSource(form.get("source") as string);
+    const source = form.get("source") as string;
 
-    const lessonId = (form.get("lesson_id") as string)?.trim() || `upload-${Date.now()}`;
+    const normalizedSource = normalizeSource(source);
+
+    const lessonId = (form.get("lesson_id") as string)?.trim() || crypto.randomUUID();
 
     const manualNotes = (form.get("manual_notes") as string)?.trim() || "";
+
+    const tagsInput = (form.get("tags") as string)?.trim() || "";
+
+    const tags = tagsInput
+
+      .split(",")
+
+      .map((t) => t.trim())
+
+      .filter(Boolean);
 
 
 
@@ -118,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     let notes = "";
 
-    let tags: string[] = [];
+    let extractedTags: string[] = [];
 
 
 
@@ -126,45 +130,35 @@ export async function POST(req: NextRequest) {
 
       const base64 = buffer.toString("base64");
 
-      const mimeType = file.type || "image/png";
+      const dataUrl = `data:${file.type};base64,${base64}`;
+
+
 
       const systemPrompt = [
 
-        "You are an assistant that reads trading screenshots, charts, and notes.",
+        "You are a trading lesson extractor.",
 
-        "Your job is to extract a short 'concept' and detailed 'notes' that describe the key lesson.",
+        "You look at trading screenshots, charts, and notes.",
 
-        "Return STRICT JSON with keys: concept (string), notes (string), tags (string[]).",
+        "You return STRICT JSON only with keys: concept (string), notes (string), tags (string[]).",
 
-        "Keep it factual and concise. Do NOT include any extra text outside the JSON.",
+        "No prose, no markdown, only JSON."
 
       ].join(" ");
 
 
 
-      const userContent: Array<{ type: "text" | "image_url"; text?: string; image_url?: { url: string } }> = [
+      const userContent = [
 
-        {
+        { type: "text", text: "Extract the main trading lesson from this image." },
 
-          type: "text",
+        { type: "image_url", image_url: { url: dataUrl } }
 
-          text: "Analyze this image and extract the main trading lesson as JSON.",
-
-        },
-
-        {
-
-          type: "image_url",
-
-          image_url: { url: `data:${mimeType};base64,${base64}` },
-
-        },
-
-      ];
+      ] as const;
 
 
 
-      const vision = await openai.chat.completions.create({
+      const chat = await openai.chat.completions.create({
 
         model: process.env.OPENAI_VISION_MODEL || "gpt-4o-mini",
 
@@ -172,51 +166,87 @@ export async function POST(req: NextRequest) {
 
           { role: "system", content: systemPrompt },
 
-          { role: "user", content: userContent as any },
+          { role: "user", content: userContent as any }
 
         ],
 
-        temperature: 0.2,
+        temperature: 0.1
 
       });
 
 
 
-      const rawContent = vision.choices[0]?.message?.content || "{}";
+      const rawContent = chat.choices[0]?.message?.content;
 
-      let parsed: any = {};
+      let textContent: string;
+
+
+
+      if (typeof rawContent === "string") {
+
+        textContent = rawContent;
+
+      } else if (Array.isArray(rawContent)) {
+
+        textContent = (rawContent as any[])
+
+          .map(part => (typeof part === "string" ? part : (part as any).text || ""))
+
+          .join("\n");
+
+      } else {
+
+        textContent = JSON.stringify(rawContent ?? "");
+
+      }
+
+
+
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+
+      const jsonString = jsonMatch ? jsonMatch[0] : textContent;
+
+
+
+      let notesFromImage = "";
+
+
 
       try {
 
-        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(jsonString) as {
 
-        const jsonString = jsonMatch ? jsonMatch[0] : rawContent;
+          concept?: string;
 
-        parsed = JSON.parse(jsonString);
+          notes?: string;
 
-      } catch (err) {
+          summary?: string;
 
-        console.warn("Failed to parse JSON from vision response:", err);
+          tags?: string[];
 
-        parsed = { concept: "Image Lesson", notes: rawContent };
+        };
+
+        concept = (parsed.concept ?? "").trim();
+
+        notesFromImage = (parsed.notes ?? parsed.summary ?? "").trim();
+
+        if (Array.isArray(parsed.tags)) {
+
+          extractedTags = parsed.tags.map(t => String(t));
+
+        }
+
+      } catch {
+
+        concept = "Lesson from image";
+
+        notesFromImage = textContent.trim();
 
       }
 
-      concept = parsed.concept || "Image Lesson";
 
-      notes = (parsed.notes || "").trim();
 
-      if (Array.isArray(parsed.tags)) {
-
-        tags = parsed.tags.map((t: any) => String(t));
-
-      }
-
-      if (manualNotes) {
-
-        notes = [notes, manualNotes].filter(Boolean).join("\n\n");
-
-      }
+      notes = [notesFromImage, manualNotes].filter(Boolean).join("\n\n");
 
     } else if (fileType === "pdf") {
 
@@ -225,41 +255,39 @@ export async function POST(req: NextRequest) {
 
       const parsed = await pdfParse(buffer);
 
-      const rawText = parsed.text.slice(0, 16000) || ""; // Limit tokens
+      const rawText = (parsed.text || "").slice(0, 16000);
 
+      const pdfSystem = [
 
+        "You summarise PDF documents into concise trading lessons.",
 
-      const summary = await openai.chat.completions.create({
+        "Return STRICT JSON only: { \"concept\": string, \"notes\": string, \"tags\": string[] }."
 
-        model: "gpt-4o-mini",
+      ].join(" ");
+
+      const pdfChat = await openai.chat.completions.create({
+
+        model: process.env.OPENAI_VISION_MODEL || "gpt-4o-mini",
 
         messages: [
 
-          {
-
-            role: "system",
-
-            content: "You summarise large documents into trading lessons. Return STRICT JSON only with keys: concept (string), notes (string), tags (string[]). Do NOT include any extra text outside the JSON.",
-
-          },
+          { role: "system", content: pdfSystem },
 
           {
 
             role: "user",
 
-            content: `Turn this document into key trading lessons. Return JSON: { "concept": "...", "notes": "...", "tags": ["tag1"] }\n\nDocument:\n${rawText}`,
+            content: `Turn this document into one main trading lesson.\nReturn JSON only.\n\nDocument:\n${rawText}`
 
-          },
+          }
 
         ],
 
-        temperature: 0.2,
+        temperature: 0.2
 
       });
 
-
-
-      const raw = summary.choices[0]?.message?.content || "{}";
+      const raw = pdfChat.choices[0]?.message?.content || "{}";
 
       let parsedSummary: any = {};
 
@@ -271,43 +299,35 @@ export async function POST(req: NextRequest) {
 
         parsedSummary = JSON.parse(jsonString);
 
-      } catch (err) {
+      } catch {
 
-        console.warn("Failed to parse JSON from PDF summary:", err);
-
-        parsedSummary = { concept: "PDF Lesson", notes: raw };
+        parsedSummary = {};
 
       }
 
-      concept = parsedSummary.concept || "PDF Lesson";
+      concept = (parsedSummary.concept ?? "PDF Lesson").toString();
 
-      notes = (parsedSummary.notes || "").trim();
+      const pdfNotes = (parsedSummary.notes ?? "").toString();
 
       if (Array.isArray(parsedSummary.tags)) {
 
-        tags = parsedSummary.tags.map((t: any) => String(t));
+        extractedTags = parsedSummary.tags.map((t: any) => String(t));
 
       }
 
-      if (manualNotes) {
-
-        notes = [notes, manualNotes].filter(Boolean).join("\n\n");
-
-      }
+      notes = [pdfNotes, manualNotes].filter(Boolean).join("\n\n");
 
     } else if (fileType === "text") {
 
       const text = buffer.toString("utf8");
 
-      concept = text.slice(0, 80) || "Uploaded Note";
+      concept = text.trim().slice(0, 80) || "Uploaded Note";
 
-      notes = text;
+      const notesFromText = text.trim();
 
-      if (manualNotes) {
+      notes = [notesFromText, manualNotes].filter(Boolean).join("\n\n");
 
-        notes = [notes, manualNotes].filter(Boolean).join("\n\n");
-
-      }
+      extractedTags = [];
 
     } else {
 
@@ -323,9 +343,9 @@ export async function POST(req: NextRequest) {
 
 
 
-    const textForEmbed = [concept, notes].filter(Boolean).join("\n");
+    const embedContent = [concept, notes].filter(Boolean).join("\n");
 
-    if (!textForEmbed) {
+    if (!embedContent) {
 
       return NextResponse.json(
 
@@ -343,15 +363,13 @@ export async function POST(req: NextRequest) {
 
       model: "text-embedding-3-large",
 
-      input: textForEmbed,
+      input: embedContent
 
     });
 
+    const values = embedding.data[0]?.embedding ?? [];
 
-
-    const vector = embedding.data[0]?.embedding ?? [];
-
-    if (!vector.length) {
+    if (!values.length) {
 
       return NextResponse.json(
 
@@ -365,9 +383,9 @@ export async function POST(req: NextRequest) {
 
 
 
+    const allTags = [...extractedTags, ...tags];
+
     const vectorId = `${lessonId}-${Date.now()}`;
-
-
 
     await index.upsert([
 
@@ -375,7 +393,7 @@ export async function POST(req: NextRequest) {
 
         id: vectorId,
 
-        values: vector,
+        values,
 
         metadata: {
 
@@ -385,23 +403,25 @@ export async function POST(req: NextRequest) {
 
           notes,
 
-          source,
+          source: normalizedSource,
 
-          tags,
+          tags: allTags,
 
-          image_url: fileType === "image" ? `data:${file.type};base64,${buffer.toString("base64")}` : "",
+          image_url: fileType === "image" ? "upload://inline" : ""
 
-        },
+        }
 
-      },
+      }
 
     ]);
 
 
 
-    const { error: sbError } = await supabase.from("lessons").insert([
+    const { error: sbError } = await supabase
 
-      {
+      .from("lessons")
+
+      .insert({
 
         lesson_id: lessonId,
 
@@ -409,39 +429,49 @@ export async function POST(req: NextRequest) {
 
         notes,
 
-        summary: concept,
+        source: normalizedSource,
 
-        tags,
+        tags: allTags,
 
-        image_url: fileType === "image" ? `data:${file.type};base64,${buffer.toString("base64")}` : "",
+        image_url: fileType === "image" ? "upload://inline" : ""
 
-        source,
-
-      },
-
-    ]);
+      });
 
 
 
-    const responseBody: any = {
+    const responseBody: {
+
+      ok: true;
+
+      lesson_id: string;
+
+      source: string;
+
+      fileType: string;
+
+      concept: string;
+
+      notes: string;
+
+      pineconeVectorId: string;
+
+      supabaseWarning?: string;
+
+    } = {
 
       ok: true,
 
       lesson_id: lessonId,
 
-      source,
+      source: normalizedSource,
 
       fileType,
 
       concept,
 
-      notes: notes.slice(0, 500), // Truncate for response
+      notes,
 
-      tags,
-
-      pineconeVectorId: vectorId,
-
-      dims: vector.length,
+      pineconeVectorId: vectorId
 
     };
 
@@ -449,7 +479,7 @@ export async function POST(req: NextRequest) {
 
     if (sbError) {
 
-      console.error("Supabase insert error (/api/ingest/upload):", sbError);
+      console.error("Supabase insert error (upload):", sbError);
 
       responseBody.supabaseWarning = "Vector stored; Supabase insert failed";
 
@@ -459,17 +489,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(responseBody);
 
-  } catch (err: any) {
+  } catch (err) {
 
     console.error("UPLOAD ERROR", err);
 
-    return NextResponse.json(
+    const message = err instanceof Error ? err.message : "Server error in /api/ingest/upload";
 
-      { ok: false, error: err?.message ?? "Server error in /api/ingest/upload" },
-
-      { status: 500 }
-
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
 
   }
 

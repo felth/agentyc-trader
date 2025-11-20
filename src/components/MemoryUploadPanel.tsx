@@ -40,10 +40,10 @@ export function MemoryUploadPanel() {
 
     }
 
-    // Validate file size client-side
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size client-side (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
       setStatus("error");
-      setMessage("File size exceeds 5MB limit.");
+      setMessage("File size exceeds 50MB limit.");
       return;
     }
 
@@ -188,7 +188,7 @@ export function MemoryUploadPanel() {
 
           <p className="text-[10px] text-gray-500">
 
-            Max 5MB • PDFs, screenshots, or text files
+            Max 50MB • PDFs, screenshots, or text files
 
           </p>
 

@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
         console.error("Error details:", JSON.stringify(uploadError, null, 2));
         
         const errorMsg = uploadError.message || String(uploadError);
-        const errorStatus = uploadError.statusCode || (uploadError as any).status || 500;
+        const errorStatus = (uploadError as any).statusCode || (uploadError as any).status || 500;
         
         // Check if bucket doesn't exist (pattern match error is often bucket not found)
         if (

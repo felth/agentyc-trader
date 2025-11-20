@@ -201,7 +201,6 @@ export async function POST(req: NextRequest) {
     
     // Storage folder: MUST have NO underscores
     const storageFolder = "default-user"; // Use dash, NEVER underscore
-    const userId = "00000000-0000-0000-0000-000000000000"; // Valid UUID for database
     
     // Generate shortId: remove ALL dashes and underscores, use only alphanumeric
     const uniqueId = crypto.randomUUID().replace(/[-_]/g, "");
@@ -415,8 +414,6 @@ export async function POST(req: NextRequest) {
 
 
     // Use shared processing logic (reuses embedding/chunking helpers)
-    const userId = "00000000-0000-0000-0000-000000000000"; // Temporary until real auth
-
     const result = await processFileContent({
 
       buffer,

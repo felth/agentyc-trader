@@ -184,10 +184,10 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabase();
 
     // Store file in Supabase Storage
-    // CRITICAL: Supabase Storage does NOT allow underscores _ in paths (enforced pattern bug)
-    // Actual enforced pattern: ^[a-zA-Z0-9!-.()*'()]+(/[a-zA-Z0-9!-.()*'()]+)*$
-    // Allowed chars: alphanumeric, !, -, ., *, ', (, )
-    // NOT allowed: underscore _ (despite what docs may say)
+    // CRITICAL: Supabase Storage path validation is strict
+    // Pattern: each segment must be: alphanumeric, dash, dot, or specific special chars
+    // NOT allowed: underscore _ in paths
+    // Path MUST have folder structure: folder/file.ext (cannot be just file.ext)
     
     // Extract just the filename without path, then sanitize
     const baseFilename = file.name.split("/").pop() || file.name.split("\\").pop() || "file";
@@ -228,12 +228,21 @@ export async function POST(req: NextRequest) {
     // Final safety: replace ALL underscores in the entire path (just in case)
     storagePath = storagePath.replace(/_/g, "-");
     
-    // Final validation: path should match Supabase pattern (NO underscores allowed)
-    if (!/^[a-zA-Z0-9!-.*'()]+(\/[a-zA-Z0-9!-.*'()]+)*$/.test(storagePath)) {
-      console.error("[API:ingest/upload] Invalid path after sanitization:", storagePath);
-      // Fallback to very simple path (NO underscores anywhere)
+    // Final validation: ensure path is valid format (folder/file.ext structure required)
+    // Check that path has at least one folder segment
+    if (!storagePath.includes("/")) {
+      console.error("[API:ingest/upload] Path missing folder structure:", storagePath);
+      // Add folder if missing
       const safeExt = (fileExtension || "bin").replace(/_/g, "-");
-      storagePath = `${timestamp}-${shortId}.${safeExt}`;
+      storagePath = `default-user/${timestamp}-${shortId}.${safeExt}`;
+    }
+    
+    // Final validation: ensure no underscores and basic safety
+    if (storagePath.includes("_") || !/^[a-zA-Z0-9\/.\-]+$/.test(storagePath.replace(/\//g, ""))) {
+      console.error("[API:ingest/upload] Path contains invalid characters:", storagePath);
+      // Force clean path
+      const safeExt = (fileExtension || "bin").replace(/_/g, "-");
+      storagePath = `default-user/${timestamp}-${shortId}.${safeExt}`;
     }
     
     console.log("[API:ingest/upload] Original filename:", file.name);
@@ -270,7 +279,7 @@ export async function POST(req: NextRequest) {
         const errorMsg = uploadError.message || String(uploadError);
         const errorStatus = (uploadError as any).statusCode || (uploadError as any).status || 500;
         
-        // If pattern error, try minimal path as fallback
+        // If pattern error, try absolute minimal path as fallback
         if (errorMsg.toLowerCase().includes("pattern")) {
           console.log("[API:ingest/upload] Pattern error detected, trying minimal path:", testPath);
           const { error: testError } = await supabase.storage
@@ -285,11 +294,15 @@ export async function POST(req: NextRequest) {
             storagePath = testPath;
             console.log("[API:ingest/upload] Minimal path succeeded, using:", testPath);
           } else {
+            // Even minimal path failed - log full error details
             console.error("[API:ingest/upload] Minimal path also failed:", testError);
+            console.error("[API:ingest/upload] Original path was:", storagePath);
+            console.error("[API:ingest/upload] Test path was:", testPath);
+            console.error("[API:ingest/upload] Error message:", testError.message);
             return NextResponse.json(
               { 
                 ok: false, 
-                error: `Storage pattern error: ${errorMsg}. Even minimal path failed. Please verify the 'documents' bucket exists and is Public in Supabase Dashboard → Storage → Buckets. Original path: ${storagePath}, Test path: ${testPath}` 
+                error: `Storage pattern error: ${errorMsg}. Even minimal path '${testPath}' failed. Please verify: 1) The 'documents' bucket exists in Supabase Dashboard, 2) Bucket is Public, 3) Check server logs for full error details. Original path: ${storagePath}` 
               },
               { status: 400 }
             );

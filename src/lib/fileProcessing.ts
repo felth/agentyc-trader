@@ -145,14 +145,14 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
 
     notes = [notesFromImage, manualNotes].filter(Boolean).join("\n\n");
   } else if (fileTypeDetected === "pdf") {
-    // Dynamic import to avoid build-time bundling issues
+    // Use require() for pdf-parse since we're in Node.js runtime
+    // This is more reliable in serverless environments than dynamic import
     let pdfParse: any;
     try {
-      const pdfParseModule: any = await import("pdf-parse");
-      // pdf-parse exports directly, not as default
-      pdfParse = pdfParseModule.default || pdfParseModule;
-    } catch (importError) {
-      console.error("[fileProcessing] Failed to import pdf-parse:", importError);
+      // Use eval('require') to avoid build-time evaluation issues
+      pdfParse = eval('require')("pdf-parse");
+    } catch (requireError) {
+      console.error("[fileProcessing] Failed to require pdf-parse:", requireError);
       return {
         ok: false,
         error: "PDF parsing not available. Please ensure pdf-parse is installed.",

@@ -30,13 +30,13 @@ const TABS: Tab[] = [
 
   { label: "Agent", href: "/agent", icon: "🤖" },
 
-  { label: "Library", href: "/library", icon: "📚" },
+  { label: "Trades", href: "/trades", icon: "💼" },
+
+  { label: "Performance", href: "/performance", icon: "📈" },
 
   { label: "Journal", href: "/journal", icon: "📓" },
 
-  { label: "Trades", href: "/trades", icon: "💼" },
-
-  { label: "Performance", href: "/performance", icon: "📈" }
+  { label: "Library", href: "/library", icon: "📚" }
 
 ];
 

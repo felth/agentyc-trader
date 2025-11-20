@@ -80,14 +80,37 @@ export function MemoryUploadPanel() {
       });
 
       console.log("[MemoryUploadPanel] Response status:", res.status, res.statusText);
+      console.log("[MemoryUploadPanel] Response Content-Type:", res.headers.get("content-type"));
 
-      const json = await res.json();
-
-      console.log("[MemoryUploadPanel] Response data:", json);
+      // Check if response is JSON before parsing
+      const contentType = res.headers.get("content-type") || "";
+      let json: any;
+      
+      if (contentType.includes("application/json")) {
+        try {
+          json = await res.json();
+          console.log("[MemoryUploadPanel] Response data (JSON):", json);
+        } catch (jsonErr) {
+          console.error("[MemoryUploadPanel] Failed to parse JSON response:", jsonErr);
+          // Fallback: try to get text response
+          const text = await res.text();
+          console.error("[MemoryUploadPanel] Response text (non-JSON):", text);
+          setStatus("error");
+          setMessage(`Server error: ${text || "Invalid response format"}`);
+          return;
+        }
+      } else {
+        // Non-JSON response (likely an error)
+        const text = await res.text();
+        console.error("[MemoryUploadPanel] Non-JSON response:", text);
+        setStatus("error");
+        setMessage(text || `Server error (${res.status}): ${res.statusText}`);
+        return;
+      }
 
       if (!res.ok || !json.ok) {
 
-        const errorMsg = json.error || "Upload failed";
+        const errorMsg = json.error || json.message || "Upload failed";
         
         console.error("[MemoryUploadPanel] Upload failed:", {
           status: res.status,
@@ -130,6 +153,13 @@ export function MemoryUploadPanel() {
     } catch (err: unknown) {
 
       console.error("[MemoryUploadPanel] Upload error (catch block):", err);
+      
+      // Handle JSON parsing errors specifically
+      if (err instanceof SyntaxError && err.message.includes("JSON")) {
+        setStatus("error");
+        setMessage("Server returned invalid response. Please check server logs.");
+        return;
+      }
 
       const msg = err instanceof Error ? err.message : "Network error";
 

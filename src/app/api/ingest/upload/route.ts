@@ -201,15 +201,19 @@ export async function POST(req: NextRequest) {
     
     const sanitizedFilename = sanitizedBase + fileExtension;
     
-    // Use simple user_id without UUID format (UUID dashes cause pattern mismatch)
-    const userId = "default_user"; // TODO: replace with actual user_id from auth
-    const uniqueId = crypto.randomUUID().replace(/-/g, ""); // Remove dashes from UUID
+    // Separate storage folder from database user_id:
+    // - Storage path: use safe folder name without UUID dashes (causes pattern mismatch)
+    // - Database user_id: must be valid UUID for uuid column
+    const storageFolder = "default_user"; // Safe folder name for storage path (no UUID dashes)
+    const userId = "00000000-0000-0000-0000-000000000000"; // Valid UUID for database insert (temporary until real auth)
+    
+    const uniqueId = crypto.randomUUID().replace(/-/g, ""); // Remove dashes from UUID for storage
     const timestamp = Date.now();
     const shortId = uniqueId.substring(0, 8); // Use first 8 chars of UUID
     
-    // Recommended format: documents/user_id/timestamp_shortId_filename.pdf (use _ not -)
-    // Format: documents/{user_id}/{timestamp}_{shortId}_{filename}
-    let storagePath = `documents/${userId}/${timestamp}_${shortId}_${sanitizedFilename}`;
+    // Recommended format: documents/folder/timestamp_shortId_filename.pdf (use _ not -)
+    // Use storageFolder (not userId) in path to avoid UUID pattern issues
+    let storagePath = `documents/${storageFolder}/${timestamp}_${shortId}_${sanitizedFilename}`;
     
     // Ensure no double slashes or leading/trailing slashes (Supabase Storage requirement)
     storagePath = storagePath.replace(/\/+/g, "/").replace(/^\//, "").replace(/\/$/, "");
@@ -223,6 +227,8 @@ export async function POST(req: NextRequest) {
     
     console.log("[API:ingest/upload] Original filename:", file.name);
     console.log("[API:ingest/upload] Sanitized filename:", sanitizedFilename);
+    console.log("[API:ingest/upload] Storage folder:", storageFolder);
+    console.log("[API:ingest/upload] Database user_id:", userId);
     console.log("[API:ingest/upload] Final storage path:", storagePath);
     
     let storageUrl = "";

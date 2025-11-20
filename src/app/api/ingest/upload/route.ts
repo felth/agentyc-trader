@@ -211,9 +211,10 @@ export async function POST(req: NextRequest) {
     const timestamp = Date.now();
     const shortId = uniqueId.substring(0, 8); // Use first 8 chars of UUID
     
-    // Recommended format: documents/folder/timestamp_shortId_filename.pdf (use _ not -)
-    // Use storageFolder (not userId) in path to avoid UUID pattern issues
-    let storagePath = `documents/${storageFolder}/${timestamp}_${shortId}_${sanitizedFilename}`;
+    // IMPORTANT: Supabase Storage .upload() expects path RELATIVE to bucket, NOT including bucket name
+    // Path format: folder/timestamp_shortId_filename.pdf (use _ not -)
+    // Do NOT include "documents/" prefix - that's the bucket name, not part of the path
+    let storagePath = `${storageFolder}/${timestamp}_${shortId}_${sanitizedFilename}`;
     
     // Ensure no double slashes or leading/trailing slashes (Supabase Storage requirement)
     storagePath = storagePath.replace(/\/+/g, "/").replace(/^\//, "").replace(/\/$/, "");
@@ -221,8 +222,8 @@ export async function POST(req: NextRequest) {
     // Final validation: path should only contain alphanumeric, dots, dashes, underscores, forward slashes
     if (!/^[a-zA-Z0-9._/-]+$/.test(storagePath)) {
       console.error("[API:ingest/upload] Invalid path after sanitization:", storagePath);
-      // Fallback to very simple path
-      storagePath = `documents/${timestamp}_${shortId}.${fileExtension || "bin"}`;
+      // Fallback to very simple path (still relative to bucket, no "documents/" prefix)
+      storagePath = `${timestamp}_${shortId}.${fileExtension || "bin"}`;
     }
     
     console.log("[API:ingest/upload] Original filename:", file.name);
@@ -235,7 +236,12 @@ export async function POST(req: NextRequest) {
     let documentId: string | null = null;
 
     try {
+      // Try minimal path first as test (per Grok recommendation: "test/test.pdf")
+      // Path is relative to bucket, NOT including bucket name
+      const testPath = `test_${timestamp}.pdf`;
+      
       // Upload to Supabase Storage
+      console.log("[API:ingest/upload] Attempting upload with path:", storagePath);
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from("documents")
         .upload(storagePath, buffer, {
@@ -244,16 +250,40 @@ export async function POST(req: NextRequest) {
         });
 
       if (uploadError) {
-        console.error("Supabase storage upload error:", uploadError);
-        console.error("Error details:", JSON.stringify(uploadError, null, 2));
-        console.error("Attempted storage path:", storagePath);
+        console.error("[API:ingest/upload] Supabase storage upload error:", uploadError);
+        console.error("[API:ingest/upload] Error details:", JSON.stringify(uploadError, null, 2));
+        console.error("[API:ingest/upload] Attempted storage path:", storagePath);
+        console.error("[API:ingest/upload] Path length:", storagePath.length);
+        console.error("[API:ingest/upload] Path components:", storagePath.split("/"));
         
         const errorMsg = uploadError.message || String(uploadError);
         const errorStatus = (uploadError as any).statusCode || (uploadError as any).status || 500;
         
-        // Check if bucket doesn't exist or path is invalid (pattern match error)
-        if (
-          errorMsg.toLowerCase().includes("pattern") ||
+        // If pattern error, try minimal path as fallback
+        if (errorMsg.toLowerCase().includes("pattern")) {
+          console.log("[API:ingest/upload] Pattern error detected, trying minimal path:", testPath);
+          const { error: testError } = await supabase.storage
+            .from("documents")
+            .upload(testPath, buffer, {
+              contentType: file.type,
+              upsert: false,
+            });
+          
+          if (!testError) {
+            // Minimal path worked! Update storagePath to testPath
+            storagePath = testPath;
+            console.log("[API:ingest/upload] Minimal path succeeded, using:", testPath);
+          } else {
+            console.error("[API:ingest/upload] Minimal path also failed:", testError);
+            return NextResponse.json(
+              { 
+                ok: false, 
+                error: `Storage pattern error: ${errorMsg}. Even minimal path failed. Please verify the 'documents' bucket exists and is Public in Supabase Dashboard → Storage → Buckets. Original path: ${storagePath}, Test path: ${testPath}` 
+              },
+              { status: 400 }
+            );
+          }
+        } else if (
           errorMsg.toLowerCase().includes("not found") ||
           errorMsg.toLowerCase().includes("bucket") ||
           errorMsg.toLowerCase().includes("does not exist") ||
@@ -261,54 +291,59 @@ export async function POST(req: NextRequest) {
           errorStatus === 404 ||
           errorStatus === 400
         ) {
-          // Provide more helpful error message
+          // Bucket/config error
           return NextResponse.json(
             { 
               ok: false, 
-              error: `Storage error: ${errorMsg}. Please verify: 1) The 'documents' bucket exists in Supabase Dashboard → Storage → Buckets, 2) The bucket name is exactly 'documents' (case-sensitive), 3) The bucket is accessible. Path attempted: ${storagePath}` 
+              error: `Storage error: ${errorMsg}. Please verify: 1) The 'documents' bucket exists in Supabase Dashboard → Storage → Buckets, 2) The bucket name is exactly 'documents' (case-sensitive), 3) The bucket is Public or has correct RLS policies. Path attempted: ${storagePath}` 
             },
             { status: 400 }
           );
-        }
-        
-        // If file already exists, retry with timestamp
-        if (errorMsg.toLowerCase().includes("already exists") || errorMsg.toLowerCase().includes("duplicate")) {
-          storagePath = `documents/${userId}/${uniqueId}-${Date.now()}-${sanitizedFilename}`;
-          const { error: retryError } = await supabase.storage
-            .from("documents")
-            .upload(storagePath, buffer, {
-              contentType: file.type,
-              upsert: false,
-            });
-          
-          if (retryError) {
-            console.error("Retry upload error:", retryError);
+        } else {
+          // Other error (including "already exists")
+          // If file already exists, try again with a new unique path
+          if (errorMsg.toLowerCase().includes("already exists") || errorMsg.toLowerCase().includes("duplicate")) {
+            storagePath = `${storageFolder}/${Date.now()}_${shortId}_${sanitizedFilename}`;
+            console.log("[API:ingest/upload] File exists, retrying with new path:", storagePath);
+            const { error: retryError } = await supabase.storage
+              .from("documents")
+              .upload(storagePath, buffer, {
+                contentType: file.type,
+                upsert: false,
+              });
+            
+            if (retryError) {
+              console.error("[API:ingest/upload] Retry upload error:", retryError);
+              return NextResponse.json(
+                { ok: false, error: `Storage upload failed: ${retryError.message || String(retryError)}` },
+                { status: 500 }
+              );
+            }
+            // Retry succeeded, continue with new storagePath
+          } else {
+            // Other error - return it
             return NextResponse.json(
-              { ok: false, error: `Storage upload failed: ${retryError.message || String(retryError)}` },
+              { 
+                ok: false, 
+                error: `Storage upload failed: ${errorMsg}. Status: ${errorStatus}. Path: ${storagePath}` 
+              },
               { status: 500 }
             );
           }
-        } else {
-          // Return detailed error for debugging
-          return NextResponse.json(
-            { 
-              ok: false, 
-              error: `Storage upload failed: ${errorMsg}. Status: ${errorStatus}. Please check that the 'documents' bucket exists in Supabase.` 
-            },
-            { status: 500 }
-          );
         }
       }
 
       // Get signed URL for the stored file (valid for 1 hour)
+      // Only if upload succeeded
       const { data: urlData, error: urlError } = await supabase.storage
         .from("documents")
         .createSignedUrl(storagePath, 3600);
       
       if (urlError) {
-        console.error("Failed to create signed URL:", urlError);
+        console.error("[API:ingest/upload] Failed to create signed URL:", urlError);
       } else {
         storageUrl = urlData?.signedUrl || "";
+        console.log("[API:ingest/upload] Successfully created signed URL for path:", storagePath);
       }
     } catch (storageErr: any) {
       console.error("Storage operation error:", storageErr);

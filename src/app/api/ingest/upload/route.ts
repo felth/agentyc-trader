@@ -8,61 +8,11 @@ import { getSupabase } from "@/lib/supabaseServer";
 
 import { normalizeSource } from "@/lib/agentSources";
 
-import { ensureConceptAndTags } from "@/lib/lessonUtils";
+import { processFileContent, detectFileType, FileType } from "@/lib/fileProcessing";
 
 
 
 export const runtime = "nodejs";
-
-
-
-function chunkText(input: string, chunkSize = 1200, overlap = 200): string[] {
-
-  const words = input.split(/\s+/);
-
-  const chunks: string[] = [];
-
-  let start = 0;
-
-  while (start < words.length) {
-
-    const end = start + chunkSize;
-
-    const slice = words.slice(start, end).join(" ").trim();
-
-    if (slice.length > 0) {
-
-      chunks.push(slice);
-
-    }
-
-    start = end - overlap;
-
-    if (start < 0) start = 0;
-
-  }
-
-  return chunks;
-
-}
-
-
-
-function detectFileType(mime: string, name: string): "image" | "pdf" | "text" | "unsupported" {
-
-  if (mime.startsWith("image/")) return "image";
-
-  if (mime === "application/pdf") return "pdf";
-
-  if (mime.startsWith("text/")) return "text";
-
-  const ext = name.split(".").pop()?.toLowerCase();
-
-  if (ext && ["txt", "md"].includes(ext)) return "text";
-
-  return "unsupported";
-
-}
 
 
 
@@ -221,32 +171,6 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     const fileType = detectFileType(file.type, file.name);
-
-
-
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-
-    const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
-
-    // Existing playbook index (distilled lessons)
-
-    const playbookIndex = pc.index(
-
-      process.env.PINECONE_INDEX!,
-
-      process.env.PINECONE_HOST!
-
-    );
-
-    // NEW corpus index (long-form chunks)
-
-    const corpusIndex = pc.index(
-
-      process.env.PINECONE_CORPUS_INDEX!,
-
-      process.env.PINECONE_HOST!
-
-    );
 
     const supabase = getSupabase();
 
@@ -490,31 +414,99 @@ export async function POST(req: NextRequest) {
 
 
 
-    let concept = "";
+    // Use shared processing logic (reuses embedding/chunking helpers)
+    const userId = "00000000-0000-0000-0000-000000000000"; // Temporary until real auth
 
-    let notes = "";
+    const result = await processFileContent({
 
-    let extractedTags: string[] = [];
+      buffer,
 
-    let fullRawText = ""; // Store full text for deep chunking (PDF/text only)
+      fileName: file.name,
 
+      fileType: file.type,
 
+      fileSize: file.size,
 
-    if (fileType === "image") {
+      fileTypeDetected: fileType,
 
-      const base64 = buffer.toString("base64");
+      source: normalizedSource,
 
-      const dataUrl = `data:${file.type};base64,${base64}`;
+      manualNotes: manualNotes || "",
 
+      tags: tags || [],
 
+      lessonId,
 
-      const systemPrompt = [
+      storagePath,
 
-        "You are a trading lesson extractor.",
+      storageUrl: storageUrl || "",
 
-        "You look at trading screenshots, charts, and notes.",
+      userId,
 
-        "You return STRICT JSON only with keys: concept (string), notes (string), tags (string[]).",
+      documentId: null, // Will be created in processFileContent
+
+    });
+
+    if (!result.ok) {
+
+      return NextResponse.json(
+
+        { ok: false, error: result.error },
+
+        { status: 500 }
+
+      );
+
+    }
+
+    // Extract results from processing
+
+    const concept = result.concept!;
+
+    const notes = result.notes!;
+
+    const allTags = result.tags!;
+
+    const category = result.category!;
+
+    const vectorId = result.pineconeVectorId!;
+
+    if (result.documentId) {
+
+      documentId = result.documentId;
+
+    }
+
+    // All processing (embedding, chunking) now handled by shared processFileContent helper above
+
+    // Build response from processing result
+    // Return response with required fields: id, filename, category
+    const responseBody: {
+      ok: true;
+      id: string;
+      filename: string;
+      category: string;
+      lesson_id: string;
+      source: string;
+      fileType: string;
+      concept: string;
+      notes: string;
+      pineconeVectorId: string;
+      storageWarning?: string;
+    } = {
+      ok: true,
+      id: result.documentId || result.lessonId!,
+      filename: file.name,
+      category: result.category!,
+      lesson_id: result.lessonId!,
+      source: normalizedSource,
+      fileType: result.fileType!,
+      concept: result.concept!,
+      notes: result.notes!,
+      pineconeVectorId: result.pineconeVectorId!,
+    };
+
+    return NextResponse.json(responseBody);
 
         "No prose, no markdown, only JSON."
 
@@ -1021,11 +1013,7 @@ export async function POST(req: NextRequest) {
 
 
 
-    if (sbError) {
-
-      console.error("Supabase insert error (upload - lessons table):", sbError);
-
-    }
+    // Lessons table insert is now handled in processFileContent helper
 
 
 

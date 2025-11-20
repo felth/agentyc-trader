@@ -119,21 +119,7 @@ export async function POST(req: NextRequest) {
 
     const normalizedSource = normalizeSource(source);
 
-    // Generate lesson_id - must be a valid UUID format if lessons.lesson_id is uuid type
-    const lessonIdRaw = (form.get("lesson_id") as string)?.trim();
-    const lessonId = lessonIdRaw || crypto.randomUUID();
-    
-    // Validate lesson_id is a valid UUID format (if lessons.lesson_id column is uuid type)
-    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidPattern.test(lessonId)) {
-      console.error("[API:ingest/upload] Invalid lesson_id format (not UUID):", lessonId);
-      // Generate a valid UUID instead
-      const newLessonId = crypto.randomUUID();
-      console.log("[API:ingest/upload] Generated new UUID lesson_id:", newLessonId);
-      // Use the generated UUID
-    }
-    
-    console.log("[API:ingest/upload] Using lesson_id:", lessonId);
+    const lessonId = (form.get("lesson_id") as string)?.trim() || crypto.randomUUID();
 
     const manualNotes = (form.get("manual_notes") as string)?.trim() || "";
 
@@ -269,40 +255,14 @@ export async function POST(req: NextRequest) {
         });
 
       if (uploadError) {
-        // Log FULL error object to see exact error structure
-        console.error("[API:ingest/upload] === STORAGE UPLOAD ERROR ===");
-        console.error("[API:ingest/upload] Upload error raw object:", uploadError);
-        console.error("[API:ingest/upload] Upload error type:", typeof uploadError);
-        console.error("[API:ingest/upload] Upload error constructor:", uploadError?.constructor?.name);
-        console.error("[API:ingest/upload] Upload error JSON:", JSON.stringify(uploadError, null, 2));
-        console.error("[API:ingest/upload] Upload error message:", uploadError.message);
-        console.error("[API:ingest/upload] Upload error name:", (uploadError as any)?.name);
-        console.error("[API:ingest/upload] Upload error status:", (uploadError as any)?.status);
-        console.error("[API:ingest/upload] Upload error statusCode:", (uploadError as any)?.statusCode);
-        console.error("[API:ingest/upload] Upload error code:", (uploadError as any)?.code);
+        console.error("[API:ingest/upload] Supabase storage upload error:", uploadError);
+        console.error("[API:ingest/upload] Error details:", JSON.stringify(uploadError, null, 2));
         console.error("[API:ingest/upload] Attempted storage path:", storagePath);
         console.error("[API:ingest/upload] Path length:", storagePath.length);
         console.error("[API:ingest/upload] Path components:", storagePath.split("/"));
         
         const errorMsg = uploadError.message || String(uploadError);
         const errorStatus = (uploadError as any).statusCode || (uploadError as any).status || 500;
-        
-        // SHORT-CIRCUIT TEST: If storage fails, return immediately with full error details
-        return NextResponse.json(
-          {
-            ok: false,
-            error: errorMsg,
-            errorType: "STORAGE_UPLOAD",
-            errorDetails: {
-              message: uploadError.message,
-              status: errorStatus,
-              code: (uploadError as any)?.code,
-              path: storagePath,
-              fullError: JSON.stringify(uploadError, Object.getOwnPropertyNames(uploadError)),
-            },
-          },
-          { status: 400 }
-        );
         
         // If pattern error, try minimal path as fallback
         if (errorMsg.toLowerCase().includes("pattern")) {
@@ -387,41 +347,14 @@ export async function POST(req: NextRequest) {
       
       if (urlError) {
         console.error("[API:ingest/upload] Failed to create signed URL:", urlError);
-        console.error("[API:ingest/upload] Signed URL error details:", JSON.stringify(urlError, null, 2));
       } else {
         storageUrl = urlData?.signedUrl || "";
-        console.log("[API:ingest/upload] ✓ Storage upload succeeded");
-        console.log("[API:ingest/upload] ✓ Successfully created signed URL for path:", storagePath);
+        console.log("[API:ingest/upload] Successfully created signed URL for path:", storagePath);
       }
-      
-      // SHORT-CIRCUIT TEST: Return immediately after successful storage upload
-      // This isolates whether the error is from storage or from subsequent DB/embedding steps
-      console.log("[API:ingest/upload] === SHORT-CIRCUIT TEST: Storage upload succeeded ===");
-      console.log("[API:ingest/upload] Storage path:", storagePath);
-      console.log("[API:ingest/upload] Storage URL:", storageUrl);
-      
-      // Return success immediately to test if storage alone works
-      return NextResponse.json({
-        ok: true,
-        message: "Storage upload succeeded (short-circuit test - no DB/embedding)",
-        storagePath,
-        storageUrl,
-        test: true,
-      });
-      
     } catch (storageErr: any) {
-      console.error("[API:ingest/upload] === STORAGE OPERATION EXCEPTION ===");
-      console.error("[API:ingest/upload] Exception type:", typeof storageErr);
-      console.error("[API:ingest/upload] Exception message:", storageErr?.message);
-      console.error("[API:ingest/upload] Exception stack:", storageErr?.stack);
-      console.error("[API:ingest/upload] Exception details:", JSON.stringify(storageErr, Object.getOwnPropertyNames(storageErr), 2));
+      console.error("Storage operation error:", storageErr);
       return NextResponse.json(
-        { 
-          ok: false, 
-          error: `Storage operation exception: ${storageErr?.message || "Unknown error"}`,
-          errorType: "STORAGE_EXCEPTION",
-          errorDetails: JSON.stringify(storageErr, Object.getOwnPropertyNames(storageErr)),
-        },
+        { ok: false, error: `Storage error: ${storageErr?.message || "Unknown error"}` },
         { status: 500 }
       );
     }
@@ -727,57 +660,33 @@ export async function POST(req: NextRequest) {
     const category = normalizedSource === "playbook" ? "playbook" : "corpus";
 
     // Create document record in documents table FIRST (before embedding)
-    // SHORT-CIRCUIT: Comment out DB insert for now to isolate storage vs DB error
-    /*
     try {
-      const dbPayload = {
-        user_id: userId,
-        title: concept || file.name,
-        filename: file.name,
-        category,
-        mime_type: file.type,
-        storage_path: storagePath,
-        size_bytes: file.size,
-        lesson_id: lessonId,
-        embedded: false, // Will update to true after embedding succeeds
-      };
-      
-      console.log("[API:ingest/upload] === DOCUMENTS TABLE INSERT ===");
-      console.log("[API:ingest/upload] DB insert payload:", JSON.stringify(dbPayload, null, 2));
-      console.log("[API:ingest/upload] user_id type:", typeof dbPayload.user_id, "value:", dbPayload.user_id);
-      console.log("[API:ingest/upload] lesson_id type:", typeof dbPayload.lesson_id, "value:", dbPayload.lesson_id);
-      
       const { data: docData, error: docError } = await supabase
         .from("documents")
-        .insert(dbPayload)
+        .insert({
+          user_id: userId,
+          title: concept || file.name,
+          filename: file.name,
+          category,
+          mime_type: file.type,
+          storage_path: storagePath,
+          size_bytes: file.size,
+          lesson_id: lessonId,
+          embedded: false, // Will update to true after embedding succeeds
+        })
         .select("id")
         .single();
 
       if (docError) {
-        console.error("[API:ingest/upload] === DOCUMENTS TABLE INSERT ERROR ===");
-        console.error("[API:ingest/upload] DB error raw:", docError);
-        console.error("[API:ingest/upload] DB error type:", typeof docError);
-        console.error("[API:ingest/upload] DB error JSON:", JSON.stringify(docError, Object.getOwnPropertyNames(docError), 2));
-        console.error("[API:ingest/upload] DB error message:", docError.message);
-        console.error("[API:ingest/upload] DB error code:", (docError as any)?.code);
-        console.error("[API:ingest/upload] DB error details:", (docError as any)?.details);
-        console.error("[API:ingest/upload] DB error hint:", (docError as any)?.hint);
+        console.error("Supabase documents insert error:", docError);
         // Don't fail the entire upload if documents table insert fails
-        throw new Error(`Documents table insert failed: ${docError.message || JSON.stringify(docError)}`);
       } else {
         documentId = docData?.id || null;
-        console.log("[API:ingest/upload] ✓ Documents table insert succeeded, documentId:", documentId);
       }
-    } catch (docErr: any) {
-      console.error("[API:ingest/upload] === DOCUMENTS TABLE INSERT EXCEPTION ===");
-      console.error("[API:ingest/upload] Exception type:", typeof docErr);
-      console.error("[API:ingest/upload] Exception message:", docErr?.message);
-      console.error("[API:ingest/upload] Exception stack:", docErr?.stack);
-      console.error("[API:ingest/upload] Exception details:", JSON.stringify(docErr, Object.getOwnPropertyNames(docErr), 2));
+    } catch (docErr) {
+      console.error("Document insert error:", docErr);
       // Continue with embedding even if documents table insert fails
-      throw docErr; // Re-throw to see if this is the source of the pattern error
     }
-    */
 
     // Upsert into Pinecone with storage URL if available
     await playbookIndex.upsert([

@@ -37,107 +37,61 @@ async function extractTextFromPdf(
     // OpenAI File API expects a File, Blob, or ReadStream
     const pdfFile = new File([pdfBuffer], fileName, { type: "application/pdf" });
 
-    // Step 3: Upload to OpenAI File API
+    // Step 3: Upload to OpenAI File API with a purpose that allows content download
+    // Use "fine-tune" purpose which allows files.content() to be called
+    // This is simpler than the Assistants API approach and allows direct text extraction
     const uploadedFile = await openai.files.create({
       file: pdfFile,
-      purpose: "assistants",
+      purpose: "fine-tune", // This purpose allows downloading/reading file content
     });
 
-    // Step 4: Extract text using Assistants API
-    // Files with purpose "assistants" cannot be downloaded directly
-    // We need to use an assistant to extract the text
+    // Step 4: Wait for file processing (if needed) and extract text
     let fullRawText = "";
     
     try {
-      // Create a temporary assistant to extract text from the PDF
-      const assistant = await openai.beta.assistants.create({
-        name: "PDF Text Extractor",
-        instructions: "Extract all text content from the provided PDF file. Return the complete text content without any modifications or summaries.",
-        model: "gpt-4o-mini",
-        tools: [{ type: "code_interpreter" }],
+      // Wait a moment for file to be processed (if needed)
+      // Some file types need processing before content is available
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Retrieve the file content (parsed text from PDF)
+      const fileContent = await openai.files.content(uploadedFile.id);
+      
+      if (fileContent instanceof Response) {
+        // Response object - get text from it
+        fullRawText = await fileContent.text();
+      } else if (typeof fileContent === "string") {
+        // Already a string
+        fullRawText = fileContent;
+      } else if (fileContent && typeof fileContent === "object") {
+        // Might be a parsed object - check for common text fields
+        const parsed = fileContent as any;
+        fullRawText = parsed.output_text || parsed.text || parsed.content || "";
+        
+        // Log the structure for debugging
+        console.log("[extractTextFromPdf] File content structure:", Object.keys(parsed).join(", "));
+      } else {
+        throw new Error("File content did not return text in expected format");
+      }
+
+      if (!fullRawText || !fullRawText.trim()) {
+        throw new Error("PDF parsed but no text content extracted");
+      }
+
+      console.log(`[extractTextFromPdf] Successfully extracted ${fullRawText.length} characters from PDF`);
+    } catch (contentError: any) {
+      console.error("[extractTextFromPdf] Failed to extract text from file content:", {
+        error: contentError?.message || contentError,
+        fileId: uploadedFile.id,
+        statusCode: contentError?.status,
       });
-
-      // Create a thread and attach the file
-      const thread = await openai.beta.threads.create({
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Please extract all text content from the attached PDF file. Return the complete text exactly as it appears in the document.",
-              },
-              {
-                type: "file",
-                file_id: uploadedFile.id,
-              },
-            ],
-          } as any,
-        ],
-      });
-
-      // Run the assistant
-      const run = await openai.beta.threads.runs.create(thread.id, {
-        assistant_id: assistant.id,
-      });
-
-      // Poll for completion (up to 60 seconds)
-      let runStatus = run;
-      const maxAttempts = 60;
-      let attempts = 0;
-
-      while (runStatus.status === "queued" || runStatus.status === "in_progress") {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        // TypeScript workaround: cast to any to handle API signature
-        runStatus = (await (openai.beta.threads.runs.retrieve as any)(thread.id, runStatus.id)) as any;
-        attempts++;
-
-        if (attempts >= maxAttempts) {
-          throw new Error("PDF text extraction timed out after 60 seconds");
-        }
-      }
-
-      if (runStatus.status !== "completed") {
-        throw new Error(`PDF text extraction failed with status: ${runStatus.status}`);
-      }
-
-      // Retrieve the messages from the thread
-      const messages = await openai.beta.threads.messages.list(thread.id, {
-        limit: 1,
-      });
-
-      const assistantMessage = messages.data.find((msg) => msg.role === "assistant");
-      if (!assistantMessage || !assistantMessage.content || assistantMessage.content.length === 0) {
-        throw new Error("No text content extracted from PDF");
-      }
-
-      // Extract text from the assistant's response
-      const textParts = assistantMessage.content
-        .filter((part: any) => part.type === "text")
-        .map((part: any) => part.text?.value || "")
-        .join("\n\n");
-
-      if (!textParts || !textParts.trim()) {
-        throw new Error("Assistant response did not contain text content");
-      }
-
-      fullRawText = textParts;
-
-      // Clean up: Delete the assistant and thread
-      try {
-        await openai.beta.assistants.delete(assistant.id);
-      } catch (cleanupError) {
-        console.warn("[extractTextFromPdf] Failed to delete assistant:", cleanupError);
-      }
-    } catch (assistantError: any) {
-      console.error("[extractTextFromPdf] Assistants API error:", assistantError?.message);
-      throw new Error(`Failed to extract text from PDF using Assistants API: ${assistantError?.message || "Unknown error"}`);
+      throw new Error(`Failed to extract text from PDF: ${contentError?.message || "Unknown error"}`);
     } finally {
-      // Always try to delete the uploaded file
+      // Clean up: Delete the uploaded file from OpenAI
       try {
         await openai.files.delete(uploadedFile.id);
       } catch (cleanupError) {
         console.warn("[extractTextFromPdf] Failed to delete OpenAI file:", cleanupError);
+        // Non-fatal - continue
       }
     }
 

@@ -59,11 +59,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Create placeholder document record (will be updated by /api/ingest/process after upload)
+    const userId = "00000000-0000-0000-0000-000000000000"; // Temporary until real auth
+    const lessonId = crypto.randomUUID();
+    
+    const { error: docError } = await supabase.from("documents").insert({
+      user_id: userId,
+      filename: filename,
+      category: (body.source || "playbook") === "playbook" ? "playbook" : "corpus",
+      mime_type: contentType || "application/octet-stream",
+      storage_path: storagePath,
+      size_bytes: body.fileSize || null,
+      embedded: false,
+      lesson_id: lessonId,
+    });
+
+    if (docError) {
+      console.error("[API:ingest/upload-url] Failed to create document record:", docError);
+      // Don't fail the request - the process endpoint can create it if needed
+    }
+
     return NextResponse.json({
       ok: true,
       uploadUrl: data.signedUrl,
       path: storagePath,
       token: data.token,
+      lessonId: lessonId,
     });
   } catch (err: any) {
     console.error("[API:ingest/upload-url] Error:", err);

@@ -132,6 +132,30 @@ export async function POST(req: NextRequest) {
 
     }
 
+    // Vercel serverless function payload limit is ~4.5MB
+    // For files > 4MB, use signed URL upload flow instead
+    if (file.size > 4 * 1024 * 1024) {
+
+      console.log("[API:ingest/upload] File exceeds Vercel payload limit, requesting signed URL flow:", file.size);
+
+      return NextResponse.json(
+
+        { 
+
+          ok: false, 
+
+          error: "File too large for direct upload. Please use signed URL flow.",
+
+          useSignedUrl: true 
+
+        },
+
+        { status: 413 }
+
+      );
+
+    }
+
     const source = form.get("source") as string;
 
     const normalizedSource = normalizeSource(source);

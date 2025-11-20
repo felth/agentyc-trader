@@ -55,19 +55,104 @@ export function MemoryUploadPanel() {
       hasNotes: !!manualNotes.trim(),
     });
 
-    const formData = new FormData();
-
-    formData.append("file", file);
-
-    formData.append("source", "playbook");
-
-    if (manualNotes.trim()) formData.append("manual_notes", manualNotes.trim());
-
     try {
 
       setStatus("uploading");
 
       setMessage("");
+
+      // Check if file is > 4MB - use signed URL flow for large files
+      const useSignedUrl = file.size > 4 * 1024 * 1024;
+
+      if (useSignedUrl) {
+        console.log("[MemoryUploadPanel] File > 4MB, using signed URL upload flow");
+
+        // Step 1: Get signed upload URL
+        const urlRes = await fetch("/api/ingest/upload-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type,
+            fileSize: file.size,
+            source: "playbook",
+          }),
+        });
+
+        const urlData = await urlRes.json();
+
+        if (!urlData.ok || !urlData.uploadUrl) {
+          console.error("[MemoryUploadPanel] Failed to get signed URL:", urlData);
+          setStatus("error");
+          setMessage(urlData.error || "Failed to get upload URL");
+          return;
+        }
+
+        console.log("[MemoryUploadPanel] Got signed URL, uploading directly to Supabase Storage");
+
+        // Step 2: Upload directly to Supabase Storage using signed URL
+        // The signed URL from Supabase includes the token in the URL, so we PUT the file directly
+        const uploadRes = await fetch(urlData.uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+          },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          const uploadErrorText = await uploadRes.text();
+          console.error("[MemoryUploadPanel] Direct upload failed:", uploadRes.status, uploadErrorText);
+          setStatus("error");
+          setMessage(`Upload failed: ${uploadRes.status} ${uploadRes.statusText}`);
+          return;
+        }
+
+        console.log("[MemoryUploadPanel] Direct upload successful, processing file");
+
+        // Step 3: Process the uploaded file
+        const processRes = await fetch("/api/ingest/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storagePath: urlData.path,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            source: "playbook",
+            manualNotes: manualNotes.trim() || undefined,
+            tags: [],
+            lessonId: urlData.lessonId, // Use lessonId from upload-url response if available
+          }),
+        });
+
+        const processData = await processRes.json();
+
+        if (!processRes.ok || !processData.ok) {
+          console.error("[MemoryUploadPanel] Processing failed:", processData);
+          setStatus("error");
+          setMessage(processData.error || "File uploaded but processing failed");
+          return;
+        }
+
+        // Success!
+        setStatus("success");
+        setMessage("Uploaded and added to Playbook.");
+        setFile(null);
+        setManualNotes("");
+        const fileInput = document.getElementById("memory-upload-file") as HTMLInputElement;
+        if (fileInput) fileInput.value = "";
+        return;
+      }
+
+      // Standard upload flow for files < 4MB
+      const formData = new FormData();
+
+      formData.append("file", file);
+
+      formData.append("source", "playbook");
+
+      if (manualNotes.trim()) formData.append("manual_notes", manualNotes.trim());
 
       console.log("[MemoryUploadPanel] Sending request to /api/ingest/upload");
 
@@ -109,6 +194,16 @@ export function MemoryUploadPanel() {
       }
 
       if (!res.ok || !json.ok) {
+
+        // Check if server recommends using signed URL flow
+        if (json.useSignedUrl || res.status === 413) {
+          console.log("[MemoryUploadPanel] Server recommends signed URL flow, retrying...");
+          // Recursively call with signed URL flow (will be handled above)
+          // For now, show error and suggest retry
+          setStatus("error");
+          setMessage("File too large. Please try again - using large file upload.");
+          return;
+        }
 
         const errorMsg = json.error || json.message || "Upload failed";
         

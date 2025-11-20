@@ -3,34 +3,34 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   turbopack: {},
-  // Configure webpack to ensure pdf-parse is bundled (not externalized)
-  // This is critical for Vercel serverless functions
+  // For Vercel serverless: ensure pdf-parse is available via node_modules
+  // Don't bundle it - let it be resolved from node_modules at runtime
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Remove pdf-parse from externals if present - we need it bundled
+      // Ensure pdf-parse is externalized so it can be resolved from node_modules
+      // Vercel installs dependencies, so this should work
       if (Array.isArray(config.externals)) {
-        config.externals = config.externals.filter(
-          (ext: any) => ext !== "pdf-parse" && (typeof ext !== "string" || !ext.includes("pdf-parse"))
-        );
+        if (!config.externals.includes("pdf-parse")) {
+          config.externals.push("pdf-parse");
+        }
       } else if (typeof config.externals === "function") {
         const originalExternals = config.externals;
         config.externals = (context: any, request: string, callback: any) => {
-          if (request === "pdf-parse" || request?.includes("pdf-parse")) {
-            // Don't externalize - bundle it
-            return callback();
+          // Externalize pdf-parse so it uses node_modules
+          if (request === "pdf-parse" || request?.includes("/pdf-parse/")) {
+            return callback(null, `commonjs ${request}`);
           }
           return originalExternals(context, request, callback);
         };
+      } else {
+        // Initialize externals as array if not set
+        config.externals = ["pdf-parse"];
       }
-      // Ensure pdf-parse can be resolved
-      config.resolve = config.resolve || {};
-      config.resolve.alias = config.resolve.alias || {};
     }
     return config;
   },
-  // Use serverExternalPackages to ensure pdf-parse is available at runtime
-  // This tells Next.js to include it in the serverless bundle
-  serverExternalPackages: [],
+  // Mark as external so it's available in node_modules at runtime
+  serverExternalPackages: ["pdf-parse"],
 };
 
 export default nextConfig;

@@ -146,22 +146,28 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
     notes = [notesFromImage, manualNotes].filter(Boolean).join("\n\n");
   } else if (fileTypeDetected === "pdf") {
     // Use require() for pdf-parse in Node.js runtime
-    // In serverless, we must use eval('require') to avoid build-time bundling
+    // In Vercel serverless, pdf-parse is externalized and available in node_modules
     let pdfParse: any;
     try {
-      // Primary: Use eval('require') to avoid Next.js build-time evaluation
-      // This is necessary because Next.js tries to analyze requires at build time
-      pdfParse = eval('require')("pdf-parse");
+      // Try standard require first (works in Node.js/serverless)
+      if (typeof require !== "undefined") {
+        pdfParse = require("pdf-parse");
+      } else {
+        // Fallback to eval('require') if require is not in scope
+        pdfParse = eval('require')("pdf-parse");
+      }
       
       // Verify pdfParse is actually a function
       if (typeof pdfParse !== "function") {
-        console.error("[fileProcessing] pdf-parse loaded but is not a function:", typeof pdfParse);
+        console.error("[fileProcessing] pdf-parse loaded but is not a function:", typeof pdfParse, pdfParse);
         throw new Error("pdf-parse module is not a function");
       }
     } catch (requireError: any) {
       const errorDetails = {
         message: requireError?.message || String(requireError),
         code: requireError?.code,
+        path: requireError?.path,
+        requireAvailable: typeof require !== "undefined",
         stack: requireError?.stack?.substring(0, 500),
       };
       console.error("[fileProcessing] Failed to load pdf-parse:", errorDetails);
@@ -169,7 +175,7 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
       // Return detailed error for debugging
       return {
         ok: false,
-        error: `PDF parsing not available: ${errorDetails.message}. Code: ${errorDetails.code || "UNKNOWN"}. This may be a serverless environment limitation. Ensure pdf-parse@2.4.5 is in package.json dependencies.`,
+        error: `PDF parsing not available: ${errorDetails.message}. Code: ${errorDetails.code || "UNKNOWN"}. Path: ${errorDetails.path || "N/A"}. Ensure pdf-parse@2.4.5 is in package.json dependencies and deployed.`,
       };
     }
     
@@ -188,7 +194,7 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
       });
       return {
         ok: false,
-        error: `PDF parsing failed: ${parseError?.message || "Unknown error"}. This may indicate an incompatible PDF file or serverless environment limitation.`,
+        error: `PDF parsing failed: ${parseError?.message || "Unknown error"}. This may indicate an incompatible PDF file.`,
       };
     }
     

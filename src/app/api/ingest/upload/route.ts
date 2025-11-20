@@ -194,39 +194,47 @@ export async function POST(req: NextRequest) {
     const fileExtension = baseFilename.includes(".") ? baseFilename.substring(baseFilename.lastIndexOf(".")) : "";
     const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, "") || "file";
     
-    // Sanitize to only alphanumeric, dots, dashes (NO underscores!)
-    // Replace invalid chars with dashes (not underscores) to match Supabase pattern
+    // CRITICAL: Supabase Storage does NOT allow underscores _ anywhere in the path
+    // Sanitize to ONLY: alphanumeric, dots, dashes (NO underscores at all!)
+    // Replace ALL invalid chars (including underscores) with dashes immediately
     const sanitizedBase = filenameWithoutExt
-      .replace(/[^a-zA-Z0-9.-]/g, "-") // Replace invalid chars with DASH (not underscore!)
+      .replace(/[^a-zA-Z0-9.-]/g, "-") // Replace ALL invalid chars (including _) with DASH
+      .replace(/_/g, "-") // Explicitly replace any underscores that might remain
       .replace(/-{2,}/g, "-") // Replace multiple dashes with single dash
       .replace(/^-+|-$/g, "") // Remove leading/trailing dashes
-      .substring(0, 200); // Limit length (leave room for extension and path)
+      .substring(0, 200); // Limit length
     
-    // Ensure filename has no underscores - replace any that might exist
-    const safeFilenameBase = sanitizedBase.replace(/_/g, "-");
-    const sanitizedFilename = safeFilenameBase + fileExtension;
+    // Ensure filename extension also has no underscores
+    const safeExtension = fileExtension.replace(/_/g, "-");
+    const sanitizedFilename = sanitizedBase + safeExtension;
     
-    // Separate storage folder from database user_id:
-    // - Storage path: use safe folder name (NO underscores)
-    // - Database user_id: must be valid UUID for uuid column
-    const storageFolder = "default-user"; // NO underscores (dash only)
-    const userId = "00000000-0000-0000-0000-000000000000"; // Valid UUID for database insert (temporary until real auth)
+    // Storage folder: MUST have NO underscores
+    const storageFolder = "default-user"; // Use dash, NEVER underscore
+    const userId = "00000000-0000-0000-0000-000000000000"; // Valid UUID for database
     
-    const uniqueId = crypto.randomUUID().replace(/-/g, ""); // Remove dashes from UUID for shortId
+    // Generate shortId: remove ALL dashes and underscores, use only alphanumeric
+    const uniqueId = crypto.randomUUID().replace(/[-_]/g, "");
     const timestamp = Date.now();
-    const shortId = uniqueId.substring(0, 8); // Use first 8 chars of UUID (no dashes, no underscores)
+    const shortId = uniqueId.substring(0, 8); // Pure alphanumeric (no dashes, no underscores)
     
-    // Path format: folder/timestamp-shortId-filename.pdf (ALL dashes, NO underscores)
-    // Do NOT include "documents/" prefix - that's the bucket name, not part of the path
-    // Final safety check: replace ANY remaining underscores with dashes
-    const finalFilename = sanitizedFilename.replace(/_/g, "-");
-    let storagePath = `${storageFolder}/${timestamp}-${shortId}-${finalFilename}`;
+    // Path format: folder/timestamp-shortId-filename.pdf
+    // CRITICAL: NO underscores ANYWHERE in the path
+    let storagePath = `${storageFolder}/${timestamp}-${shortId}-${sanitizedFilename}`;
     
-    // Ensure no double slashes or leading/trailing slashes (Supabase Storage requirement)
+    // Ensure no double slashes or leading/trailing slashes
     storagePath = storagePath.replace(/\/+/g, "/").replace(/^\//, "").replace(/\/$/, "");
     
-    // Final safety: replace ALL underscores in the entire path (just in case)
+    // FINAL SAFETY: Replace EVERY underscore in the ENTIRE path (aggressive check)
+    // This is the last line of defense - if there's ANY underscore, kill it
     storagePath = storagePath.replace(/_/g, "-");
+    
+    // Verify path contains NO underscores (sanity check)
+    if (storagePath.includes("_")) {
+      console.error("[API:ingest/upload] FATAL: Path still contains underscore after all replacements:", storagePath);
+      // Force absolute clean path
+      storagePath = `default-user/${timestamp}-${shortId}.pdf`;
+      storagePath = storagePath.replace(/_/g, "-"); // One more time
+    }
     
     // Final validation: ensure path is valid format (folder/file.ext structure required)
     // Check that path has at least one folder segment
@@ -258,13 +266,30 @@ export async function POST(req: NextRequest) {
     let documentId: string | null = null;
 
     try {
-      // Try minimal path first as test (per Grok recommendation: "test/test.pdf")
-      // Path is relative to bucket, NOT including bucket name
-      // Use dash, not underscore (underscores not allowed in Supabase path pattern)
-      const testPath = `test/test-${timestamp}.pdf`;
+      // Note: We now test minimal path on error, not upfront
+      
+      // DEBUG: Test path format with getPublicUrl (per Grok recommendation)
+      // This helps validate the path format before upload
+      try {
+        const testUrl = supabase.storage.from("documents").getPublicUrl(storagePath);
+        console.log("[API:ingest/upload] Path validation via getPublicUrl:", testUrl.data?.publicUrl);
+        console.log("[API:ingest/upload] Path has underscores:", storagePath.includes("_"));
+        console.log("[API:ingest/upload] Path matches pattern:", /^[a-zA-Z0-9!-.*'()]+(\/[a-zA-Z0-9!-.*'()]+)*$/.test(storagePath));
+      } catch (urlErr) {
+        console.error("[API:ingest/upload] getPublicUrl test failed:", urlErr);
+      }
       
       // Upload to Supabase Storage
       console.log("[API:ingest/upload] Attempting upload with path:", storagePath);
+      console.log("[API:ingest/upload] Path character breakdown:", {
+        hasUnderscores: storagePath.includes("_"),
+        hasDashes: storagePath.includes("-"),
+        hasDots: storagePath.includes("."),
+        hasSlashes: storagePath.includes("/"),
+        length: storagePath.length,
+        segments: storagePath.split("/"),
+      });
+      
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from("documents")
         .upload(storagePath, buffer, {
@@ -282,20 +307,32 @@ export async function POST(req: NextRequest) {
         const errorMsg = uploadError.message || String(uploadError);
         const errorStatus = (uploadError as any).statusCode || (uploadError as any).status || 500;
         
-        // If pattern error, try absolute minimal path as fallback
+        // If pattern error, try absolute minimal path as fallback (per Grok: "test/test.pdf")
         if (errorMsg.toLowerCase().includes("pattern")) {
-          console.log("[API:ingest/upload] Pattern error detected, trying minimal path:", testPath);
+          // Use minimal path with NO underscores: test/test.pdf
+          const minimalPath = `test/test-${timestamp}.pdf`;
+          console.log("[API:ingest/upload] Pattern error detected, trying minimal path:", minimalPath);
+          console.log("[API:ingest/upload] Minimal path has underscores:", minimalPath.includes("_"));
+          
+          // Test minimal path with getPublicUrl first
+          try {
+            const minimalUrl = supabase.storage.from("documents").getPublicUrl(minimalPath);
+            console.log("[API:ingest/upload] Minimal path getPublicUrl:", minimalUrl.data?.publicUrl);
+          } catch (urlErr) {
+            console.error("[API:ingest/upload] Minimal path getPublicUrl failed:", urlErr);
+          }
+          
           const { error: testError } = await supabase.storage
             .from("documents")
-            .upload(testPath, buffer, {
+            .upload(minimalPath, buffer, {
               contentType: file.type,
               upsert: false,
             });
           
           if (!testError) {
-            // Minimal path worked! Update storagePath to testPath
-            storagePath = testPath;
-            console.log("[API:ingest/upload] Minimal path succeeded, using:", testPath);
+            // Minimal path worked! Update storagePath to minimalPath
+            storagePath = minimalPath;
+            console.log("[API:ingest/upload] Minimal path succeeded, using:", minimalPath);
           } else {
             // Even minimal path failed - log full error details
             console.error("[API:ingest/upload] Minimal path also failed:", testError);
@@ -305,7 +342,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
               { 
                 ok: false, 
-                error: `Storage pattern error: ${errorMsg}. Even minimal path '${testPath}' failed. Please verify: 1) The 'documents' bucket exists in Supabase Dashboard, 2) Bucket is Public, 3) Check server logs for full error details. Original path: ${storagePath}` 
+                error: `Storage pattern error: ${errorMsg}. Even minimal path '${minimalPath}' failed. Please verify: 1) The 'documents' bucket exists in Supabase Dashboard, 2) Bucket is Public, 3) Check server logs for full error details. Original path: ${storagePath}` 
               },
               { status: 400 }
             );

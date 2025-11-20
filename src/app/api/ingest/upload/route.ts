@@ -66,11 +66,78 @@ function detectFileType(mime: string, name: string): "image" | "pdf" | "text" | 
 
 
 
+/**
+ * Process uploaded file from Supabase Storage path
+ * Alternative entry point when file is already in Storage
+ */
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { storagePath, source, manualNotes, lessonId: providedLessonId } = body;
+
+    if (!storagePath) {
+      return NextResponse.json(
+        { ok: false, error: "storagePath required" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch file from Supabase Storage
+    const supabase = getSupabase();
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from("documents")
+      .download(storagePath);
+
+    if (downloadError || !fileData) {
+      return NextResponse.json(
+        { ok: false, error: `Failed to download file from storage: ${downloadError?.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Convert Blob to File-like object for processing
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const fileName = storagePath.split("/").pop() || "file";
+    const fileType = fileData.type || "application/octet-stream";
+
+    // Create a File object for processing (we'll process it inline)
+    // Continue with existing processing logic...
+    // For now, return a message that this endpoint needs the file to be uploaded via POST first
+    return NextResponse.json(
+      { ok: false, error: "Use POST endpoint to upload file directly, or use signed URL flow" },
+      { status: 400 }
+    );
+  } catch (err: any) {
+    console.error("[API:ingest/upload] PUT error:", err);
+    return NextResponse.json(
+      { ok: false, error: err?.message || "Processing error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
 
   try {
 
     console.log("[API:ingest/upload] Received upload request");
+
+    // Check Content-Length header for large files
+    const contentLength = req.headers.get("content-length");
+    const sizeInMB = contentLength ? parseInt(contentLength) / (1024 * 1024) : 0;
+    
+    if (sizeInMB > 4.5) {
+      console.warn(`[API:ingest/upload] Large file detected (${sizeInMB.toFixed(2)}MB), may exceed Vercel limit`);
+      return NextResponse.json(
+        { 
+          ok: false, 
+          error: `File too large for direct upload (${sizeInMB.toFixed(2)}MB). Vercel has a 4.5MB limit. Please use the signed URL flow for files over 4MB.`,
+          useSignedUrl: true 
+        },
+        { status: 413 }
+      );
+    }
 
     const form = await req.formData();
 

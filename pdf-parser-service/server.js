@@ -32,7 +32,19 @@
 
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
-const pdfParse = require("pdf-parse");
+
+// Import pdf-parse with explicit handling for CommonJS/ESM compatibility
+const pdfParseModule = require("pdf-parse");
+const pdfParse = pdfParseModule.default || pdfParseModule;
+
+// Runtime check to ensure pdfParse is a function
+if (typeof pdfParse !== "function") {
+  console.error("[pdf-parser-service] pdfParse is not a function. Type:", typeof pdfParse);
+  console.error("[pdf-parser-service] pdfParseModule keys:", Object.keys(pdfParseModule || {}));
+  throw new Error("pdf-parse module did not export a function. Check installation and module format.");
+}
+
+console.log("[pdf-parser-service] pdfParse loaded successfully. Type:", typeof pdfParse);
 
 const app = express();
 app.use(express.json());
@@ -87,9 +99,23 @@ app.post("/parse-pdf", async (req, res) => {
     const arrayBuffer = await pdfBlob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    console.log(`[parse-pdf] PDF buffer size: ${buffer.length} bytes`);
+    console.log(`[parse-pdf] pdfParse typeof before call:`, typeof pdfParse);
+
     // Parse PDF using pdf-parse
+    if (typeof pdfParse !== "function") {
+      throw new Error(`pdfParse is not a function (typeof: ${typeof pdfParse})`);
+    }
+
     const parsed = await pdfParse(buffer);
+    
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error(`pdf-parse returned unexpected result: ${typeof parsed}`);
+    }
+
     const text = parsed.text || "";
+    
+    console.log(`[parse-pdf] Parsed PDF successfully. Text length: ${text.length} characters`);
 
     if (!text.trim()) {
       return res.status(422).json({

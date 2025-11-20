@@ -10,101 +10,44 @@ import { ensureConceptAndTags } from "./lessonUtils";
 import { normalizeSource } from "./agentSources";
 
 /**
- * Extract text from PDF using OpenAI's File API
- * Serverless-compatible alternative to pdf-parse
+ * Extract text from PDF using external parsing service
+ * This calls a separate PDF parser service that handles pdf-parse natively
  */
-async function extractTextFromPdf(
-  openai: OpenAI,
-  supabase: ReturnType<typeof getSupabase>,
-  storagePath: string,
-  fileName: string
-): Promise<string> {
+async function extractTextFromPdfViaService(storagePath: string): Promise<string> {
+  const PDF_PARSER_URL = process.env.PDF_PARSER_URL;
+
+  if (!PDF_PARSER_URL) {
+    throw new Error("PDF_PARSER_URL is not configured. Please set this environment variable to the URL of the PDF parsing service.");
+  }
+
   try {
-    // Step 1: Download PDF from Supabase Storage
-    const { data: pdfBlob, error: downloadError } = await supabase.storage
-      .from("documents")
-      .download(storagePath);
+    console.log(`[extractTextFromPdfViaService] Calling PDF parser service for: ${storagePath}`);
 
-    if (downloadError || !pdfBlob) {
-      throw new Error(`Failed to download PDF from storage: ${downloadError?.message || "Unknown error"}`);
-    }
-
-    // Step 2: Convert Blob to File-like object for OpenAI
-    const arrayBuffer = await pdfBlob.arrayBuffer();
-    const pdfBuffer = Buffer.from(arrayBuffer);
-
-    // Create a File object for OpenAI API
-    // OpenAI File API expects a File, Blob, or ReadStream
-    const pdfFile = new File([pdfBuffer], fileName, { type: "application/pdf" });
-
-    // Step 3: Upload to OpenAI File API with a purpose that allows content download
-    // Use "fine-tune" purpose which allows files.content() to be called
-    // This is simpler than the Assistants API approach and allows direct text extraction
-    const uploadedFile = await openai.files.create({
-      file: pdfFile,
-      purpose: "fine-tune", // This purpose allows downloading/reading file content
+    const res = await fetch(`${PDF_PARSER_URL}/parse-pdf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storagePath }),
     });
 
-    // Step 4: Wait for file processing (if needed) and extract text
-    let fullRawText = "";
-    
-    try {
-      // Wait a moment for file to be processed (if needed)
-      // Some file types need processing before content is available
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Retrieve the file content (parsed text from PDF)
-      const fileContent = await openai.files.content(uploadedFile.id);
-      
-      if (fileContent instanceof Response) {
-        // Response object - get text from it
-        fullRawText = await fileContent.text();
-      } else if (typeof fileContent === "string") {
-        // Already a string
-        fullRawText = fileContent;
-      } else if (fileContent && typeof fileContent === "object") {
-        // Might be a parsed object - check for common text fields
-        const parsed = fileContent as any;
-        fullRawText = parsed.output_text || parsed.text || parsed.content || "";
-        
-        // Log the structure for debugging
-        console.log("[extractTextFromPdf] File content structure:", Object.keys(parsed).join(", "));
-      } else {
-        throw new Error("File content did not return text in expected format");
-      }
-
-      if (!fullRawText || !fullRawText.trim()) {
-        throw new Error("PDF parsed but no text content extracted");
-      }
-
-      console.log(`[extractTextFromPdf] Successfully extracted ${fullRawText.length} characters from PDF`);
-    } catch (contentError: any) {
-      console.error("[extractTextFromPdf] Failed to extract text from file content:", {
-        error: contentError?.message || contentError,
-        fileId: uploadedFile.id,
-        statusCode: contentError?.status,
-      });
-      throw new Error(`Failed to extract text from PDF: ${contentError?.message || "Unknown error"}`);
-    } finally {
-      // Clean up: Delete the uploaded file from OpenAI
-      try {
-        await openai.files.delete(uploadedFile.id);
-      } catch (cleanupError) {
-        console.warn("[extractTextFromPdf] Failed to delete OpenAI file:", cleanupError);
-        // Non-fatal - continue
-      }
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`PDF parser service error: ${res.status} ${res.statusText}. Details: ${body.substring(0, 200)}`);
     }
 
-    if (!fullRawText || !fullRawText.trim()) {
-      throw new Error("PDF parsed but no text content extracted");
+    const data = await res.json();
+
+    if (!data.text || typeof data.text !== "string") {
+      throw new Error("PDF parser service returned no text. Response: " + JSON.stringify(data));
     }
 
-    return fullRawText;
+    console.log(`[extractTextFromPdfViaService] Successfully extracted ${data.text.length} characters from PDF`);
+
+    return data.text;
   } catch (error: any) {
-    console.error("[extractTextFromPdf] Error:", {
+    console.error("[extractTextFromPdfViaService] Error:", {
       message: error?.message || String(error),
-      code: error?.code,
-      stack: error?.stack?.substring(0, 500),
+      storagePath,
+      PDF_PARSER_URL: PDF_PARSER_URL ? "configured" : "missing",
     });
     throw error;
   }
@@ -246,11 +189,11 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
 
     notes = [notesFromImage, manualNotes].filter(Boolean).join("\n\n");
   } else if (fileTypeDetected === "pdf") {
-    // Use OpenAI File API for PDF text extraction (serverless-compatible)
+    // Use external PDF parsing service for text extraction
     let fullRawText = "";
     try {
-      console.log("[fileProcessing] Extracting text from PDF using OpenAI File API:", storagePath);
-      fullRawText = await extractTextFromPdf(openai, supabase, storagePath, fileName);
+      console.log("[fileProcessing] Extracting text from PDF using external service:", storagePath);
+      fullRawText = await extractTextFromPdfViaService(storagePath);
       
       if (!fullRawText || !fullRawText.trim()) {
         throw new Error("PDF parsed but no text content extracted");
@@ -260,12 +203,11 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
     } catch (extractError: any) {
       console.error("[fileProcessing] Failed to extract text from PDF:", {
         error: extractError?.message || extractError,
-        code: extractError?.code,
-        stack: extractError?.stack?.substring(0, 500),
+        storagePath,
       });
       return {
         ok: false,
-        error: `PDF text extraction failed: ${extractError?.message || "Unknown error"}. This may indicate an incompatible PDF file or OpenAI API issue.`,
+        error: `PDF text extraction failed: ${extractError?.message || "Unknown error"}. Please ensure PDF_PARSER_URL is configured and the service is running.`,
       };
     }
     

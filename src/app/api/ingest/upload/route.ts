@@ -184,25 +184,43 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabase();
 
     // Store file in Supabase Storage
-    // Sanitize filename for storage path (Supabase Storage paths must be URL-safe)
-    // Remove any path separators and sanitize to alphanumeric + dots, dashes, underscores
-    const sanitizedFilename = file.name
+    // Sanitize filename for storage path (Supabase Storage paths must be URL-safe and not contain special chars)
+    // Extract just the filename without path, then sanitize
+    const baseFilename = file.name.split("/").pop() || file.name.split("\\").pop() || "file";
+    const fileExtension = baseFilename.includes(".") ? baseFilename.substring(baseFilename.lastIndexOf(".")) : "";
+    const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, "") || "file";
+    
+    // Sanitize to only alphanumeric, dots, dashes, underscores (no spaces, special chars)
+    const sanitizedBase = filenameWithoutExt
       .replace(/[^a-zA-Z0-9._-]/g, "_") // Replace invalid chars with underscore
-      .replace(/\.\./g, "_") // Remove path traversal attempts
-      .replace(/\/+/g, "_") // Replace any slashes with underscore
-      .replace(/^\.+/, "") // Remove leading dots
-      .substring(0, 255); // Limit length
+      .replace(/_{2,}/g, "_") // Replace multiple underscores with single
+      .replace(/^_+|_+$/g, "") // Remove leading/trailing underscores
+      .substring(0, 200); // Limit length (leave room for extension and path)
+    
+    const sanitizedFilename = sanitizedBase + fileExtension;
     
     const userId = "00000000-0000-0000-0000-000000000000"; // TODO: replace with actual user_id from auth
-    const uniqueId = crypto.randomUUID();
-    // Create a clean path: documents/userId/uniqueId-sanitizedFilename
-    let storagePath = `documents/${userId}/${uniqueId}-${sanitizedFilename}`;
-    // Ensure no double slashes or leading/trailing slashes
+    const uniqueId = crypto.randomUUID().replace(/-/g, ""); // Remove dashes from UUID for cleaner path
+    const timestamp = Date.now();
+    
+    // Create a clean path: documents/userId/timestamp-uniqueId-sanitizedFilename
+    // Format: documents/{userId}/{timestamp}-{shortId}-{filename}
+    const shortId = uniqueId.substring(0, 8); // Use first 8 chars of UUID
+    let storagePath = `documents/${userId}/${timestamp}-${shortId}-${sanitizedFilename}`;
+    
+    // Ensure no double slashes or leading/trailing slashes (Supabase Storage requirement)
     storagePath = storagePath.replace(/\/+/g, "/").replace(/^\//, "").replace(/\/$/, "");
     
-    console.log("[API:ingest/upload] Storage path:", storagePath);
+    // Final validation: path should only contain alphanumeric, dots, dashes, underscores, forward slashes
+    if (!/^[a-zA-Z0-9._/-]+$/.test(storagePath)) {
+      console.error("[API:ingest/upload] Invalid path after sanitization:", storagePath);
+      // Fallback to very simple path
+      storagePath = `documents/${timestamp}-${shortId}.${fileExtension || "bin"}`;
+    }
+    
     console.log("[API:ingest/upload] Original filename:", file.name);
     console.log("[API:ingest/upload] Sanitized filename:", sanitizedFilename);
+    console.log("[API:ingest/upload] Final storage path:", storagePath);
     
     let storageUrl = "";
     let documentId: string | null = null;

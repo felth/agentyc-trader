@@ -184,50 +184,56 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabase();
 
     // Store file in Supabase Storage
-    // Path pattern: alphanumeric, _, -, ., / (no leading /, no double /, no special chars)
-    // Use underscores instead of hyphens for separators per Grok recommendation
+    // CRITICAL: Supabase Storage does NOT allow underscores _ in paths (enforced pattern bug)
+    // Actual enforced pattern: ^[a-zA-Z0-9!-.()*'()]+(/[a-zA-Z0-9!-.()*'()]+)*$
+    // Allowed chars: alphanumeric, !, -, ., *, ', (, )
+    // NOT allowed: underscore _ (despite what docs may say)
     
     // Extract just the filename without path, then sanitize
     const baseFilename = file.name.split("/").pop() || file.name.split("\\").pop() || "file";
     const fileExtension = baseFilename.includes(".") ? baseFilename.substring(baseFilename.lastIndexOf(".")) : "";
     const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, "") || "file";
     
-    // Sanitize to only alphanumeric, dots, dashes, underscores (no spaces, special chars)
+    // Sanitize to only alphanumeric, dots, dashes (NO underscores!)
+    // Replace invalid chars with dashes (not underscores) to match Supabase pattern
     const sanitizedBase = filenameWithoutExt
-      .replace(/[^a-zA-Z0-9._-]/g, "_") // Replace invalid chars with underscore
-      .replace(/_{2,}/g, "_") // Replace multiple underscores with single
-      .replace(/^_+|_+$/g, "") // Remove leading/trailing underscores
+      .replace(/[^a-zA-Z0-9.-]/g, "-") // Replace invalid chars with DASH (not underscore!)
+      .replace(/-{2,}/g, "-") // Replace multiple dashes with single dash
+      .replace(/^-+|-$/g, "") // Remove leading/trailing dashes
       .substring(0, 200); // Limit length (leave room for extension and path)
     
-    const sanitizedFilename = sanitizedBase + fileExtension;
+    // Ensure filename has no underscores - replace any that might exist
+    const safeFilenameBase = sanitizedBase.replace(/_/g, "-");
+    const sanitizedFilename = safeFilenameBase + fileExtension;
     
     // Separate storage folder from database user_id:
-    // - Storage path: use safe folder name without UUID dashes (causes pattern mismatch)
+    // - Storage path: use safe folder name (NO underscores)
     // - Database user_id: must be valid UUID for uuid column
-    const storageFolder = "default-user"; // Safe folder name (use dash, not underscore - underscores not allowed in Supabase path pattern)
+    const storageFolder = "default-user"; // NO underscores (dash only)
     const userId = "00000000-0000-0000-0000-000000000000"; // Valid UUID for database insert (temporary until real auth)
     
-    const uniqueId = crypto.randomUUID().replace(/-/g, ""); // Remove dashes from UUID for storage
+    const uniqueId = crypto.randomUUID().replace(/-/g, ""); // Remove dashes from UUID for shortId
     const timestamp = Date.now();
-    const shortId = uniqueId.substring(0, 8); // Use first 8 chars of UUID (no dashes)
+    const shortId = uniqueId.substring(0, 8); // Use first 8 chars of UUID (no dashes, no underscores)
     
-    // IMPORTANT: Supabase Storage path pattern: ^[a-zA-Z0-9!-.*'()]+(/[a-zA-Z0-9!-.'()]+)$
-    // Allowed chars: alphanumeric, !, -, ., *, ', (, )
-    // NOT allowed: underscore _ (this was our issue!)
-    // Path format: folder/timestamp-shortId-filename.pdf (use dash -, NOT underscore _)
+    // Path format: folder/timestamp-shortId-filename.pdf (ALL dashes, NO underscores)
     // Do NOT include "documents/" prefix - that's the bucket name, not part of the path
-    // Replace any underscores in filename with dashes to match allowed pattern
-    const safeFilename = sanitizedFilename.replace(/_/g, "-"); // Replace underscores with dashes
-    let storagePath = `${storageFolder}/${timestamp}-${shortId}-${safeFilename}`;
+    // Final safety check: replace ANY remaining underscores with dashes
+    const finalFilename = sanitizedFilename.replace(/_/g, "-");
+    let storagePath = `${storageFolder}/${timestamp}-${shortId}-${finalFilename}`;
     
     // Ensure no double slashes or leading/trailing slashes (Supabase Storage requirement)
     storagePath = storagePath.replace(/\/+/g, "/").replace(/^\//, "").replace(/\/$/, "");
     
-    // Final validation: path should match Supabase pattern (alphanumeric, !, -, ., *, ', (, ) and /)
+    // Final safety: replace ALL underscores in the entire path (just in case)
+    storagePath = storagePath.replace(/_/g, "-");
+    
+    // Final validation: path should match Supabase pattern (NO underscores allowed)
     if (!/^[a-zA-Z0-9!-.*'()]+(\/[a-zA-Z0-9!-.*'()]+)*$/.test(storagePath)) {
       console.error("[API:ingest/upload] Invalid path after sanitization:", storagePath);
-      // Fallback to very simple path (still relative to bucket, no "documents/" prefix, no underscores)
-      storagePath = `${timestamp}-${shortId}.${fileExtension || "bin"}`;
+      // Fallback to very simple path (NO underscores anywhere)
+      const safeExt = (fileExtension || "bin").replace(/_/g, "-");
+      storagePath = `${timestamp}-${shortId}.${safeExt}`;
     }
     
     console.log("[API:ingest/upload] Original filename:", file.name);
@@ -308,8 +314,11 @@ export async function POST(req: NextRequest) {
           // Other error (including "already exists")
           // If file already exists, try again with a new unique path
           if (errorMsg.toLowerCase().includes("already exists") || errorMsg.toLowerCase().includes("duplicate")) {
-            const safeFilename = sanitizedFilename.replace(/_/g, "-"); // Replace underscores with dashes
+            // Ensure NO underscores in retry path
+            const safeFilename = sanitizedFilename.replace(/_/g, "-");
             storagePath = `${storageFolder}/${Date.now()}-${shortId}-${safeFilename}`;
+            // Final safety: replace any underscores in retry path
+            storagePath = storagePath.replace(/_/g, "-");
             console.log("[API:ingest/upload] File exists, retrying with new path:", storagePath);
             const { error: retryError } = await supabase.storage
               .from("documents")

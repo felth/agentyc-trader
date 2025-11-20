@@ -7,7 +7,7 @@
     "kill:dev": "lsof -ti:3000,3001 | xargs kill -9 2>/dev/null || true; pkill -f 'next dev' 2>/dev/null || true; rm -f .next/dev/lock 2>/dev/null || true",
     "dev:clean": "npm run kill:dev && next dev",
     "dev": "npm run kill:dev && next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },

@@ -2,35 +2,44 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  turbopack: {},
-  // For Vercel serverless: ensure pdf-parse is available via node_modules
-  // Don't bundle it - let it be resolved from node_modules at runtime
+  // For Vercel serverless: ensure pdf-parse is externalized and available in node_modules
+  // This tells Next.js NOT to bundle it, but to resolve it from node_modules at runtime
+  serverExternalPackages: ["pdf-parse"],
+  // Configure webpack to properly handle pdf-parse as external
+  // Note: Using webpack config with Turbopack requires explicit --webpack flag or removing turbopack config
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Ensure pdf-parse is externalized so it can be resolved from node_modules
-      // Vercel installs dependencies, so this should work
+      // Externalize pdf-parse - don't bundle it, resolve from node_modules
+      const externalizePdfParse = (request: string) => {
+        return request === "pdf-parse" || request?.includes("pdf-parse");
+      };
+
       if (Array.isArray(config.externals)) {
+        // Add to array if not already present
         if (!config.externals.includes("pdf-parse")) {
           config.externals.push("pdf-parse");
         }
       } else if (typeof config.externals === "function") {
         const originalExternals = config.externals;
         config.externals = (context: any, request: string, callback: any) => {
-          // Externalize pdf-parse so it uses node_modules
-          if (request === "pdf-parse" || request?.includes("/pdf-parse/")) {
+          // Externalize pdf-parse
+          if (externalizePdfParse(request)) {
             return callback(null, `commonjs ${request}`);
           }
           return originalExternals(context, request, callback);
         };
       } else {
-        // Initialize externals as array if not set
-        config.externals = ["pdf-parse"];
+        // Initialize as function if not set
+        config.externals = (context: any, request: string, callback: any) => {
+          if (externalizePdfParse(request)) {
+            return callback(null, `commonjs ${request}`);
+          }
+          callback();
+        };
       }
     }
     return config;
   },
-  // Mark as external so it's available in node_modules at runtime
-  serverExternalPackages: ["pdf-parse"],
 };
 
 export default nextConfig;

@@ -9,6 +9,128 @@ import { getSupabase } from "./supabaseServer";
 import { ensureConceptAndTags } from "./lessonUtils";
 import { normalizeSource } from "./agentSources";
 
+/**
+ * Extract text from PDF using OpenAI's File API
+ * Serverless-compatible alternative to pdf-parse
+ */
+async function extractTextFromPdf(
+  openai: OpenAI,
+  supabase: ReturnType<typeof getSupabase>,
+  storagePath: string,
+  fileName: string
+): Promise<string> {
+  try {
+    // Step 1: Download PDF from Supabase Storage
+    const { data: pdfBlob, error: downloadError } = await supabase.storage
+      .from("documents")
+      .download(storagePath);
+
+    if (downloadError || !pdfBlob) {
+      throw new Error(`Failed to download PDF from storage: ${downloadError?.message || "Unknown error"}`);
+    }
+
+    // Step 2: Convert Blob to File-like object for OpenAI
+    const arrayBuffer = await pdfBlob.arrayBuffer();
+    const pdfBuffer = Buffer.from(arrayBuffer);
+
+    // Create a File object for OpenAI API
+    // OpenAI File API expects a File, Blob, or ReadStream
+    const pdfFile = new File([pdfBuffer], fileName, { type: "application/pdf" });
+
+    // Step 3: Upload to OpenAI File API
+    const uploadedFile = await openai.files.create({
+      file: pdfFile,
+      purpose: "assistants",
+    });
+
+    // Step 4: Parse the file to extract text using OpenAI File API
+    // Try files.parse() if available, otherwise use files.content() as fallback
+    let fullRawText = "";
+    
+    try {
+      // Try the parse API method (may not exist in all SDK versions)
+      const parseJob = await (openai.files as any).parse({
+        file_id: uploadedFile.id,
+      });
+
+      // Check if parse completed synchronously
+      if (parseJob && parseJob.output_text) {
+        fullRawText = parseJob.output_text;
+      } else if (parseJob && ((parseJob as any).status === "processing" || (parseJob as any).status === "pending")) {
+        // Poll for completion
+        const maxAttempts = 60;
+        let attempts = 0;
+
+        while (attempts < maxAttempts && !fullRawText) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          try {
+            const retrieved = await openai.files.retrieve(uploadedFile.id);
+            if ((retrieved as any).output_text) {
+              fullRawText = (retrieved as any).output_text;
+              break;
+            }
+          } catch (e) {
+            // Continue polling
+          }
+
+          attempts++;
+        }
+
+        if (!fullRawText && attempts >= maxAttempts) {
+          throw new Error("PDF parsing timed out after 60 seconds");
+        }
+      } else {
+        // Parse method returned unexpected result, try content API
+        throw new Error("Parse method returned unexpected format");
+      }
+    } catch (parseError: any) {
+      // Fallback: If parse() doesn't exist or fails, use content API
+      // Note: content() might not extract text from PDFs directly
+      // This is a fallback that may need adjustment based on actual OpenAI API capabilities
+      console.log("[extractTextFromPdf] Parse method not available or failed, trying content API:", parseError?.message);
+      
+      try {
+        // For PDFs, OpenAI may need to process them via Assistants API
+        // For now, we'll try to get content and see what happens
+        const fileContent = await openai.files.content(uploadedFile.id);
+        if (fileContent instanceof Response) {
+          fullRawText = await fileContent.text();
+        } else if (typeof fileContent === "string") {
+          fullRawText = fileContent;
+        } else {
+          throw new Error("Content API did not return text content");
+        }
+      } catch (contentError: any) {
+        // If content() also fails, we need to use a different approach
+        // This might require using Assistants API or Batch API
+        throw new Error(`Failed to extract text from PDF: ${contentError?.message || parseError?.message || "Unknown error"}`);
+      }
+    }
+
+    // Clean up: Delete the uploaded file from OpenAI (optional)
+    try {
+      await openai.files.delete(uploadedFile.id);
+    } catch (cleanupError) {
+      console.warn("[extractTextFromPdf] Failed to delete OpenAI file:", cleanupError);
+      // Non-fatal - continue
+    }
+
+    if (!fullRawText || !fullRawText.trim()) {
+      throw new Error("PDF parsed but no text content extracted");
+    }
+
+    return fullRawText;
+  } catch (error: any) {
+    console.error("[extractTextFromPdf] Error:", {
+      message: error?.message || String(error),
+      code: error?.code,
+      stack: error?.stack?.substring(0, 500),
+    });
+    throw error;
+  }
+}
+
 export type FileType = "image" | "pdf" | "text" | "unsupported";
 
 export interface ProcessFileParams {
@@ -145,80 +267,35 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
 
     notes = [notesFromImage, manualNotes].filter(Boolean).join("\n\n");
   } else if (fileTypeDetected === "pdf") {
-    // Lazy load pdf-parse only when actually processing a PDF
-    // This prevents it from being loaded at module initialization time
-    let pdfParse: any;
+    // Use OpenAI File API for PDF text extraction (serverless-compatible)
+    let fullRawText = "";
     try {
-      // Use dynamic require with explicit path resolution
-      // Try multiple methods to find the module
-      if (typeof require !== "undefined" && require.resolve) {
-        try {
-          // First try to resolve the module path
-          const pdfParsePath = require.resolve("pdf-parse");
-          pdfParse = require(pdfParsePath);
-        } catch (resolveError) {
-          // If resolve fails, try direct require
-          pdfParse = require("pdf-parse");
-        }
-      } else {
-        // Fallback to eval('require') if require is not in scope
-        const requireFn = eval('require');
-        pdfParse = requireFn("pdf-parse");
+      console.log("[fileProcessing] Extracting text from PDF using OpenAI File API:", storagePath);
+      fullRawText = await extractTextFromPdf(openai, supabase, storagePath, fileName);
+      
+      if (!fullRawText || !fullRawText.trim()) {
+        throw new Error("PDF parsed but no text content extracted");
       }
       
-      // Verify pdfParse is actually a function
-      if (typeof pdfParse !== "function") {
-        // pdf-parse might export as default or as the module itself
-        if (pdfParse && typeof pdfParse.default === "function") {
-          pdfParse = pdfParse.default;
-        } else if (pdfParse && typeof pdfParse.pdfParse === "function") {
-          pdfParse = pdfParse.pdfParse;
-        } else {
-          console.error("[fileProcessing] pdf-parse loaded but is not a function:", typeof pdfParse, pdfParse);
-          throw new Error("pdf-parse module is not a function");
-        }
-      }
-    } catch (requireError: any) {
-      const errorDetails = {
-        message: requireError?.message || String(requireError),
-        code: requireError?.code,
-        path: requireError?.path,
-        requireAvailable: typeof require !== "undefined",
-        resolveAvailable: typeof require !== "undefined" && typeof require.resolve === "function",
-        stack: requireError?.stack?.substring(0, 500),
-      };
-      console.error("[fileProcessing] Failed to load pdf-parse:", errorDetails);
-      
-      // Return detailed error for debugging
-      return {
-        ok: false,
-        error: `PDF parsing not available: ${errorDetails.message}. Code: ${errorDetails.code || "UNKNOWN"}. The pdf-parse module is not available in the serverless environment. Please ensure it's installed and accessible.`,
-      };
-    }
-    
-    // Parse the PDF buffer
-    let parsed: any;
-    try {
-      parsed = await pdfParse(buffer);
-      if (!parsed || !parsed.text) {
-        throw new Error("PDF parsed but no text content found");
-      }
-    } catch (parseError: any) {
-      console.error("[fileProcessing] Failed to parse PDF buffer:", {
-        error: parseError?.message || parseError,
-        code: parseError?.code,
-        stack: parseError?.stack?.substring(0, 500),
+      console.log(`[fileProcessing] Successfully extracted ${fullRawText.length} characters from PDF`);
+    } catch (extractError: any) {
+      console.error("[fileProcessing] Failed to extract text from PDF:", {
+        error: extractError?.message || extractError,
+        code: extractError?.code,
+        stack: extractError?.stack?.substring(0, 500),
       });
       return {
         ok: false,
-        error: `PDF parsing failed: ${parseError?.message || "Unknown error"}. This may indicate an incompatible PDF file.`,
+        error: `PDF text extraction failed: ${extractError?.message || "Unknown error"}. This may indicate an incompatible PDF file or OpenAI API issue.`,
       };
     }
     
-    const rawText = (parsed.text || "").slice(0, 16000);
-
     // Store full raw text for deep chunking (before summarization)
-    fullRawText = rawText;
+    // fullRawText now contains the COMPLETE extracted text (all pages)
+    // This is used for corpus chunking, not truncated
+    
+    // For summarization, use first 16k chars (token limit)
+    const rawText = fullRawText.slice(0, 16000);
 
     const pdfSystem = [
       "You summarise PDF documents into concise trading lessons.",

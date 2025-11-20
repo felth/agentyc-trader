@@ -507,6 +507,9 @@ export async function POST(req: NextRequest) {
     };
 
     return NextResponse.json(responseBody);
+
+  } catch (err) {
+
     console.error("UPLOAD ERROR", err);
 
     const message = err instanceof Error ? err.message : "Server error in /api/ingest/upload";

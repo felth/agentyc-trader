@@ -162,6 +162,33 @@ export async function POST(req: NextRequest) {
 
     );
 
+    // Store file in Supabase Storage
+    const storagePath = `documents/${lessonId}/${file.name}`;
+    let storageUrl = "";
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(storagePath, buffer, {
+          contentType: file.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Supabase storage upload error:", uploadError);
+        // Continue with embedding even if storage fails (graceful degradation)
+      } else {
+        // Get signed URL for the stored file (valid for 1 hour)
+        const { data: urlData } = await supabase.storage
+          .from("documents")
+          .createSignedUrl(storagePath, 3600);
+        storageUrl = urlData?.signedUrl || "";
+      }
+    } catch (storageErr) {
+      console.error("Storage operation error:", storageErr);
+      // Continue with embedding even if storage fails
+    }
+
 
 
     let concept = "";
@@ -489,6 +516,36 @@ export async function POST(req: NextRequest) {
 
 
 
+    // Determine category: "playbook" if source is "playbook", else "corpus"
+    const category = normalizedSource === "playbook" ? "playbook" : "corpus";
+
+    // Create document record (only if storage succeeded)
+    if (storageUrl) {
+      try {
+        const { error: docError } = await supabase
+          .from("documents")
+          .insert({
+            user_id: "00000000-0000-0000-0000-000000000000", // TODO: replace with actual user_id from auth
+            title: concept || file.name,
+            filename: file.name,
+            category,
+            mime_type: file.type,
+            storage_path: storagePath,
+            size_bytes: file.size,
+            lesson_id: lessonId,
+            embedded: true,
+          });
+
+        if (docError) {
+          console.error("Supabase documents insert error:", docError);
+        }
+      } catch (docErr) {
+        console.error("Document insert error:", docErr);
+      }
+    }
+
+    // Also insert into lessons table (existing behavior)
+
     const { error: sbError } = await supabase
 
       .from("lessons")
@@ -505,7 +562,7 @@ export async function POST(req: NextRequest) {
 
         tags: allTags,
 
-        image_url: fileType === "image" ? "upload://inline" : ""
+        image_url: fileType === "image" ? storageUrl : ""
 
       });
 

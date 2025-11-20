@@ -184,11 +184,26 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabase();
 
     // Store file in Supabase Storage
-    // Sanitize filename for storage path
-    const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    // Sanitize filename for storage path (Supabase Storage paths must be URL-safe)
+    // Remove any path separators and sanitize to alphanumeric + dots, dashes, underscores
+    const sanitizedFilename = file.name
+      .replace(/[^a-zA-Z0-9._-]/g, "_") // Replace invalid chars with underscore
+      .replace(/\.\./g, "_") // Remove path traversal attempts
+      .replace(/\/+/g, "_") // Replace any slashes with underscore
+      .replace(/^\.+/, "") // Remove leading dots
+      .substring(0, 255); // Limit length
+    
     const userId = "00000000-0000-0000-0000-000000000000"; // TODO: replace with actual user_id from auth
     const uniqueId = crypto.randomUUID();
+    // Create a clean path: documents/userId/uniqueId-sanitizedFilename
     let storagePath = `documents/${userId}/${uniqueId}-${sanitizedFilename}`;
+    // Ensure no double slashes or leading/trailing slashes
+    storagePath = storagePath.replace(/\/+/g, "/").replace(/^\//, "").replace(/\/$/, "");
+    
+    console.log("[API:ingest/upload] Storage path:", storagePath);
+    console.log("[API:ingest/upload] Original filename:", file.name);
+    console.log("[API:ingest/upload] Sanitized filename:", sanitizedFilename);
+    
     let storageUrl = "";
     let documentId: string | null = null;
 
@@ -204,11 +219,12 @@ export async function POST(req: NextRequest) {
       if (uploadError) {
         console.error("Supabase storage upload error:", uploadError);
         console.error("Error details:", JSON.stringify(uploadError, null, 2));
+        console.error("Attempted storage path:", storagePath);
         
         const errorMsg = uploadError.message || String(uploadError);
         const errorStatus = (uploadError as any).statusCode || (uploadError as any).status || 500;
         
-        // Check if bucket doesn't exist (pattern match error is often bucket not found)
+        // Check if bucket doesn't exist or path is invalid (pattern match error)
         if (
           errorMsg.toLowerCase().includes("pattern") ||
           errorMsg.toLowerCase().includes("not found") ||
@@ -218,10 +234,11 @@ export async function POST(req: NextRequest) {
           errorStatus === 404 ||
           errorStatus === 400
         ) {
+          // Provide more helpful error message
           return NextResponse.json(
             { 
               ok: false, 
-              error: "Storage bucket 'documents' not found. Please create it in Supabase Dashboard → Storage → Buckets. The bucket name must be exactly 'documents'." 
+              error: `Storage error: ${errorMsg}. Please verify: 1) The 'documents' bucket exists in Supabase Dashboard → Storage → Buckets, 2) The bucket name is exactly 'documents' (case-sensitive), 3) The bucket is accessible. Path attempted: ${storagePath}` 
             },
             { status: 400 }
           );

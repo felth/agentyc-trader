@@ -145,22 +145,38 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
 
     notes = [notesFromImage, manualNotes].filter(Boolean).join("\n\n");
   } else if (fileTypeDetected === "pdf") {
-    // Use require() for pdf-parse in Node.js runtime
-    // In Vercel serverless, pdf-parse is externalized and available in node_modules
+    // Lazy load pdf-parse only when actually processing a PDF
+    // This prevents it from being loaded at module initialization time
     let pdfParse: any;
     try {
-      // Try standard require first (works in Node.js/serverless)
-      if (typeof require !== "undefined") {
-        pdfParse = require("pdf-parse");
+      // Use dynamic require with explicit path resolution
+      // Try multiple methods to find the module
+      if (typeof require !== "undefined" && require.resolve) {
+        try {
+          // First try to resolve the module path
+          const pdfParsePath = require.resolve("pdf-parse");
+          pdfParse = require(pdfParsePath);
+        } catch (resolveError) {
+          // If resolve fails, try direct require
+          pdfParse = require("pdf-parse");
+        }
       } else {
         // Fallback to eval('require') if require is not in scope
-        pdfParse = eval('require')("pdf-parse");
+        const requireFn = eval('require');
+        pdfParse = requireFn("pdf-parse");
       }
       
       // Verify pdfParse is actually a function
       if (typeof pdfParse !== "function") {
-        console.error("[fileProcessing] pdf-parse loaded but is not a function:", typeof pdfParse, pdfParse);
-        throw new Error("pdf-parse module is not a function");
+        // pdf-parse might export as default or as the module itself
+        if (pdfParse && typeof pdfParse.default === "function") {
+          pdfParse = pdfParse.default;
+        } else if (pdfParse && typeof pdfParse.pdfParse === "function") {
+          pdfParse = pdfParse.pdfParse;
+        } else {
+          console.error("[fileProcessing] pdf-parse loaded but is not a function:", typeof pdfParse, pdfParse);
+          throw new Error("pdf-parse module is not a function");
+        }
       }
     } catch (requireError: any) {
       const errorDetails = {
@@ -168,6 +184,7 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
         code: requireError?.code,
         path: requireError?.path,
         requireAvailable: typeof require !== "undefined",
+        resolveAvailable: typeof require !== "undefined" && typeof require.resolve === "function",
         stack: requireError?.stack?.substring(0, 500),
       };
       console.error("[fileProcessing] Failed to load pdf-parse:", errorDetails);
@@ -175,7 +192,7 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
       // Return detailed error for debugging
       return {
         ok: false,
-        error: `PDF parsing not available: ${errorDetails.message}. Code: ${errorDetails.code || "UNKNOWN"}. Path: ${errorDetails.path || "N/A"}. Ensure pdf-parse@2.4.5 is in package.json dependencies and deployed.`,
+        error: `PDF parsing not available: ${errorDetails.message}. Code: ${errorDetails.code || "UNKNOWN"}. The pdf-parse module is not available in the serverless environment. Please ensure it's installed and accessible.`,
       };
     }
     

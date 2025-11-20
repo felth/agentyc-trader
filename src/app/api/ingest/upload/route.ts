@@ -204,26 +204,30 @@ export async function POST(req: NextRequest) {
     // Separate storage folder from database user_id:
     // - Storage path: use safe folder name without UUID dashes (causes pattern mismatch)
     // - Database user_id: must be valid UUID for uuid column
-    const storageFolder = "default_user"; // Safe folder name for storage path (no UUID dashes)
+    const storageFolder = "default-user"; // Safe folder name (use dash, not underscore - underscores not allowed in Supabase path pattern)
     const userId = "00000000-0000-0000-0000-000000000000"; // Valid UUID for database insert (temporary until real auth)
     
     const uniqueId = crypto.randomUUID().replace(/-/g, ""); // Remove dashes from UUID for storage
     const timestamp = Date.now();
-    const shortId = uniqueId.substring(0, 8); // Use first 8 chars of UUID
+    const shortId = uniqueId.substring(0, 8); // Use first 8 chars of UUID (no dashes)
     
-    // IMPORTANT: Supabase Storage .upload() expects path RELATIVE to bucket, NOT including bucket name
-    // Path format: folder/timestamp_shortId_filename.pdf (use _ not -)
+    // IMPORTANT: Supabase Storage path pattern: ^[a-zA-Z0-9!-.*'()]+(/[a-zA-Z0-9!-.'()]+)$
+    // Allowed chars: alphanumeric, !, -, ., *, ', (, )
+    // NOT allowed: underscore _ (this was our issue!)
+    // Path format: folder/timestamp-shortId-filename.pdf (use dash -, NOT underscore _)
     // Do NOT include "documents/" prefix - that's the bucket name, not part of the path
-    let storagePath = `${storageFolder}/${timestamp}_${shortId}_${sanitizedFilename}`;
+    // Replace any underscores in filename with dashes to match allowed pattern
+    const safeFilename = sanitizedFilename.replace(/_/g, "-"); // Replace underscores with dashes
+    let storagePath = `${storageFolder}/${timestamp}-${shortId}-${safeFilename}`;
     
     // Ensure no double slashes or leading/trailing slashes (Supabase Storage requirement)
     storagePath = storagePath.replace(/\/+/g, "/").replace(/^\//, "").replace(/\/$/, "");
     
-    // Final validation: path should only contain alphanumeric, dots, dashes, underscores, forward slashes
-    if (!/^[a-zA-Z0-9._/-]+$/.test(storagePath)) {
+    // Final validation: path should match Supabase pattern (alphanumeric, !, -, ., *, ', (, ) and /)
+    if (!/^[a-zA-Z0-9!-.*'()]+(\/[a-zA-Z0-9!-.*'()]+)*$/.test(storagePath)) {
       console.error("[API:ingest/upload] Invalid path after sanitization:", storagePath);
-      // Fallback to very simple path (still relative to bucket, no "documents/" prefix)
-      storagePath = `${timestamp}_${shortId}.${fileExtension || "bin"}`;
+      // Fallback to very simple path (still relative to bucket, no "documents/" prefix, no underscores)
+      storagePath = `${timestamp}-${shortId}.${fileExtension || "bin"}`;
     }
     
     console.log("[API:ingest/upload] Original filename:", file.name);
@@ -238,7 +242,8 @@ export async function POST(req: NextRequest) {
     try {
       // Try minimal path first as test (per Grok recommendation: "test/test.pdf")
       // Path is relative to bucket, NOT including bucket name
-      const testPath = `test_${timestamp}.pdf`;
+      // Use dash, not underscore (underscores not allowed in Supabase path pattern)
+      const testPath = `test/test-${timestamp}.pdf`;
       
       // Upload to Supabase Storage
       console.log("[API:ingest/upload] Attempting upload with path:", storagePath);
@@ -303,7 +308,8 @@ export async function POST(req: NextRequest) {
           // Other error (including "already exists")
           // If file already exists, try again with a new unique path
           if (errorMsg.toLowerCase().includes("already exists") || errorMsg.toLowerCase().includes("duplicate")) {
-            storagePath = `${storageFolder}/${Date.now()}_${shortId}_${sanitizedFilename}`;
+            const safeFilename = sanitizedFilename.replace(/_/g, "-"); // Replace underscores with dashes
+            storagePath = `${storageFolder}/${Date.now()}-${shortId}-${safeFilename}`;
             console.log("[API:ingest/upload] File exists, retrying with new path:", storagePath);
             const { error: retryError } = await supabase.storage
               .from("documents")

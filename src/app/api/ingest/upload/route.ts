@@ -184,7 +184,9 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabase();
 
     // Store file in Supabase Storage
-    // Sanitize filename for storage path (Supabase Storage paths must be URL-safe and not contain special chars)
+    // Path pattern: alphanumeric, _, -, ., / (no leading /, no double /, no special chars)
+    // Use underscores instead of hyphens for separators per Grok recommendation
+    
     // Extract just the filename without path, then sanitize
     const baseFilename = file.name.split("/").pop() || file.name.split("\\").pop() || "file";
     const fileExtension = baseFilename.includes(".") ? baseFilename.substring(baseFilename.lastIndexOf(".")) : "";
@@ -199,14 +201,15 @@ export async function POST(req: NextRequest) {
     
     const sanitizedFilename = sanitizedBase + fileExtension;
     
-    const userId = "00000000-0000-0000-0000-000000000000"; // TODO: replace with actual user_id from auth
-    const uniqueId = crypto.randomUUID().replace(/-/g, ""); // Remove dashes from UUID for cleaner path
+    // Use simple user_id without UUID format (UUID dashes cause pattern mismatch)
+    const userId = "default_user"; // TODO: replace with actual user_id from auth
+    const uniqueId = crypto.randomUUID().replace(/-/g, ""); // Remove dashes from UUID
     const timestamp = Date.now();
-    
-    // Create a clean path: documents/userId/timestamp-uniqueId-sanitizedFilename
-    // Format: documents/{userId}/{timestamp}-{shortId}-{filename}
     const shortId = uniqueId.substring(0, 8); // Use first 8 chars of UUID
-    let storagePath = `documents/${userId}/${timestamp}-${shortId}-${sanitizedFilename}`;
+    
+    // Recommended format: documents/user_id/timestamp_shortId_filename.pdf (use _ not -)
+    // Format: documents/{user_id}/{timestamp}_{shortId}_{filename}
+    let storagePath = `documents/${userId}/${timestamp}_${shortId}_${sanitizedFilename}`;
     
     // Ensure no double slashes or leading/trailing slashes (Supabase Storage requirement)
     storagePath = storagePath.replace(/\/+/g, "/").replace(/^\//, "").replace(/\/$/, "");
@@ -215,7 +218,7 @@ export async function POST(req: NextRequest) {
     if (!/^[a-zA-Z0-9._/-]+$/.test(storagePath)) {
       console.error("[API:ingest/upload] Invalid path after sanitization:", storagePath);
       // Fallback to very simple path
-      storagePath = `documents/${timestamp}-${shortId}.${fileExtension || "bin"}`;
+      storagePath = `documents/${timestamp}_${shortId}.${fileExtension || "bin"}`;
     }
     
     console.log("[API:ingest/upload] Original filename:", file.name);

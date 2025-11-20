@@ -250,6 +250,9 @@ export async function POST(req: NextRequest) {
     console.log("[API:ingest/upload] Storage folder:", storageFolder);
     console.log("[API:ingest/upload] Database user_id:", userId);
     console.log("[API:ingest/upload] Final storage path:", storagePath);
+    console.log("[API:ingest/upload] Path has folder:", storagePath.includes("/"));
+    console.log("[API:ingest/upload] Path contains underscore:", storagePath.includes("_"));
+    console.log("[API:ingest/upload] Path segments:", storagePath.split("/"));
     
     let storageUrl = "";
     let documentId: string | null = null;

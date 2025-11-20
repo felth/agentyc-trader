@@ -220,8 +220,19 @@ export async function POST(req: NextRequest) {
 
     else if (fileType === "pdf") {
 
-      // Lazy require to avoid build-time evaluation issues
-      const pdfParse = eval('require')("pdf-parse");
+      // Dynamic import to avoid build-time bundling issues
+      let pdfParse: any;
+      try {
+        const pdfParseModule = await import("pdf-parse");
+        // pdf-parse exports directly, not as default
+        pdfParse = (pdfParseModule as any).default || pdfParseModule;
+      } catch (importError) {
+        console.error("[API:ingest/file] Failed to import pdf-parse:", importError);
+        return NextResponse.json(
+          { ok: false, error: "PDF parsing not available. Please ensure pdf-parse is installed." },
+          { status: 500 }
+        );
+      }
 
       const parsed = await pdfParse(buffer);
 

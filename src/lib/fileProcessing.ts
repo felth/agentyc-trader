@@ -145,8 +145,19 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
 
     notes = [notesFromImage, manualNotes].filter(Boolean).join("\n\n");
   } else if (fileTypeDetected === "pdf") {
-    // Lazy require to avoid build-time evaluation issues
-    const pdfParse = eval('require')("pdf-parse");
+    // Dynamic import to avoid build-time bundling issues
+    let pdfParse: any;
+    try {
+      const pdfParseModule: any = await import("pdf-parse");
+      // pdf-parse exports directly, not as default
+      pdfParse = pdfParseModule.default || pdfParseModule;
+    } catch (importError) {
+      console.error("[fileProcessing] Failed to import pdf-parse:", importError);
+      return {
+        ok: false,
+        error: "PDF parsing not available. Please ensure pdf-parse is installed.",
+      };
+    }
     const parsed = await pdfParse(buffer);
     const rawText = (parsed.text || "").slice(0, 16000);
 

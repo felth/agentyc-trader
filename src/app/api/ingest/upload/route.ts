@@ -176,18 +176,32 @@ export async function POST(req: NextRequest) {
 
       if (uploadError) {
         console.error("Supabase storage upload error:", uploadError);
-        const errorMsg = uploadError.message || String(uploadError);
+        console.error("Error details:", JSON.stringify(uploadError, null, 2));
         
-        // Check if bucket doesn't exist
-        if (errorMsg.includes("pattern") || errorMsg.includes("not found") || errorMsg.includes("Bucket") || errorMsg.includes("does not exist")) {
+        const errorMsg = uploadError.message || String(uploadError);
+        const errorStatus = uploadError.statusCode || (uploadError as any).status || 500;
+        
+        // Check if bucket doesn't exist (pattern match error is often bucket not found)
+        if (
+          errorMsg.toLowerCase().includes("pattern") ||
+          errorMsg.toLowerCase().includes("not found") ||
+          errorMsg.toLowerCase().includes("bucket") ||
+          errorMsg.toLowerCase().includes("does not exist") ||
+          errorMsg.toLowerCase().includes("invalid") ||
+          errorStatus === 404 ||
+          errorStatus === 400
+        ) {
           return NextResponse.json(
-            { ok: false, error: "Storage bucket 'documents' not found. Please create it in Supabase Dashboard → Storage → Buckets." },
+            { 
+              ok: false, 
+              error: "Storage bucket 'documents' not found. Please create it in Supabase Dashboard → Storage → Buckets. The bucket name must be exactly 'documents'." 
+            },
             { status: 400 }
           );
         }
         
         // If file already exists, retry with timestamp
-        if (errorMsg.includes("already exists") || errorMsg.includes("duplicate")) {
+        if (errorMsg.toLowerCase().includes("already exists") || errorMsg.toLowerCase().includes("duplicate")) {
           storagePath = `documents/${userId}/${uniqueId}-${Date.now()}-${sanitizedFilename}`;
           const { error: retryError } = await supabase.storage
             .from("documents")
@@ -197,14 +211,19 @@ export async function POST(req: NextRequest) {
             });
           
           if (retryError) {
+            console.error("Retry upload error:", retryError);
             return NextResponse.json(
-              { ok: false, error: `Storage upload failed: ${retryError.message}` },
+              { ok: false, error: `Storage upload failed: ${retryError.message || String(retryError)}` },
               { status: 500 }
             );
           }
         } else {
+          // Return detailed error for debugging
           return NextResponse.json(
-            { ok: false, error: `Storage upload failed: ${errorMsg}` },
+            { 
+              ok: false, 
+              error: `Storage upload failed: ${errorMsg}. Status: ${errorStatus}. Please check that the 'documents' bucket exists in Supabase.` 
+            },
             { status: 500 }
           );
         }

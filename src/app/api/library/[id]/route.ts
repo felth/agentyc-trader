@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabase } from "@/lib/supabaseServer";
 
 export const runtime = "nodejs";
 
@@ -9,10 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = getSupabase();
 
     const { data, error } = await supabase
       .from("documents")
@@ -63,10 +60,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = getSupabase();
 
     // Only allow updating category and title
     const updates: any = {};
@@ -109,10 +103,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = getSupabase();
 
     // First get the document to get storage_path
     const { data: doc, error: fetchError } = await supabase

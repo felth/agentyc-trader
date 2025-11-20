@@ -4,7 +4,7 @@ import OpenAI from "openai";
 
 import { Pinecone } from "@pinecone-database/pinecone";
 
-import { createClient } from "@supabase/supabase-js";
+import { getSupabase } from "@/lib/supabaseServer";
 
 import { normalizeSource } from "@/lib/agentSources";
 
@@ -154,23 +154,19 @@ export async function POST(req: NextRequest) {
 
     );
 
-    const supabase = createClient(
+    const supabase = getSupabase();
 
-      process.env.SUPABASE_URL!,
-
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-    );
-
-    // Store file in Supabase Storage (optional - graceful degradation if bucket doesn't exist)
+    // Store file in Supabase Storage
     // Sanitize filename for storage path
     const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const storagePath = `documents/${lessonId}/${sanitizedFilename}`;
+    const userId = "00000000-0000-0000-0000-000000000000"; // TODO: replace with actual user_id from auth
+    const uniqueId = crypto.randomUUID();
+    let storagePath = `documents/${userId}/${uniqueId}-${sanitizedFilename}`;
     let storageUrl = "";
-    let storageError: string | null = null;
+    let documentId: string | null = null;
 
     try {
-      // Attempt storage upload (may fail if bucket doesn't exist - that's OK)
+      // Upload to Supabase Storage
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from("documents")
         .upload(storagePath, buffer, {
@@ -180,31 +176,56 @@ export async function POST(req: NextRequest) {
 
       if (uploadError) {
         console.error("Supabase storage upload error:", uploadError);
-        // Provide helpful error message
         const errorMsg = uploadError.message || String(uploadError);
+        
+        // Check if bucket doesn't exist
         if (errorMsg.includes("pattern") || errorMsg.includes("not found") || errorMsg.includes("Bucket") || errorMsg.includes("does not exist")) {
-          storageError = "Storage bucket 'documents' not found. Please create it in Supabase Dashboard → Storage → Buckets. File will still be embedded and available in lessons.";
-        } else {
-          storageError = `Storage upload failed: ${errorMsg}. File will still be embedded.`;
+          return NextResponse.json(
+            { ok: false, error: "Storage bucket 'documents' not found. Please create it in Supabase Dashboard → Storage → Buckets." },
+            { status: 400 }
+          );
         }
-        // Continue with embedding even if storage fails (graceful degradation)
-      } else if (uploadData) {
-        // Get signed URL for the stored file (valid for 1 hour)
-        try {
-          const { data: urlData } = await supabase.storage
+        
+        // If file already exists, retry with timestamp
+        if (errorMsg.includes("already exists") || errorMsg.includes("duplicate")) {
+          storagePath = `documents/${userId}/${uniqueId}-${Date.now()}-${sanitizedFilename}`;
+          const { error: retryError } = await supabase.storage
             .from("documents")
-            .createSignedUrl(storagePath, 3600);
-          storageUrl = urlData?.signedUrl || "";
-        } catch (urlErr: any) {
-          console.error("Failed to create signed URL:", urlErr);
-          storageError = "File uploaded but signed URL creation failed.";
+            .upload(storagePath, buffer, {
+              contentType: file.type,
+              upsert: false,
+            });
+          
+          if (retryError) {
+            return NextResponse.json(
+              { ok: false, error: `Storage upload failed: ${retryError.message}` },
+              { status: 500 }
+            );
+          }
+        } else {
+          return NextResponse.json(
+            { ok: false, error: `Storage upload failed: ${errorMsg}` },
+            { status: 500 }
+          );
         }
+      }
+
+      // Get signed URL for the stored file (valid for 1 hour)
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(storagePath, 3600);
+      
+      if (urlError) {
+        console.error("Failed to create signed URL:", urlError);
+      } else {
+        storageUrl = urlData?.signedUrl || "";
       }
     } catch (storageErr: any) {
       console.error("Storage operation error:", storageErr);
-      const errorMsg = storageErr?.message || String(storageErr) || "Unknown storage error";
-      storageError = `Storage error: ${errorMsg}. File will still be embedded.`;
-      // Continue with embedding even if storage fails
+      return NextResponse.json(
+        { ok: false, error: `Storage error: ${storageErr?.message || "Unknown error"}` },
+        { status: 500 }
+      );
     }
 
 
@@ -504,6 +525,39 @@ export async function POST(req: NextRequest) {
 
     const vectorId = `${lessonId}-${Date.now()}`;
 
+    // Determine category: "playbook" if source is "playbook", else "corpus"
+    const category = normalizedSource === "playbook" ? "playbook" : "corpus";
+
+    // Create document record in documents table FIRST (before embedding)
+    try {
+      const { data: docData, error: docError } = await supabase
+        .from("documents")
+        .insert({
+          user_id: userId,
+          title: concept || file.name,
+          filename: file.name,
+          category,
+          mime_type: file.type,
+          storage_path: storagePath,
+          size_bytes: file.size,
+          lesson_id: lessonId,
+          embedded: false, // Will update to true after embedding succeeds
+        })
+        .select("id")
+        .single();
+
+      if (docError) {
+        console.error("Supabase documents insert error:", docError);
+        // Don't fail the entire upload if documents table insert fails
+      } else {
+        documentId = docData?.id || null;
+      }
+    } catch (docErr) {
+      console.error("Document insert error:", docErr);
+      // Continue with embedding even if documents table insert fails
+    }
+
+    // Upsert into Pinecone with storage URL if available
     await playbookIndex.upsert([
 
       {
@@ -524,7 +578,7 @@ export async function POST(req: NextRequest) {
 
           tags: allTags,
 
-          image_url: fileType === "image" ? "upload://inline" : ""
+          image_url: fileType === "image" ? storageUrl || "" : ""
 
         }
 
@@ -532,33 +586,15 @@ export async function POST(req: NextRequest) {
 
     ]);
 
-
-
-    // Determine category: "playbook" if source is "playbook", else "corpus"
-    const category = normalizedSource === "playbook" ? "playbook" : "corpus";
-
-    // Create document record (only if storage succeeded)
-    if (storageUrl) {
+    // Update documents table to mark as embedded
+    if (documentId) {
       try {
-        const { error: docError } = await supabase
+        await supabase
           .from("documents")
-          .insert({
-            user_id: "00000000-0000-0000-0000-000000000000", // TODO: replace with actual user_id from auth
-            title: concept || file.name,
-            filename: file.name,
-            category,
-            mime_type: file.type,
-            storage_path: storagePath,
-            size_bytes: file.size,
-            lesson_id: lessonId,
-            embedded: true,
-          });
-
-        if (docError) {
-          console.error("Supabase documents insert error:", docError);
-        }
-      } catch (docErr) {
-        console.error("Document insert error:", docErr);
+          .update({ embedded: true })
+          .eq("id", documentId);
+      } catch (updateErr) {
+        console.error("Failed to update embedded flag:", updateErr);
       }
     }
 
@@ -674,9 +710,16 @@ export async function POST(req: NextRequest) {
 
 
 
+    // Return response with required fields: id, filename, category
     const responseBody: {
 
       ok: true;
+
+      id: string;
+
+      filename: string;
+
+      category: string;
 
       lesson_id: string;
 
@@ -690,13 +733,17 @@ export async function POST(req: NextRequest) {
 
       pineconeVectorId: string;
 
-      supabaseWarning?: string;
-
       storageWarning?: string;
 
     } = {
 
       ok: true,
+
+      id: documentId || lessonId, // Use document ID if available, fallback to lesson_id
+
+      filename: file.name,
+
+      category,
 
       lesson_id: lessonId,
 
@@ -716,15 +763,7 @@ export async function POST(req: NextRequest) {
 
     if (sbError) {
 
-      console.error("Supabase insert error (upload):", sbError);
-
-      responseBody.supabaseWarning = "Vector stored; Supabase insert failed";
-
-    }
-
-    if (storageError) {
-
-      responseBody.storageWarning = storageError;
+      console.error("Supabase insert error (upload - lessons table):", sbError);
 
     }
 

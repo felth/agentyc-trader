@@ -100,13 +100,14 @@ export async function POST(req: NextRequest) {
 
     });
 
-    if (file.size > 5 * 1024 * 1024) {
+    // 50MB limit for books and large documents
+    if (file.size > 50 * 1024 * 1024) {
 
       console.error("[API:ingest/upload] File too large:", file.size);
 
       return NextResponse.json(
 
-        { ok: false, error: "File too large (>5MB)" },
+        { ok: false, error: "File too large (>50MB)" },
 
         { status: 400 }
 

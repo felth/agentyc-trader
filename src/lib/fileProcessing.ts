@@ -145,20 +145,53 @@ export async function processFileContent(params: ProcessFileParams): Promise<Pro
 
     notes = [notesFromImage, manualNotes].filter(Boolean).join("\n\n");
   } else if (fileTypeDetected === "pdf") {
-    // Use require() for pdf-parse since we're in Node.js runtime
-    // This is more reliable in serverless environments than dynamic import
+    // Use require() for pdf-parse in Node.js runtime
+    // In serverless, we must use eval('require') to avoid build-time bundling
     let pdfParse: any;
     try {
-      // Use eval('require') to avoid build-time evaluation issues
+      // Primary: Use eval('require') to avoid Next.js build-time evaluation
+      // This is necessary because Next.js tries to analyze requires at build time
       pdfParse = eval('require')("pdf-parse");
-    } catch (requireError) {
-      console.error("[fileProcessing] Failed to require pdf-parse:", requireError);
+      
+      // Verify pdfParse is actually a function
+      if (typeof pdfParse !== "function") {
+        console.error("[fileProcessing] pdf-parse loaded but is not a function:", typeof pdfParse);
+        throw new Error("pdf-parse module is not a function");
+      }
+    } catch (requireError: any) {
+      const errorDetails = {
+        message: requireError?.message || String(requireError),
+        code: requireError?.code,
+        stack: requireError?.stack?.substring(0, 500),
+      };
+      console.error("[fileProcessing] Failed to load pdf-parse:", errorDetails);
+      
+      // Return detailed error for debugging
       return {
         ok: false,
-        error: "PDF parsing not available. Please ensure pdf-parse is installed.",
+        error: `PDF parsing not available: ${errorDetails.message}. Code: ${errorDetails.code || "UNKNOWN"}. This may be a serverless environment limitation. Ensure pdf-parse@2.4.5 is in package.json dependencies.`,
       };
     }
-    const parsed = await pdfParse(buffer);
+    
+    // Parse the PDF buffer
+    let parsed: any;
+    try {
+      parsed = await pdfParse(buffer);
+      if (!parsed || !parsed.text) {
+        throw new Error("PDF parsed but no text content found");
+      }
+    } catch (parseError: any) {
+      console.error("[fileProcessing] Failed to parse PDF buffer:", {
+        error: parseError?.message || parseError,
+        code: parseError?.code,
+        stack: parseError?.stack?.substring(0, 500),
+      });
+      return {
+        ok: false,
+        error: `PDF parsing failed: ${parseError?.message || "Unknown error"}. This may indicate an incompatible PDF file or serverless environment limitation.`,
+      };
+    }
+    
     const rawText = (parsed.text || "").slice(0, 16000);
 
     // Store full raw text for deep chunking (before summarization)

@@ -337,7 +337,7 @@ export async function POST(req: NextRequest) {
             // Even minimal path failed - log full error details
             console.error("[API:ingest/upload] Minimal path also failed:", testError);
             console.error("[API:ingest/upload] Original path was:", storagePath);
-            console.error("[API:ingest/upload] Test path was:", testPath);
+            console.error("[API:ingest/upload] Minimal path was:", minimalPath);
             console.error("[API:ingest/upload] Error message:", testError.message);
             return NextResponse.json(
               { 

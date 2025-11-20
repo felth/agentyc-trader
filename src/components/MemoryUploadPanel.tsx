@@ -40,6 +40,21 @@ export function MemoryUploadPanel() {
 
     }
 
+    // Validate file size client-side
+    if (file.size > 5 * 1024 * 1024) {
+      setStatus("error");
+      setMessage("File size exceeds 5MB limit.");
+      return;
+    }
+
+    // Log upload attempt for debugging
+    console.log("[MemoryUploadPanel] Starting upload:", {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      hasNotes: !!manualNotes.trim(),
+    });
+
     const formData = new FormData();
 
     formData.append("file", file);
@@ -54,6 +69,8 @@ export function MemoryUploadPanel() {
 
       setMessage("");
 
+      console.log("[MemoryUploadPanel] Sending request to /api/ingest/upload");
+
       const res = await fetch("/api/ingest/upload", {
 
         method: "POST",
@@ -62,13 +79,25 @@ export function MemoryUploadPanel() {
 
       });
 
+      console.log("[MemoryUploadPanel] Response status:", res.status, res.statusText);
+
       const json = await res.json();
+
+      console.log("[MemoryUploadPanel] Response data:", json);
 
       if (!res.ok || !json.ok) {
 
+        const errorMsg = json.error || "Upload failed";
+        
+        console.error("[MemoryUploadPanel] Upload failed:", {
+          status: res.status,
+          error: errorMsg,
+          fullResponse: json,
+        });
+
         setStatus("error");
 
-        setMessage(json.error || "Upload failed");
+        setMessage(errorMsg);
 
         return;
 
@@ -99,6 +128,8 @@ export function MemoryUploadPanel() {
       if (fileInput) fileInput.value = "";
 
     } catch (err: unknown) {
+
+      console.error("[MemoryUploadPanel] Upload error (catch block):", err);
 
       const msg = err instanceof Error ? err.message : "Network error";
 

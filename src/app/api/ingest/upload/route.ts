@@ -70,11 +70,15 @@ export async function POST(req: NextRequest) {
 
   try {
 
+    console.log("[API:ingest/upload] Received upload request");
+
     const form = await req.formData();
 
     const file = form.get("file") as File | null;
 
     if (!file) {
+
+      console.error("[API:ingest/upload] No file in request");
 
       return NextResponse.json(
 
@@ -86,9 +90,19 @@ export async function POST(req: NextRequest) {
 
     }
 
+    console.log("[API:ingest/upload] File details:", {
 
+      name: file.name,
+
+      size: file.size,
+
+      type: file.type,
+
+    });
 
     if (file.size > 5 * 1024 * 1024) {
+
+      console.error("[API:ingest/upload] File too large:", file.size);
 
       return NextResponse.json(
 
@@ -99,8 +113,6 @@ export async function POST(req: NextRequest) {
       );
 
     }
-
-
 
     const source = form.get("source") as string;
 
@@ -119,6 +131,20 @@ export async function POST(req: NextRequest) {
       .map((t) => t.trim())
 
       .filter(Boolean);
+
+    console.log("[API:ingest/upload] Form data:", {
+
+      source,
+
+      normalizedSource,
+
+      lessonId,
+
+      hasManualNotes: !!manualNotes,
+
+      tagsCount: tags.length,
+
+    });
 
 
 

@@ -74,9 +74,20 @@ export function MemoryUploadPanel() {
 
       }
 
-      setStatus("success");
+      // Show success with warning if storage failed
+      if (json.storageWarning) {
 
-      setMessage("Uploaded and added to Playbook.");
+        setStatus("success");
+
+        setMessage(`Uploaded and embedded. Note: ${json.storageWarning}`);
+
+      } else {
+
+        setStatus("success");
+
+        setMessage("Uploaded and added to Playbook.");
+
+      }
 
       setFile(null);
 

@@ -162,12 +162,16 @@ export async function POST(req: NextRequest) {
 
     );
 
-    // Store file in Supabase Storage
-    const storagePath = `documents/${lessonId}/${file.name}`;
+    // Store file in Supabase Storage (optional - graceful degradation if bucket doesn't exist)
+    // Sanitize filename for storage path
+    const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const storagePath = `documents/${lessonId}/${sanitizedFilename}`;
     let storageUrl = "";
+    let storageError: string | null = null;
 
     try {
-      const { error: uploadError } = await supabase.storage
+      // Attempt storage upload (may fail if bucket doesn't exist - that's OK)
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from("documents")
         .upload(storagePath, buffer, {
           contentType: file.type,
@@ -176,16 +180,30 @@ export async function POST(req: NextRequest) {
 
       if (uploadError) {
         console.error("Supabase storage upload error:", uploadError);
+        // Provide helpful error message
+        const errorMsg = uploadError.message || String(uploadError);
+        if (errorMsg.includes("pattern") || errorMsg.includes("not found") || errorMsg.includes("Bucket") || errorMsg.includes("does not exist")) {
+          storageError = "Storage bucket 'documents' not found. Please create it in Supabase Dashboard → Storage → Buckets. File will still be embedded and available in lessons.";
+        } else {
+          storageError = `Storage upload failed: ${errorMsg}. File will still be embedded.`;
+        }
         // Continue with embedding even if storage fails (graceful degradation)
-      } else {
+      } else if (uploadData) {
         // Get signed URL for the stored file (valid for 1 hour)
-        const { data: urlData } = await supabase.storage
-          .from("documents")
-          .createSignedUrl(storagePath, 3600);
-        storageUrl = urlData?.signedUrl || "";
+        try {
+          const { data: urlData } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(storagePath, 3600);
+          storageUrl = urlData?.signedUrl || "";
+        } catch (urlErr: any) {
+          console.error("Failed to create signed URL:", urlErr);
+          storageError = "File uploaded but signed URL creation failed.";
+        }
       }
-    } catch (storageErr) {
+    } catch (storageErr: any) {
       console.error("Storage operation error:", storageErr);
+      const errorMsg = storageErr?.message || String(storageErr) || "Unknown storage error";
+      storageError = `Storage error: ${errorMsg}. File will still be embedded.`;
       // Continue with embedding even if storage fails
     }
 
@@ -674,6 +692,8 @@ export async function POST(req: NextRequest) {
 
       supabaseWarning?: string;
 
+      storageWarning?: string;
+
     } = {
 
       ok: true,
@@ -699,6 +719,12 @@ export async function POST(req: NextRequest) {
       console.error("Supabase insert error (upload):", sbError);
 
       responseBody.supabaseWarning = "Vector stored; Supabase insert failed";
+
+    }
+
+    if (storageError) {
+
+      responseBody.storageWarning = storageError;
 
     }
 

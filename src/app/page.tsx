@@ -190,13 +190,13 @@ export default function HomePage() {
       {/* AI Summary Section - Like health app motivational text */}
       {aiSummary && (
         <section className="mb-6">
-          <div className="rounded-2xl bg-gradient-to-br from-teal-500/15 via-emerald-500/10 to-cyan-500/10 backdrop-blur-xl border border-teal-500/20 p-5 shadow-[0_8px_32px_rgba(0,200,150,0.15)]">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">🤖</span>
+          <div className="rounded-2xl bg-gradient-to-br from-ultra-accent/25 via-orange-500/15 to-amber-500/10 backdrop-blur-xl border border-ultra-accent/40 p-6 shadow-[0_12px_40px_rgba(245,99,0,0.25)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.35)] transition-all duration-300">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/30 flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_rgba(245,99,0,0.3)]">
+                <span className="text-2xl">🤖</span>
               </div>
               <div className="flex-1">
-                <p className="text-sm text-white leading-relaxed">
+                <p className="text-base text-white leading-relaxed font-medium">
                   {aiSummary}
                 </p>
               </div>
@@ -214,19 +214,23 @@ export default function HomePage() {
           {context?.marketOverview.benchmarkSymbols.slice(0, 6).map((sym, idx) => (
             <div
               key={sym.symbol}
-              className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-2 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.5)] hover:scale-[1.02]"
+              className={`relative rounded-2xl backdrop-blur-2xl border p-4 space-y-2 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:scale-[1.03] ${
+                sym.pctChange >= 0
+                  ? "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30 hover:border-emerald-500/50"
+                  : "bg-gradient-to-br from-red-500/20 via-orange-500/15 to-amber-500/10 border-red-500/30 hover:border-red-500/50"
+              }`}
             >
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{sym.symbol}</p>
-              <p className="text-lg font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
-              <div className="flex items-center gap-1">
-                <span className={`text-xs font-bold ${
-                  sym.pctChange >= 0 ? "text-ultra-positive" : "text-ultra-negative"
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{sym.symbol}</p>
+              <p className="text-xl font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
+              <div className="flex items-center gap-1.5">
+                <span className={`text-sm font-bold ${
+                  sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
                 }`}>
                   {sym.pctChange >= 0 ? "↑" : "↓"}
                 </span>
                 <p
-                  className={`text-xs font-bold ${
-                    sym.pctChange >= 0 ? "text-ultra-positive" : "text-ultra-negative"
+                  className={`text-sm font-bold ${
+                    sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
                   }`}
                 >
                   {sym.pctChange >= 0 ? "+" : ""}
@@ -245,16 +249,22 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           {/* Setup Confluence */}
-          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-3 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+          <div className={`relative rounded-2xl backdrop-blur-2xl border p-5 space-y-4 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:scale-[1.02] ${
+            context?.strategyConfluence?.setupGrade === "A"
+              ? "bg-gradient-to-br from-emerald-500/25 via-teal-500/15 to-cyan-500/10 border-emerald-500/40"
+              : context?.strategyConfluence?.setupGrade === "B"
+              ? "bg-gradient-to-br from-yellow-500/25 via-amber-500/15 to-orange-500/10 border-yellow-500/40"
+              : "bg-gradient-to-br from-white/[0.08] to-white/[0.04] border-white/15"
+          }`}>
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Setup Confluence</p>
+              <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Setup Confluence</p>
               {context?.strategyConfluence && (
                 <span
-                  className={`text-xs px-2 py-1 rounded-lg font-bold ${
+                  className={`text-xs px-3 py-1.5 rounded-xl font-bold shadow-lg ${
                     context.strategyConfluence.setupGrade === "A"
-                      ? "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
+                      ? "bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 shadow-emerald-500/20"
                       : context.strategyConfluence.setupGrade === "B"
-                      ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
+                      ? "bg-yellow-500/30 text-yellow-300 border border-yellow-400/50 shadow-yellow-500/20"
                       : "bg-slate-500/20 text-slate-400 border border-slate-500/40"
                   }`}
                 >
@@ -264,75 +274,87 @@ export default function HomePage() {
             </div>
             {context?.strategyConfluence && (
               <>
-                <p className="text-2xl font-bold text-white">{context.strategyConfluence.setupMatchPct}%</p>
-                <ProgressBar value={context.strategyConfluence.setupMatchPct} color={context.strategyConfluence.setupGrade === "A" ? "#32D74B" : context.strategyConfluence.setupGrade === "B" ? "#FFD60A" : "#8E8E93"} />
+                <p className="text-3xl font-bold text-white tracking-tight">{context.strategyConfluence.setupMatchPct}%</p>
+                <ProgressBar value={context.strategyConfluence.setupMatchPct} color={context.strategyConfluence.setupGrade === "A" ? "#10B981" : context.strategyConfluence.setupGrade === "B" ? "#F59E0B" : "#6B7280"} height={6} />
               </>
             )}
           </div>
 
           {/* Market Regime */}
-          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-3 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Market Regime</p>
+          <div className="relative rounded-2xl bg-gradient-to-br from-blue-500/20 via-indigo-500/15 to-purple-500/10 backdrop-blur-2xl border border-blue-500/30 p-5 space-y-4 hover:border-blue-500/50 transition-all duration-300 shadow-[0_8px_24px_rgba(59,130,246,0.3)] hover:shadow-[0_12px_32px_rgba(59,130,246,0.4)] hover:scale-[1.02]">
+            <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Market Regime</p>
             {context?.regime && (
               <>
-                <p className="text-2xl font-bold text-white">{context.regime.trendStatus.replace("_", " ")}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-slate-400">ADX: </span>
-                  <span className="text-sm font-bold text-white">{context.regime.adx.toFixed(1)}</span>
+                <p className="text-3xl font-bold text-white tracking-tight">{context.regime.trendStatus.replace("_", " ")}</p>
+                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                  <span className="text-xs text-slate-300 font-medium">ADX: </span>
+                  <span className="text-base font-bold text-white">{context.regime.adx.toFixed(1)}</span>
                 </div>
               </>
             )}
           </div>
 
           {/* Volume Delta */}
-          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-3 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Volume Delta</p>
+          <div className={`relative rounded-2xl backdrop-blur-2xl border p-5 space-y-4 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:scale-[1.02] ${
+            context?.volume && context.volume.volumeDelta >= 0
+              ? "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30"
+              : "bg-gradient-to-br from-red-500/20 via-orange-500/15 to-amber-500/10 border-red-500/30"
+          }`}>
+            <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Volume Delta</p>
             {context?.volume && (
               <>
                 <p
-                  className={`text-2xl font-bold ${
-                    context.volume.volumeDelta >= 0 ? "text-ultra-positive" : "text-ultra-negative"
+                  className={`text-3xl font-bold tracking-tight ${
+                    context.volume.volumeDelta >= 0 ? "text-emerald-400" : "text-red-400"
                   }`}
                 >
                   {context.volume.volumeDelta >= 0 ? "+" : ""}
                   {context.volume.volumeDelta.toLocaleString()}
                 </p>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-slate-400">CVD: </span>
-                  <span className={`text-sm font-bold ${
-                    context.volume.cvd >= 0 ? "text-ultra-positive" : "text-ultra-negative"
+                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                  <span className="text-xs text-slate-300 font-medium">CVD: </span>
+                  <span className={`text-base font-bold ${
+                    context.volume.cvd >= 0 ? "text-emerald-400" : "text-red-400"
                   }`}>
                     {context.volume.cvd >= 0 ? "+" : ""}
                     {context.volume.cvd.toLocaleString()}
                   </span>
                 </div>
-                <SparklineChart 
-                  values={[0, -50, -120, -200, -280, -340]} 
-                  color={context.volume.volumeDelta >= 0 ? "#32D74B" : "#FF453A"} 
-                  width={80} 
-                  height={20} 
-                />
+                <div className="pt-2">
+                  <SparklineChart 
+                    values={[0, -50, -120, -200, -280, -340]} 
+                    color={context.volume.volumeDelta >= 0 ? "#10B981" : "#EF4444"} 
+                    width={120} 
+                    height={24} 
+                  />
+                </div>
               </>
             )}
           </div>
 
           {/* Behavioural State */}
-          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-3 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Trading State</p>
+          <div className={`relative rounded-2xl backdrop-blur-2xl border p-5 space-y-4 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:scale-[1.02] ${
+            context?.behavioural?.overtradingFlag === "CRITICAL"
+              ? "bg-gradient-to-br from-red-500/25 via-orange-500/15 to-amber-500/10 border-red-500/40"
+              : context?.behavioural?.overtradingFlag === "WARNING"
+              ? "bg-gradient-to-br from-yellow-500/25 via-amber-500/15 to-orange-500/10 border-yellow-500/40"
+              : "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30"
+          }`}>
+            <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Trading State</p>
             {context?.behavioural && (
               <>
-                <p className="text-xl font-bold text-white">
+                <p className="text-3xl font-bold text-white tracking-tight">
                   {Math.floor(context.behavioural.minutesSinceLastBreak / 60)}h{" "}
                   {context.behavioural.minutesSinceLastBreak % 60}m
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
                   <span
-                    className={`text-xs px-2 py-1 rounded-lg font-bold ${
+                    className={`text-xs px-3 py-1.5 rounded-xl font-bold shadow-lg ${
                       context.behavioural.overtradingFlag === "CRITICAL"
-                        ? "bg-ultra-negative/25 text-ultra-negative border border-ultra-negative/40"
+                        ? "bg-red-500/30 text-red-300 border border-red-400/50 shadow-red-500/20"
                         : context.behavioural.overtradingFlag === "WARNING"
-                        ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
-                        : "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
+                        ? "bg-yellow-500/30 text-yellow-300 border border-yellow-400/50 shadow-yellow-500/20"
+                        : "bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 shadow-emerald-500/20"
                     }`}
                   >
                     {context.behavioural.overtradingFlag}
@@ -347,7 +369,7 @@ export default function HomePage() {
       {/* Row 3 – Focus Symbol & Regime (Detailed) */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Active Symbol Card */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-ultra-accent/20 via-orange-500/15 to-amber-500/10 backdrop-blur-2xl border border-ultra-accent/40 p-5 space-y-4 shadow-[0_8px_24px_rgba(245,99,0,0.3)] hover:shadow-[0_12px_32px_rgba(245,99,0,0.4)] hover:border-ultra-accent/60 transition-all duration-300 hover:scale-[1.01]">
           <div className="flex items-center gap-2.5">
             <select
               value={symbolContext.symbol}
@@ -416,7 +438,7 @@ export default function HomePage() {
         </div>
 
         {/* Market Regime Panel */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-indigo-500/20 via-purple-500/15 to-pink-500/10 backdrop-blur-2xl border border-indigo-500/30 p-5 space-y-4 shadow-[0_8px_24px_rgba(99,102,241,0.3)] hover:shadow-[0_12px_32px_rgba(99,102,241,0.4)] hover:border-indigo-500/50 transition-all duration-300 hover:scale-[1.01]">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Market Regime</h3>
           {context?.regime && (
             <div className="space-y-4">

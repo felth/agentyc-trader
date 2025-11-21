@@ -200,45 +200,65 @@ export default function LibraryPage() {
                   <span className="text-xs text-slate-500">({groupDocs.length})</span>
                 </div>
 
-                {/* Grid Layout - 2 columns on larger screens, 1 on mobile */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Single-column list view for better filename visibility */}
+                <div className="space-y-2">
                   {groupDocs.map((doc) => (
                     <Link
                       key={doc.id}
                       href={`/library/${doc.id}`}
-                      className="block rounded-xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-3 hover:bg-white/[0.05] hover:border-white/20 transition-all active:scale-[0.98]"
+                      className="block rounded-xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-3.5 hover:bg-white/[0.05] hover:border-white/20 transition-all active:scale-[0.98]"
+                      title={doc.filename} // Tooltip shows full filename on hover
                     >
-                      <div className="flex items-start gap-2.5">
-                        {/* File Icon - smaller and more compact */}
-                        <div className="w-9 h-9 rounded-lg bg-ultra-accent/20 border border-ultra-accent/30 flex items-center justify-center flex-shrink-0">
+                      <div className="flex items-start gap-3">
+                        {/* File Icon */}
+                        <div className="w-11 h-11 rounded-lg bg-ultra-accent/20 border border-ultra-accent/30 flex items-center justify-center flex-shrink-0">
                           {doc.mime_type.startsWith("image/") ? (
-                            <span className="text-base">🖼️</span>
+                            <span className="text-lg">🖼️</span>
                           ) : doc.mime_type === "application/pdf" ? (
-                            <span className="text-base">📄</span>
+                            <span className="text-lg">📄</span>
                           ) : (
-                            <span className="text-base">📝</span>
+                            <span className="text-lg">📝</span>
                           )}
                         </div>
                         
-                        {/* Content - more compact */}
+                        {/* Content - full width for filename */}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-bold text-white mb-1 truncate leading-tight">
+                          {/* Filename - allow wrapping to 2 lines, then truncate with ellipsis */}
+                          <h3 
+                            className="text-sm font-bold text-white mb-1.5 leading-snug break-words"
+                            style={{
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxHeight: '2.5rem' // Approx 2 lines at leading-snug
+                            }}
+                          >
                             {doc.filename}
                           </h3>
-                          <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
-                            <span className="text-slate-400">{getFileTypeLabel(doc.mime_type)}</span>
+                          
+                          {/* Metadata row */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-slate-400">{getFileTypeLabel(doc.mime_type)}</span>
                             {doc.size_bytes && (
                               <>
-                                <span className="text-slate-500">•</span>
-                                <span className="text-slate-400">
+                                <span className="text-xs text-slate-500">•</span>
+                                <span className="text-xs text-slate-400">
                                   {(doc.size_bytes / 1024).toFixed(0)} KB
                                 </span>
                               </>
                             )}
+                            <span className="text-xs text-slate-500">•</span>
+                            <span className="text-xs text-slate-400">{formatDate(doc.created_at)}</span>
                           </div>
-                          <div className="mt-1">
-                            <span className="text-[10px] text-slate-500">Ready for Agent</span>
-                          </div>
+                        </div>
+                        
+                        {/* Status badge - right side */}
+                        <div className="flex-shrink-0 pt-0.5">
+                          <span className="text-[10px] text-slate-500 whitespace-nowrap">
+                            Ready
+                          </span>
                         </div>
                       </div>
                     </Link>

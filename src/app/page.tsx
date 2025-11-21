@@ -20,6 +20,49 @@ import type {
   AgentContextBlock,
 } from "@/types/trading";
 
+// Simple Sparkline Chart Component
+function SparklineChart({ values, color = "#32D74B", width = 80, height = 30 }: { values: number[]; color?: string; width?: number; height?: number }) {
+  if (values.length < 2) return null;
+  
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const stepX = width / (values.length - 1);
+  
+  const points = values.map((val, idx) => {
+    const x = idx * stepX;
+    const y = height - ((val - min) / range) * height;
+    return `${x},${y}`;
+  }).join(" ");
+  
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// Progress Bar Component
+function ProgressBar({ value, max = 100, color = "#32D74B", height = 4 }: { value: number; max?: number; color?: string; height?: number }) {
+  const percentage = Math.min((value / max) * 100, 100);
+  
+  return (
+    <div className="relative w-full rounded-full overflow-hidden" style={{ height: `${height}px`, backgroundColor: "rgba(255,255,255,0.1)" }}>
+      <div
+        className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
+        style={{ width: `${percentage}%`, backgroundColor: color }}
+      />
+    </div>
+  );
+}
+
 export default function HomePage() {
   const pathname = usePathname();
   const now = new Date();
@@ -203,24 +246,26 @@ export default function HomePage() {
         <div className="grid grid-cols-2 gap-3">
           {/* Setup Confluence */}
           <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-3 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Setup Confluence</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Setup Confluence</p>
+              {context?.strategyConfluence && (
+                <span
+                  className={`text-xs px-2 py-1 rounded-lg font-bold ${
+                    context.strategyConfluence.setupGrade === "A"
+                      ? "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
+                      : context.strategyConfluence.setupGrade === "B"
+                      ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
+                      : "bg-slate-500/20 text-slate-400 border border-slate-500/40"
+                  }`}
+                >
+                  {context.strategyConfluence.setupGrade}
+                </span>
+              )}
+            </div>
             {context?.strategyConfluence && (
               <>
                 <p className="text-2xl font-bold text-white">{context.strategyConfluence.setupMatchPct}%</p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-xs px-2 py-1 rounded-lg font-bold ${
-                      context.strategyConfluence.setupGrade === "A"
-                        ? "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
-                        : context.strategyConfluence.setupGrade === "B"
-                        ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
-                        : "bg-slate-500/20 text-slate-400 border border-slate-500/40"
-                    }`}
-                  >
-                    {context.strategyConfluence.setupGrade}
-                  </span>
-                  <span className="text-[10px] text-slate-400">Grade</span>
-                </div>
+                <ProgressBar value={context.strategyConfluence.setupMatchPct} color={context.strategyConfluence.setupGrade === "A" ? "#32D74B" : context.strategyConfluence.setupGrade === "B" ? "#FFD60A" : "#8E8E93"} />
               </>
             )}
           </div>
@@ -261,6 +306,12 @@ export default function HomePage() {
                     {context.volume.cvd.toLocaleString()}
                   </span>
                 </div>
+                <SparklineChart 
+                  values={[0, -50, -120, -200, -280, -340]} 
+                  color={context.volume.volumeDelta >= 0 ? "#32D74B" : "#FF453A"} 
+                  width={80} 
+                  height={20} 
+                />
               </>
             )}
           </div>
@@ -344,6 +395,15 @@ export default function HomePage() {
                 <p className="text-base font-bold text-white leading-tight">{ohlc.close.toFixed(2)}</p>
               </div>
             </div>
+            {/* Price Chart */}
+            <div className="pt-2">
+              <SparklineChart 
+                values={[ohlc.open, ohlc.low, ohlc.high, ohlc.close]} 
+                color={ohlc.close >= ohlc.open ? "#32D74B" : "#FF453A"} 
+                width={280} 
+                height={40} 
+              />
+            </div>
             {ohlc.spread && (
               <div className="pt-3 border-t border-white/10">
                 <div className="flex items-center justify-between">
@@ -378,10 +438,12 @@ export default function HomePage() {
                 <div className="space-y-1.5">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">ADX</p>
                   <p className="text-xl font-bold text-white leading-tight">{context.regime.adx.toFixed(1)}</p>
+                  <ProgressBar value={context.regime.adx} max={50} color={context.regime.adx > 25 ? "#32D74B" : context.regime.adx > 20 ? "#FFD60A" : "#8E8E93"} height={3} />
                 </div>
                 <div className="space-y-1.5">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">BB Width</p>
                   <p className="text-xl font-bold text-white leading-tight">{context.regime.bollingerWidthPercentile.toFixed(0)}%</p>
+                  <ProgressBar value={context.regime.bollingerWidthPercentile} max={100} color={context.regime.bollingerWidthPercentile > 70 ? "#FF453A" : context.regime.bollingerWidthPercentile > 50 ? "#FFD60A" : "#32D74B"} height={3} />
                 </div>
               </div>
               <div className="pt-2 border-t border-white/10 space-y-2">

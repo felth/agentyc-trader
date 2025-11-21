@@ -36,12 +36,12 @@ function SparklineChart({ values, color = "#32D74B", width = 80, height = 30 }: 
   }).join(" ");
   
   return (
-    <svg width={width} height={height} className="overflow-visible">
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
       <polyline
         points={points}
         fill="none"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -320,13 +320,15 @@ export default function HomePage() {
                     {context.volume.cvd.toLocaleString()}
                   </span>
                 </div>
-                <div className="pt-2">
-                  <SparklineChart 
-                    values={[0, -50, -120, -200, -280, -340]} 
-                    color={context.volume.volumeDelta >= 0 ? "#10B981" : "#EF4444"} 
-                    width={120} 
-                    height={24} 
-                  />
+                <div className="pt-2 overflow-hidden">
+                  <div className="w-full">
+                    <SparklineChart 
+                      values={[0, -50, -120, -200, -280, -340]} 
+                      color={context.volume.volumeDelta >= 0 ? "#10B981" : "#EF4444"} 
+                      width={120} 
+                      height={24} 
+                    />
+                  </div>
                 </div>
               </>
             )}
@@ -418,13 +420,15 @@ export default function HomePage() {
               </div>
             </div>
             {/* Price Chart */}
-            <div className="pt-3 pb-2 bg-white/5 rounded-xl p-3 border border-white/10">
-              <SparklineChart 
-                values={[ohlc.open, ohlc.low, ohlc.high, ohlc.close]} 
-                color={ohlc.close >= ohlc.open ? "#10B981" : "#EF4444"} 
-                width={280} 
-                height={50} 
-              />
+            <div className="pt-3 pb-2 bg-white/5 rounded-xl p-3 border border-white/10 overflow-hidden">
+              <div className="w-full">
+                <SparklineChart 
+                  values={[ohlc.open, ohlc.low, ohlc.high, ohlc.close]} 
+                  color={ohlc.close >= ohlc.open ? "#10B981" : "#EF4444"} 
+                  width={100} 
+                  height={50} 
+                />
+              </div>
             </div>
             {ohlc.spread && (
               <div className="pt-3 border-t border-white/20">

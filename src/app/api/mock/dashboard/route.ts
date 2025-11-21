@@ -129,7 +129,10 @@ export async function GET(req: NextRequest) {
       },
     };
 
-    return NextResponse.json({ ok: true, context });
+    // Generate AI summary based on context
+    const aiSummary = `Market conditions for ${symbol} are ${context.regime.trendStatus.toLowerCase()}. Your ${context.strategyConfluence.setupGrade}-setup is showing ${context.strategyConfluence.setupMatchPct}% confluence with a bullish engulfing pattern. Volume delta at ${context.volume.volumeDelta} indicates ${context.volume.volumeDelta < 0 ? 'selling pressure' : 'buying pressure'}. Key levels to watch: POC at ${context.volumeProfile.pocPrice.toFixed(2)}, VAH at ${context.volumeProfile.valueAreaHigh.toFixed(2)}. ${context.behavioural.overtradingFlag === 'WARNING' ? '⚠️ Consider taking a break soon—overtrading risk detected.' : 'All systems are green for trading.'}`;
+
+    return NextResponse.json({ ok: true, context, aiSummary });
   } catch (err: any) {
     console.error("Mock dashboard API error:", err);
     return NextResponse.json(

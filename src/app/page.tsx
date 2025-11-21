@@ -33,6 +33,7 @@ export default function HomePage() {
   });
   const [context, setContext] = useState<AgentContextBlock | null>(null);
   const [loading, setLoading] = useState(true);
+  const [aiSummary, setAiSummary] = useState<string>("");
 
   // Fetch dashboard context
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function HomePage() {
       const data = await res.json();
       if (data.ok) {
         setContext(data.context);
+        setAiSummary(data.aiSummary || "");
       }
     } catch (err) {
       console.error("Failed to fetch dashboard context:", err);
@@ -142,27 +144,45 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* AI Summary Section - Like health app motivational text */}
+      {aiSummary && (
+        <section className="mb-6">
+          <div className="rounded-2xl bg-gradient-to-br from-teal-500/15 via-emerald-500/10 to-cyan-500/10 backdrop-blur-xl border border-teal-500/20 p-5 shadow-[0_8px_32px_rgba(0,200,150,0.15)]">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">🤖</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-white leading-relaxed">
+                  {aiSummary}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Row 1 – Market Overview */}
       <section className="space-y-4 mb-6">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Market Overview</h2>
+          <h2 className="text-sm font-bold text-white">Market Overview</h2>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-          {context?.marketOverview.benchmarkSymbols.map((sym, idx) => (
+        <div className="grid grid-cols-3 gap-3">
+          {context?.marketOverview.benchmarkSymbols.slice(0, 6).map((sym, idx) => (
             <div
               key={sym.symbol}
-              className="relative rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-2xl border border-white/10 px-5 py-4 space-y-3 min-w-[140px] hover:from-white/[0.08] hover:to-white/[0.04] hover:border-white/20 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.5)] hover:scale-[1.02]"
+              className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-2 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.5)] hover:scale-[1.02]"
             >
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{sym.symbol}</p>
-              <p className="text-2xl font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
-              <div className="flex items-center gap-1.5">
-                <span className={`text-sm font-bold ${
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{sym.symbol}</p>
+              <p className="text-lg font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
+              <div className="flex items-center gap-1">
+                <span className={`text-xs font-bold ${
                   sym.pctChange >= 0 ? "text-ultra-positive" : "text-ultra-negative"
                 }`}>
                   {sym.pctChange >= 0 ? "↑" : "↓"}
                 </span>
                 <p
-                  className={`text-sm font-bold ${
+                  className={`text-xs font-bold ${
                     sym.pctChange >= 0 ? "text-ultra-positive" : "text-ultra-negative"
                   }`}
                 >
@@ -175,10 +195,108 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Row 2 – Focus Symbol & Regime */}
+      {/* Row 2 – Key Trading Metrics (Like Vital Trends) */}
+      <section className="space-y-4 mb-6">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-sm font-bold text-white">Trading Metrics</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {/* Setup Confluence */}
+          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-3 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Setup Confluence</p>
+            {context?.strategyConfluence && (
+              <>
+                <p className="text-2xl font-bold text-white">{context.strategyConfluence.setupMatchPct}%</p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs px-2 py-1 rounded-lg font-bold ${
+                      context.strategyConfluence.setupGrade === "A"
+                        ? "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
+                        : context.strategyConfluence.setupGrade === "B"
+                        ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
+                        : "bg-slate-500/20 text-slate-400 border border-slate-500/40"
+                    }`}
+                  >
+                    {context.strategyConfluence.setupGrade}
+                  </span>
+                  <span className="text-[10px] text-slate-400">Grade</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Market Regime */}
+          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-3 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Market Regime</p>
+            {context?.regime && (
+              <>
+                <p className="text-2xl font-bold text-white">{context.regime.trendStatus.replace("_", " ")}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400">ADX: </span>
+                  <span className="text-sm font-bold text-white">{context.regime.adx.toFixed(1)}</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Volume Delta */}
+          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-3 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Volume Delta</p>
+            {context?.volume && (
+              <>
+                <p
+                  className={`text-2xl font-bold ${
+                    context.volume.volumeDelta >= 0 ? "text-ultra-positive" : "text-ultra-negative"
+                  }`}
+                >
+                  {context.volume.volumeDelta >= 0 ? "+" : ""}
+                  {context.volume.volumeDelta.toLocaleString()}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400">CVD: </span>
+                  <span className={`text-sm font-bold ${
+                    context.volume.cvd >= 0 ? "text-ultra-positive" : "text-ultra-negative"
+                  }`}>
+                    {context.volume.cvd >= 0 ? "+" : ""}
+                    {context.volume.cvd.toLocaleString()}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Behavioural State */}
+          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-4 space-y-3 hover:border-white/25 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Trading State</p>
+            {context?.behavioural && (
+              <>
+                <p className="text-xl font-bold text-white">
+                  {Math.floor(context.behavioural.minutesSinceLastBreak / 60)}h{" "}
+                  {context.behavioural.minutesSinceLastBreak % 60}m
+                </p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs px-2 py-1 rounded-lg font-bold ${
+                      context.behavioural.overtradingFlag === "CRITICAL"
+                        ? "bg-ultra-negative/25 text-ultra-negative border border-ultra-negative/40"
+                        : context.behavioural.overtradingFlag === "WARNING"
+                        ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
+                        : "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
+                    }`}
+                  >
+                    {context.behavioural.overtradingFlag}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Row 3 – Focus Symbol & Regime (Detailed) */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Active Symbol Card */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <div className="flex items-center gap-2.5">
             <select
               value={symbolContext.symbol}
@@ -238,7 +356,7 @@ export default function HomePage() {
         </div>
 
         {/* Market Regime Panel */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Market Regime</h3>
           {context?.regime && (
             <div className="space-y-4">
@@ -288,7 +406,7 @@ export default function HomePage() {
       {/* Row 3 – Order Flow & Volume */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* DOM Panel */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">DOM & Order Flow</h3>
           {context?.orderFlow && (
             <div className="space-y-4">
@@ -333,7 +451,7 @@ export default function HomePage() {
         </div>
 
         {/* Volume Delta & CVD */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Volume Delta & CVD</h3>
           {context?.volume && (
             <div className="space-y-4">
@@ -390,7 +508,7 @@ export default function HomePage() {
       {/* Row 4 – Execution & Risk */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Broker Execution Quality */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Execution Quality</h3>
           {context?.execution && (
             <div className="space-y-4">
@@ -424,7 +542,7 @@ export default function HomePage() {
         </div>
 
         {/* Correlation & Exposure */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Correlation & Exposure</h3>
           {context?.correlation && (
             <div className="space-y-4">
@@ -472,7 +590,7 @@ export default function HomePage() {
       {/* Row 5 – Volume Profile & Liquidity */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Volume Profile Snapshot */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Volume Profile</h3>
           {context?.volumeProfile && (
             <div className="space-y-4">
@@ -520,7 +638,7 @@ export default function HomePage() {
         </div>
 
         {/* Liquidity Zones */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Liquidity Zones</h3>
           {context?.liquidityMap && (
             <div className="space-y-4">
@@ -555,148 +673,39 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Row 6 – Strategy & Behaviour */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {/* Strategy Confluence */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Strategy Confluence</h3>
-          {context?.strategyConfluence && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Setup Match</p>
-                  <p className="text-3xl font-bold text-white tracking-tight">
-                    {context.strategyConfluence.setupMatchPct}%
-                  </p>
-                </div>
-                <span
-                  className={`text-xs px-3 py-2 rounded-xl font-bold ${
-                    context.strategyConfluence.setupGrade === "A"
-                      ? "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40 shadow-[0_0_12px_rgba(50,215,75,0.2)]"
-                      : context.strategyConfluence.setupGrade === "B"
-                      ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
-                      : context.strategyConfluence.setupGrade === "C"
-                      ? "bg-orange-500/25 text-orange-400 border border-orange-500/40"
-                      : "bg-slate-500/20 text-slate-400 border border-slate-500/40"
-                  }`}
-                >
-                  {context.strategyConfluence.setupGrade}-Setup
+      {/* Performance Insight Card - Like health app */}
+      {context?.strategyConfluence && (
+        <section className="mb-6">
+          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">⭐</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white mb-1">Performance Insight</h3>
+                <p className="text-xs text-slate-400">{symbolContext.symbol} @ {symbolContext.timeframe}</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-200 leading-relaxed">
+              {context.strategyConfluence.notes || "Analyzing market conditions..."}
+            </p>
+            <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">Key Levels:</span>
+                <span className="text-sm font-bold text-white">
+                  {context.volumeProfile?.pocPrice.toFixed(2) || "—"} (POC)
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/10">
-                <div className="space-y-1">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Pattern</p>
-                  <p className="text-base font-bold text-white">
-                    {context.strategyConfluence.candlePattern}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Momentum</p>
-                  <p className="text-base font-bold text-white">
-                    {context.strategyConfluence.momentumScore}/100
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed pt-1">
-                {context.strategyConfluence.notes}
-              </p>
+              <Link
+                href="/agent"
+                className="text-xs text-ultra-accent font-semibold hover:underline"
+              >
+                Open Agent →
+              </Link>
             </div>
-          )}
-        </div>
-
-        {/* Behavioural State */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Behavioural State</h3>
-          {context?.behavioural && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Time Since Break</p>
-                  <p className="text-3xl font-bold text-white tracking-tight">
-                    {Math.floor(context.behavioural.minutesSinceLastBreak / 60)}h{" "}
-                    {context.behavioural.minutesSinceLastBreak % 60}m
-                  </p>
-                </div>
-                <span
-                  className={`text-xs px-3 py-2 rounded-xl font-bold ${
-                    context.behavioural.overtradingFlag === "CRITICAL"
-                      ? "bg-ultra-negative/25 text-ultra-negative border border-ultra-negative/40 shadow-[0_0_12px_rgba(255,69,58,0.2)]"
-                      : context.behavioural.overtradingFlag === "WARNING"
-                      ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
-                      : "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
-                  }`}
-                >
-                  {context.behavioural.overtradingFlag}
-                </span>
-              </div>
-              {context.behavioural.manualStateTag && (
-                <div className="pt-3 border-t border-white/10">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2">Manual State</p>
-                  <span
-                    className={`inline-block text-xs px-3 py-2 rounded-xl font-bold ${
-                      context.behavioural.manualStateTag === "STRESSED"
-                        ? "bg-ultra-negative/25 text-ultra-negative border border-ultra-negative/40"
-                        : context.behavioural.manualStateTag === "CALM"
-                        ? "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
-                        : "bg-slate-500/20 text-slate-400 border border-slate-500/40"
-                    }`}
-                  >
-                    {context.behavioural.manualStateTag}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Row 7 – Agent Insight Strip */}
-      <section className="mb-6">
-        <div className="relative rounded-2xl bg-gradient-to-br from-[#F56300]/20 via-[#F56300]/10 to-cyan-500/10 backdrop-blur-2xl border border-white/20 p-6 shadow-[0_12px_40px_rgba(245,99,0,0.25)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.35)] transition-all duration-300">
-          <div className="flex items-start justify-between gap-5">
-            <div className="flex-1 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
-                  <span className="text-2xl">🤖</span>
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">
-                    AGENTYC View for {symbolContext.symbol} @ {symbolContext.timeframe}
-                  </h3>
-                  <p className="text-xs text-slate-300 mt-1">
-                    {context?.regime?.trendStatus || "RANGING"} •{" "}
-                    {context?.strategyConfluence?.setupGrade || "None"}-Setup
-                  </p>
-                </div>
-              </div>
-              {context?.strategyConfluence && (
-                <div className="space-y-1.5 text-sm">
-                  <p className="text-slate-200">
-                    <span className="font-bold text-white">Bias:</span>{" "}
-                    <span className={context.strategyConfluence.momentumScore > 50 ? "text-ultra-positive" : "text-ultra-negative"}>
-                      {context.strategyConfluence.momentumScore > 50 ? "BULLISH" : "BEARISH"}
-                    </span>
-                  </p>
-                  <p className="text-slate-200">
-                    <span className="font-bold text-white">Key Levels:</span>{" "}
-                    {context.volumeProfile?.pocPrice.toFixed(2) || "—"} (POC),{" "}
-                    {context.volumeProfile?.valueAreaHigh.toFixed(2) || "—"} (VAH)
-                  </p>
-                  <p className="text-ultra-accent font-semibold pt-1">
-                    {context.strategyConfluence.notes || "Analyzing market conditions..."}
-                  </p>
-                </div>
-              )}
-            </div>
-            <Link
-              href="/agent"
-              className="px-5 py-3 rounded-xl bg-ultra-accent text-black font-bold text-sm hover:bg-ultra-accentHover transition-all active:scale-95 whitespace-nowrap shadow-[0_4px_12px_rgba(245,99,0,0.4)] hover:shadow-[0_6px_16px_rgba(245,99,0,0.5)]"
-            >
-              Open Agent
-            </Link>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </main>
   );
 }

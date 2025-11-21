@@ -53,49 +53,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const body = await req.json();
-    const supabase = getSupabase();
-
-    // Only allow updating category and title
-    const updates: any = {};
-    if (body.category && (body.category === "playbook" || body.category === "corpus")) {
-      updates.category = body.category;
-    }
-    if (body.title !== undefined) {
-      updates.title = body.title;
-    }
-    updates.updated_at = new Date().toISOString();
-
-    const { data, error } = await supabase
-      .from("documents")
-      .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Supabase update error (/api/library/[id]):", error);
-      return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ ok: true, document: data });
-  } catch (err: any) {
-    console.error("Library API error:", err);
-    return NextResponse.json(
-      { ok: false, error: err.message || "Server error" },
-      { status: 500 }
-    );
-  }
-}
+// PATCH handler removed - category updates no longer supported in UI
+// Category field remains in DB but is not exposed in the UI
 
 export async function DELETE(
   req: NextRequest,

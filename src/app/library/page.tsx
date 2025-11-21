@@ -9,7 +9,6 @@ type Document = {
   id: string;
   title: string | null;
   filename: string;
-  category: "playbook" | "corpus";
   mime_type: string;
   storage_url: string;
   size_bytes: number | null;
@@ -21,19 +20,18 @@ export default function LibraryPage() {
   const pathname = usePathname();
   const now = new Date();
   const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const [activeTab, setActiveTab] = useState<"playbook" | "corpus">("corpus");
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchDocuments();
-  }, [activeTab]);
+  }, []);
 
   async function fetchDocuments() {
     try {
       setLoading(true);
-      const res = await fetch(`/api/library?category=${activeTab}`);
+      const res = await fetch(`/api/library`);
       const data = await res.json();
       if (data.ok) {
         setDocuments(data.documents || []);
@@ -137,34 +135,6 @@ export default function LibraryPage() {
         />
       </section>
 
-      {/* Tabs */}
-      <section className="mb-5">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab("playbook")}
-            className={[
-              "flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-all active:scale-95",
-              activeTab === "playbook"
-                ? "bg-ultra-accent/20 border border-ultra-accent/50 text-ultra-accent shadow-[0_0_12px_rgba(245,99,0,0.3)]"
-                : "bg-white/[0.03] border border-white/10 text-gray-400 hover:bg-white/[0.05]"
-            ].join(" ")}
-          >
-            Playbook
-          </button>
-          <button
-            onClick={() => setActiveTab("corpus")}
-            className={[
-              "flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-all active:scale-95",
-              activeTab === "corpus"
-                ? "bg-ultra-accent/20 border border-ultra-accent/50 text-ultra-accent shadow-[0_0_12px_rgba(245,99,0,0.3)]"
-                : "bg-white/[0.03] border border-white/10 text-gray-400 hover:bg-white/[0.05]"
-            ].join(" ")}
-          >
-            Corpus
-          </button>
-        </div>
-      </section>
-
       {/* Documents List */}
       <section>
         {loading ? (
@@ -177,7 +147,7 @@ export default function LibraryPage() {
         ) : filteredDocs.length === 0 ? (
           <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-8 text-center">
             <p className="text-sm text-slate-400">
-              {searchQuery ? "No documents match your search" : `No ${activeTab} documents yet`}
+              {searchQuery ? "No documents match your search" : "No documents yet"}
             </p>
             <p className="text-xs text-slate-500 mt-2">
               Upload files through the Agent page to see them here
@@ -203,33 +173,24 @@ export default function LibraryPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-bold text-white mb-1 truncate">
-                      {doc.title || doc.filename}
+                      {doc.filename}
                     </h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs text-slate-400">{getFileTypeLabel(doc.mime_type)}</span>
                       <span className="text-xs text-slate-500">•</span>
-                      <span className="text-xs text-slate-400">{formatDate(doc.created_at)}</span>
                       {doc.size_bytes && (
                         <>
-                          <span className="text-xs text-slate-500">•</span>
                           <span className="text-xs text-slate-400">
                             {(doc.size_bytes / 1024).toFixed(0)} KB
                           </span>
+                          <span className="text-xs text-slate-500">•</span>
                         </>
                       )}
+                      <span className="text-xs text-slate-400">{formatDate(doc.created_at)}</span>
                     </div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <span
-                      className={[
-                        "text-[10px] px-2 py-1 rounded-full font-bold",
-                        doc.category === "playbook"
-                          ? "bg-ultra-accent/20 text-ultra-accent border border-ultra-accent/40"
-                          : "bg-blue-500/20 text-blue-400 border border-blue-500/40"
-                      ].join(" ")}
-                    >
-                      {doc.category === "playbook" ? "Playbook" : "Corpus"}
-                    </span>
+                    <div className="mt-1">
+                      <span className="text-[10px] text-slate-500">Embedded — Ready for Agent</span>
+                    </div>
                   </div>
                 </div>
               </Link>

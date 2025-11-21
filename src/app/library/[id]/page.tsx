@@ -9,7 +9,6 @@ type Document = {
   id: string;
   title: string | null;
   filename: string;
-  category: "playbook" | "corpus";
   mime_type: string;
   storage_url: string;
   size_bytes: number | null;
@@ -24,7 +23,6 @@ export default function DocumentViewerPage() {
   const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const [document, setDocument] = useState<Document | null>(null);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,28 +50,6 @@ export default function DocumentViewerPage() {
     }
   }
 
-  async function handleCategoryChange() {
-    if (!document) return;
-    const newCategory = document.category === "playbook" ? "corpus" : "playbook";
-    try {
-      setUpdating(true);
-      const res = await fetch(`/api/library/${document.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: newCategory }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setDocument({ ...document, category: newCategory });
-      } else {
-        setError(data.error || "Failed to update category");
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to update category");
-    } finally {
-      setUpdating(false);
-    }
-  }
 
   async function handleDelete() {
     if (!document) return;
@@ -206,7 +182,7 @@ export default function DocumentViewerPage() {
           <div className="space-y-1">
             <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Library</p>
             <h1 className="text-2xl font-bold tracking-tight text-white truncate">
-              {document.title || document.filename}
+              {document.filename}
             </h1>
             <p className="text-sm text-white/70">{formatDate(document.created_at)}</p>
           </div>
@@ -218,23 +194,18 @@ export default function DocumentViewerPage() {
         <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span
-                className={[
-                  "text-[10px] px-2.5 py-1 rounded-full font-bold",
-                  document.category === "playbook"
-                    ? "bg-ultra-accent/20 text-ultra-accent border border-ultra-accent/40"
-                    : "bg-blue-500/20 text-blue-400 border border-blue-500/40"
-                ].join(" ")}
-              >
-                {document.category === "playbook" ? "Playbook" : "Corpus"}
-              </span>
               <span className="text-xs text-slate-400">{document.mime_type}</span>
+              {document.size_bytes && (
+                <>
+                  <span className="text-xs text-slate-500">•</span>
+                  <span className="text-xs text-slate-400">
+                    {(document.size_bytes / 1024).toFixed(0)} KB
+                  </span>
+                </>
+              )}
+              <span className="text-xs text-slate-500">•</span>
+              <span className="text-xs text-slate-400">{formatDate(document.created_at)}</span>
             </div>
-            {document.size_bytes && (
-              <span className="text-xs text-slate-400">
-                {(document.size_bytes / 1024).toFixed(0)} KB
-              </span>
-            )}
           </div>
 
           {error && (
@@ -246,18 +217,9 @@ export default function DocumentViewerPage() {
           {/* Actions */}
           <div className="flex gap-2 pt-2 border-t border-white/5">
             <button
-              onClick={handleCategoryChange}
-              disabled={updating}
-              className="flex-1 rounded-xl px-4 py-2.5 text-xs font-bold bg-white/[0.05] border border-white/10 text-white hover:bg-white/[0.08] transition-all active:scale-95 disabled:opacity-50"
-            >
-              {updating
-                ? "Updating..."
-                : `Move to ${document.category === "playbook" ? "Corpus" : "Playbook"}`}
-            </button>
-            <button
               onClick={handleDelete}
               disabled={deleting}
-              className="flex-1 rounded-xl px-4 py-2.5 text-xs font-bold bg-ultra-negative/20 border border-ultra-negative/40 text-ultra-negative hover:bg-ultra-negative/30 transition-all active:scale-95 disabled:opacity-50"
+              className="w-full rounded-xl px-4 py-2.5 text-xs font-bold bg-ultra-negative/20 border border-ultra-negative/40 text-ultra-negative hover:bg-ultra-negative/30 transition-all active:scale-95 disabled:opacity-50"
             >
               {deleting ? "Deleting..." : "Delete"}
             </button>

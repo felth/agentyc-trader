@@ -7,15 +7,8 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = getSupabase();
 
-    const category = req.nextUrl.searchParams.get("category");
-
-    let query = supabase.from("documents").select("*");
-
-    if (category && (category === "playbook" || category === "corpus")) {
-      query = query.eq("category", category);
-    }
-
-    query = query.order("created_at", { ascending: false });
+    // Always return all documents (no category filtering)
+    const query = supabase.from("documents").select("*").order("created_at", { ascending: false });
 
     const { data, error } = await query;
 

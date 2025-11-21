@@ -198,45 +198,43 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Main Content Area - Two Column Layout */}
-      <section className="grid grid-cols-[1fr_auto] gap-4 mb-6">
-        {/* Left Column - Market Overview */}
-        <div className="space-y-4">
-          <h2 className="text-base font-bold text-white">Market Overview</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {context?.marketOverview.benchmarkSymbols.slice(0, 6).map((sym, idx) => (
-              <div
-                key={sym.symbol}
-                className={`relative rounded-xl backdrop-blur-2xl border p-3 space-y-1.5 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-[1.02] ${
-                  sym.pctChange >= 0
-                    ? "bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-cyan-500/8 border-emerald-500/25"
-                    : "bg-gradient-to-br from-red-500/15 via-orange-500/10 to-amber-500/8 border-red-500/25"
-                }`}
-              >
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{sym.symbol}</p>
-                <p className="text-base font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
-                <div className="flex items-center gap-1">
-                  <span className={`text-xs font-bold ${
+      {/* Market Overview */}
+      <section className="space-y-4 mb-6">
+        <h2 className="text-base font-bold text-white">Market Overview</h2>
+        <div className="grid grid-cols-3 gap-3">
+          {context?.marketOverview.benchmarkSymbols.slice(0, 6).map((sym, idx) => (
+            <div
+              key={sym.symbol}
+              className={`relative rounded-xl backdrop-blur-2xl border p-4 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-[1.02] ${
+                sym.pctChange >= 0
+                  ? "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30"
+                  : "bg-gradient-to-br from-red-500/20 via-orange-500/15 to-amber-500/10 border-red-500/30"
+              }`}
+            >
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{sym.symbol}</p>
+              <p className="text-lg font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
+              <div className="flex items-center gap-1.5">
+                <span className={`text-sm font-bold ${
+                  sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
+                }`}>
+                  {sym.pctChange >= 0 ? "↑" : "↓"}
+                </span>
+                <p
+                  className={`text-sm font-bold ${
                     sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
-                  }`}>
-                    {sym.pctChange >= 0 ? "↑" : "↓"}
-                  </span>
-                  <p
-                    className={`text-xs font-bold ${
-                      sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
-                    }`}
-                  >
-                    {sym.pctChange >= 0 ? "+" : ""}
-                    {sym.pctChange.toFixed(2)}%
-                  </p>
-                </div>
+                  }`}
+                >
+                  {sym.pctChange >= 0 ? "+" : ""}
+                  {sym.pctChange.toFixed(2)}%
+                </p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
+      </section>
 
-        {/* Right Column - Key Metrics (Like health app vertical stack) */}
-        <div className="space-y-2.5 w-[130px]">
+      {/* Key Metrics - Side by Side */}
+      <section className="grid grid-cols-2 gap-3 mb-6">
           {/* Setup Confluence */}
           <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
             <div className="flex items-center gap-1.5">
@@ -346,10 +344,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Focus Symbol & Regime (Detailed) - Collapsible or Simplified */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {/* Focus Symbol & Regime (Detailed) - Stacked Vertically */}
+      <section className="space-y-4 mb-6">
         {/* Active Symbol Card */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-ultra-accent/25 via-orange-500/20 to-amber-500/15 backdrop-blur-2xl border border-ultra-accent/50 p-6 space-y-5 shadow-[0_12px_40px_rgba(245,99,0,0.35)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.45)] hover:border-ultra-accent/70 transition-all duration-300 hover:scale-[1.01]">
+        <div className="relative rounded-2xl bg-gradient-to-br from-ultra-accent/25 via-orange-500/20 to-amber-500/15 backdrop-blur-2xl border border-ultra-accent/50 p-5 space-y-4 shadow-[0_12px_40px_rgba(245,99,0,0.35)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.45)] hover:border-ultra-accent/70 transition-all duration-300">
           <div className="flex items-center gap-3">
             <select
               value={symbolContext.symbol}
@@ -420,7 +418,7 @@ export default function HomePage() {
         </div>
 
         {/* Market Regime Panel */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-indigo-500/25 via-purple-500/20 to-pink-500/15 backdrop-blur-2xl border border-indigo-500/50 p-6 space-y-5 shadow-[0_12px_40px_rgba(99,102,241,0.35)] hover:shadow-[0_16px_48px_rgba(99,102,241,0.45)] hover:border-indigo-500/70 transition-all duration-300 hover:scale-[1.01]">
+        <div className="relative rounded-2xl bg-gradient-to-br from-indigo-500/25 via-purple-500/20 to-pink-500/15 backdrop-blur-2xl border border-indigo-500/50 p-5 space-y-4 shadow-[0_12px_40px_rgba(99,102,241,0.35)] hover:shadow-[0_16px_48px_rgba(99,102,241,0.45)] hover:border-indigo-500/70 transition-all duration-300">
           <h3 className="text-sm font-bold text-white uppercase tracking-wider">Market Regime</h3>
           {context?.regime && (
             <div className="space-y-5">

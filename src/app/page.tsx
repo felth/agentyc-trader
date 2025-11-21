@@ -344,10 +344,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Focus Symbol & Regime (Detailed) - Stacked Vertically */}
-      <section className="space-y-4 mb-6">
-        {/* Active Symbol Card */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-ultra-accent/25 via-orange-500/20 to-amber-500/15 backdrop-blur-2xl border border-ultra-accent/50 p-5 space-y-4 shadow-[0_12px_40px_rgba(245,99,0,0.35)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.45)] hover:border-ultra-accent/70 transition-all duration-300">
+      {/* Focus Symbol & Regime (Detailed) - Stacked Vertically in Landscape */}
+      <section className="space-y-4 mb-6 -mx-4 px-4 md:-mx-8 md:px-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Active Symbol Card */}
+          <div className="relative rounded-2xl bg-gradient-to-br from-ultra-accent/25 via-orange-500/20 to-amber-500/15 backdrop-blur-2xl border border-ultra-accent/50 p-5 md:p-6 space-y-4 shadow-[0_12px_40px_rgba(245,99,0,0.35)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.45)] hover:border-ultra-accent/70 transition-all duration-300">
           <div className="flex items-center gap-3">
             <select
               value={symbolContext.symbol}
@@ -415,55 +416,61 @@ export default function HomePage() {
               </div>
             )}
           </div>
-        </div>
+          </div>
 
-        {/* Market Regime Panel */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-indigo-500/25 via-purple-500/20 to-pink-500/15 backdrop-blur-2xl border border-indigo-500/50 p-5 space-y-4 shadow-[0_12px_40px_rgba(99,102,241,0.35)] hover:shadow-[0_16px_48px_rgba(99,102,241,0.45)] hover:border-indigo-500/70 transition-all duration-300">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">Market Regime</h3>
-          {context?.regime && (
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">Status</p>
-                <span
-                  className={`inline-block text-sm px-4 py-2 rounded-xl font-bold shadow-lg ${
-                    context.regime.trendStatus === "TRENDING_UP"
-                      ? "bg-emerald-500/30 text-emerald-300 border-2 border-emerald-400/50 shadow-emerald-500/20"
-                      : context.regime.trendStatus === "TRENDING_DOWN"
-                      ? "bg-red-500/30 text-red-300 border-2 border-red-400/50 shadow-red-500/20"
-                      : "bg-slate-500/30 text-slate-300 border-2 border-slate-500/50 shadow-slate-500/20"
-                  }`}
-                >
-                  {context.regime.trendStatus.replace("_", " ")}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-5">
+          {/* Market Regime Panel */}
+          <div className="relative rounded-2xl bg-gradient-to-br from-indigo-500/25 via-purple-500/20 to-pink-500/15 backdrop-blur-2xl border border-indigo-500/50 p-5 md:p-6 space-y-4 shadow-[0_12px_40px_rgba(99,102,241,0.35)] hover:shadow-[0_16px_48px_rgba(99,102,241,0.45)] hover:border-indigo-500/70 transition-all duration-300">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Market Regime</h3>
+            {context?.regime && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
+                {/* Status */}
+                <div className="space-y-2">
+                  <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">Status</p>
+                  <span
+                    className={`inline-block text-sm px-4 py-2 rounded-xl font-bold shadow-lg w-full text-center ${
+                      context.regime.trendStatus === "TRENDING_UP"
+                        ? "bg-emerald-500/30 text-emerald-300 border-2 border-emerald-400/50 shadow-emerald-500/20"
+                        : context.regime.trendStatus === "TRENDING_DOWN"
+                        ? "bg-red-500/30 text-red-300 border-2 border-red-400/50 shadow-red-500/20"
+                        : "bg-slate-500/30 text-slate-300 border-2 border-slate-500/50 shadow-slate-500/20"
+                    }`}
+                  >
+                    {context.regime.trendStatus.replace("_", " ")}
+                  </span>
+                </div>
+                
+                {/* ADX */}
                 <div className="space-y-2">
                   <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">ADX</p>
                   <p className="text-2xl font-bold text-white leading-tight">{context.regime.adx.toFixed(1)}</p>
                   <ProgressBar value={context.regime.adx} max={50} color={context.regime.adx > 25 ? "#10B981" : context.regime.adx > 20 ? "#F59E0B" : "#6B7280"} height={5} />
                 </div>
+                
+                {/* BB Width */}
                 <div className="space-y-2">
                   <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">BB Width</p>
                   <p className="text-2xl font-bold text-white leading-tight">{context.regime.bollingerWidthPercentile.toFixed(0)}%</p>
                   <ProgressBar value={context.regime.bollingerWidthPercentile} max={100} color={context.regime.bollingerWidthPercentile > 70 ? "#EF4444" : context.regime.bollingerWidthPercentile > 50 ? "#F59E0B" : "#10B981"} height={5} />
                 </div>
+                
+                {/* Volatility */}
+                <div className="space-y-2">
+                  <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">Volatility</p>
+                  <span
+                    className={`inline-block text-sm px-4 py-2 rounded-xl font-bold shadow-lg w-full text-center ${
+                      context.regime.volatilityState === "EXPLOSIVE"
+                        ? "bg-red-500/30 text-red-300 border-2 border-red-400/50 shadow-red-500/20"
+                        : context.regime.volatilityState === "NORMAL"
+                        ? "bg-yellow-500/30 text-yellow-300 border-2 border-yellow-400/50 shadow-yellow-500/20"
+                        : "bg-emerald-500/30 text-emerald-300 border-2 border-emerald-400/50 shadow-emerald-500/20"
+                    }`}
+                  >
+                    {context.regime.volatilityState}
+                  </span>
+                </div>
               </div>
-              <div className="pt-3 border-t border-white/20 space-y-3">
-                <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">Volatility</p>
-                <span
-                  className={`inline-block text-sm px-4 py-2 rounded-xl font-bold shadow-lg ${
-                    context.regime.volatilityState === "EXPLOSIVE"
-                      ? "bg-red-500/30 text-red-300 border-2 border-red-400/50 shadow-red-500/20"
-                      : context.regime.volatilityState === "NORMAL"
-                      ? "bg-yellow-500/30 text-yellow-300 border-2 border-yellow-400/50 shadow-yellow-500/20"
-                      : "bg-emerald-500/30 text-emerald-300 border-2 border-emerald-400/50 shadow-emerald-500/20"
-                  }`}
-                >
-                  {context.regime.volatilityState}
-                </span>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </section>
 

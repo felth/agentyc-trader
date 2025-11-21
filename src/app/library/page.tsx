@@ -51,6 +51,41 @@ export default function LibraryPage() {
     );
   });
 
+  // Group documents by date for better organization
+  const groupDocumentsByDate = (docs: Document[]) => {
+    const groups: { [key: string]: Document[] } = {
+      Today: [],
+      Yesterday: [],
+      "This Week": [],
+      "This Month": [],
+      Older: [],
+    };
+
+    const now = new Date();
+    docs.forEach((doc) => {
+      const docDate = new Date(doc.created_at);
+      const diffTime = Math.abs(now.getTime() - docDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        groups.Today.push(doc);
+      } else if (diffDays === 1) {
+        groups.Yesterday.push(doc);
+      } else if (diffDays < 7) {
+        groups["This Week"].push(doc);
+      } else if (diffDays < 30) {
+        groups["This Month"].push(doc);
+      } else {
+        groups.Older.push(doc);
+      }
+    });
+
+    // Return only groups that have documents
+    return Object.entries(groups).filter(([_, docs]) => docs.length > 0);
+  };
+
+  const groupedDocs = groupDocumentsByDate(filteredDocs);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -154,46 +189,62 @@ export default function LibraryPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredDocs.map((doc) => (
-              <Link
-                key={doc.id}
-                href={`/library/${doc.id}`}
-                className="block rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 hover:bg-white/[0.05] transition-all active:scale-[0.98]"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-ultra-accent/20 border border-ultra-accent/30 flex items-center justify-center flex-shrink-0">
-                    {doc.mime_type.startsWith("image/") ? (
-                      <span className="text-lg">🖼️</span>
-                    ) : doc.mime_type === "application/pdf" ? (
-                      <span className="text-lg">📄</span>
-                    ) : (
-                      <span className="text-lg">📝</span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-bold text-white mb-1 truncate">
-                      {doc.filename}
-                    </h3>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-slate-400">{getFileTypeLabel(doc.mime_type)}</span>
-                      <span className="text-xs text-slate-500">•</span>
-                      {doc.size_bytes && (
-                        <>
-                          <span className="text-xs text-slate-400">
-                            {(doc.size_bytes / 1024).toFixed(0)} KB
-                          </span>
-                          <span className="text-xs text-slate-500">•</span>
-                        </>
-                      )}
-                      <span className="text-xs text-slate-400">{formatDate(doc.created_at)}</span>
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-[10px] text-slate-500">Embedded — Ready for Agent</span>
-                    </div>
-                  </div>
+          <div className="space-y-5">
+            {groupedDocs.map(([groupName, groupDocs]) => (
+              <div key={groupName} className="space-y-3">
+                {/* Date Group Header */}
+                <div className="flex items-center gap-2 px-1">
+                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    {groupName}
+                  </h2>
+                  <span className="text-xs text-slate-500">({groupDocs.length})</span>
                 </div>
-              </Link>
+
+                {/* Grid Layout - 2 columns on larger screens, 1 on mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {groupDocs.map((doc) => (
+                    <Link
+                      key={doc.id}
+                      href={`/library/${doc.id}`}
+                      className="block rounded-xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-3 hover:bg-white/[0.05] hover:border-white/20 transition-all active:scale-[0.98]"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {/* File Icon - smaller and more compact */}
+                        <div className="w-9 h-9 rounded-lg bg-ultra-accent/20 border border-ultra-accent/30 flex items-center justify-center flex-shrink-0">
+                          {doc.mime_type.startsWith("image/") ? (
+                            <span className="text-base">🖼️</span>
+                          ) : doc.mime_type === "application/pdf" ? (
+                            <span className="text-base">📄</span>
+                          ) : (
+                            <span className="text-base">📝</span>
+                          )}
+                        </div>
+                        
+                        {/* Content - more compact */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-bold text-white mb-1 truncate leading-tight">
+                            {doc.filename}
+                          </h3>
+                          <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                            <span className="text-slate-400">{getFileTypeLabel(doc.mime_type)}</span>
+                            {doc.size_bytes && (
+                              <>
+                                <span className="text-slate-500">•</span>
+                                <span className="text-slate-400">
+                                  {(doc.size_bytes / 1024).toFixed(0)} KB
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <div className="mt-1">
+                            <span className="text-[10px] text-slate-500">Ready for Agent</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}

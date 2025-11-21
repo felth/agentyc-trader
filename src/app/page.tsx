@@ -179,23 +179,23 @@ export default function HomePage() {
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Active Symbol Card */}
         <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5">
             <select
               value={symbolContext.symbol}
               onChange={(e) => handleSymbolChange(e.target.value)}
-              className="text-base font-bold text-white bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:border-ultra-accent/50 focus:ring-2 focus:ring-ultra-accent/20 transition-all"
+              className="text-base font-bold text-white bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:border-ultra-accent/50 focus:ring-2 focus:ring-ultra-accent/20 transition-all flex-shrink-0"
             >
               <option value="XAUUSD">XAUUSD</option>
               <option value="EURUSD">EURUSD</option>
               <option value="BTCUSD">BTCUSD</option>
               <option value="SPX">SPX</option>
             </select>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 items-center">
               {["M15", "H1", "H4", "D1"].map((tf) => (
                 <button
                   key={tf}
                   onClick={() => handleTimeframeChange(tf)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all h-[36px] flex items-center justify-center ${
                     symbolContext.timeframe === tf
                       ? "bg-ultra-accent/25 text-ultra-accent border border-ultra-accent/50 shadow-[0_0_12px_rgba(245,99,0,0.3)]"
                       : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/[0.08] hover:text-slate-300"
@@ -209,21 +209,21 @@ export default function HomePage() {
           
           <div className="space-y-3">
             <div className="grid grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Open</p>
-                <p className="text-base font-bold text-white">{ohlc.open.toFixed(2)}</p>
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">Open</p>
+                <p className="text-base font-bold text-white leading-tight">{ohlc.open.toFixed(2)}</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">High</p>
-                <p className="text-base font-bold text-ultra-positive">{ohlc.high.toFixed(2)}</p>
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">High</p>
+                <p className="text-base font-bold text-ultra-positive leading-tight">{ohlc.high.toFixed(2)}</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Low</p>
-                <p className="text-base font-bold text-ultra-negative">{ohlc.low.toFixed(2)}</p>
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">Low</p>
+                <p className="text-base font-bold text-ultra-negative leading-tight">{ohlc.low.toFixed(2)}</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Close</p>
-                <p className="text-base font-bold text-white">{ohlc.close.toFixed(2)}</p>
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">Close</p>
+                <p className="text-base font-bold text-white leading-tight">{ohlc.close.toFixed(2)}</p>
               </div>
             </div>
             {ohlc.spread && (
@@ -242,8 +242,8 @@ export default function HomePage() {
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Market Regime</h3>
           {context?.regime && (
             <div className="space-y-4">
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2">Status</p>
+              <div className="space-y-2">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">Status</p>
                 <span
                   className={`inline-block text-xs px-3 py-1.5 rounded-xl font-bold ${
                     context.regime.trendStatus === "TRENDING_UP"
@@ -257,17 +257,17 @@ export default function HomePage() {
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">ADX</p>
-                  <p className="text-xl font-bold text-white">{context.regime.adx.toFixed(1)}</p>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">ADX</p>
+                  <p className="text-xl font-bold text-white leading-tight">{context.regime.adx.toFixed(1)}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">BB Width</p>
-                  <p className="text-xl font-bold text-white">{context.regime.bollingerWidthPercentile.toFixed(0)}%</p>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">BB Width</p>
+                  <p className="text-xl font-bold text-white leading-tight">{context.regime.bollingerWidthPercentile.toFixed(0)}%</p>
                 </div>
               </div>
-              <div className="pt-2 border-t border-white/10">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2">Volatility</p>
+              <div className="pt-2 border-t border-white/10 space-y-2">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold leading-tight">Volatility</p>
                 <span
                   className={`inline-block text-xs px-3 py-1.5 rounded-xl font-bold ${
                     context.regime.volatilityState === "EXPLOSIVE"

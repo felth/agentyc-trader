@@ -301,7 +301,6 @@ export default function HomePage() {
               </>
             )}
           </div>
-        </div>
       </section>
 
       {/* Performance Insight Card - Like health app */}
@@ -344,121 +343,129 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Focus Symbol & Regime (Detailed) - Stacked Vertically in Landscape */}
-      <section className="space-y-4 mb-6">
-        {/* Active Symbol Card */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-ultra-accent/25 via-orange-500/20 to-amber-500/15 backdrop-blur-2xl border border-ultra-accent/50 p-5 space-y-4 shadow-[0_12px_40px_rgba(245,99,0,0.35)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.45)] hover:border-ultra-accent/70 transition-all duration-300">
-          <div className="flex items-center gap-3">
-            <select
-              value={symbolContext.symbol}
-              onChange={(e) => handleSymbolChange(e.target.value)}
-              className="text-lg font-bold text-white bg-white/10 border border-white/20 rounded-xl px-5 py-2.5 focus:outline-none focus:border-ultra-accent focus:ring-2 focus:ring-ultra-accent/30 transition-all flex-shrink-0 shadow-lg"
-            >
-              <option value="XAUUSD">XAUUSD</option>
-              <option value="EURUSD">EURUSD</option>
-              <option value="BTCUSD">BTCUSD</option>
-              <option value="SPX">SPX</option>
-            </select>
-            <div className="flex gap-2 items-center">
-              {["M15", "H1", "H4", "D1"].map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => handleTimeframeChange(tf)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all h-[40px] flex items-center justify-center shadow-lg ${
-                    symbolContext.timeframe === tf
-                      ? "bg-ultra-accent/40 text-white border-2 border-ultra-accent shadow-[0_0_16px_rgba(245,99,0,0.5)]"
-                      : "bg-white/10 text-slate-300 border border-white/20 hover:bg-white/15 hover:text-white"
-                  }`}
-                >
-                  {tf}
-                </button>
-              ))}
+      {/* Focus Symbol & Regime (Detailed) - Apple-style Landscape Cards Stacked */}
+      <section className="space-y-6 mb-8">
+        {/* XAUUSD Card - Landscape */}
+        <div className="relative rounded-3xl bg-gradient-to-br from-ultra-accent/15 via-orange-500/10 to-amber-500/8 backdrop-blur-3xl border border-white/10 p-6 md:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:border-white/20 transition-all duration-500">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <select
+                value={symbolContext.symbol}
+                onChange={(e) => handleSymbolChange(e.target.value)}
+                className="text-xl font-semibold text-white bg-white/5 border-0 rounded-2xl px-6 py-3 focus:outline-none focus:ring-2 focus:ring-ultra-accent/30 transition-all appearance-none cursor-pointer"
+              >
+                <option value="XAUUSD">XAUUSD</option>
+                <option value="EURUSD">EURUSD</option>
+                <option value="BTCUSD">BTCUSD</option>
+                <option value="SPX">SPX</option>
+              </select>
+              <div className="flex gap-1.5 items-center">
+                {["M15", "H1", "H4", "D1"].map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => handleTimeframeChange(tf)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                      symbolContext.timeframe === tf
+                        ? "bg-white/20 text-white"
+                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">Open</p>
-                <p className="text-lg font-bold text-white leading-tight">{ohlc.open.toFixed(2)}</p>
+          {/* OHLC & Chart - Horizontal Layout */}
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* OHLC Values */}
+            <div className="grid grid-cols-4 gap-4 flex-1">
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Open</p>
+                <p className="text-xl font-semibold text-white">{ohlc.open.toFixed(2)}</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">High</p>
-                <p className="text-lg font-bold text-emerald-400 leading-tight">{ohlc.high.toFixed(2)}</p>
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">High</p>
+                <p className="text-xl font-semibold text-emerald-400">{ohlc.high.toFixed(2)}</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">Low</p>
-                <p className="text-lg font-bold text-red-400 leading-tight">{ohlc.low.toFixed(2)}</p>
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Low</p>
+                <p className="text-xl font-semibold text-red-400">{ohlc.low.toFixed(2)}</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">Close</p>
-                <p className="text-lg font-bold text-white leading-tight">{ohlc.close.toFixed(2)}</p>
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Close</p>
+                <p className="text-xl font-semibold text-white">{ohlc.close.toFixed(2)}</p>
               </div>
             </div>
-            {/* Price Chart */}
-            <div className="pt-3 pb-2 bg-white/5 rounded-xl p-3 border border-white/10 overflow-hidden">
-              <div className="w-full">
+            
+            {/* Chart */}
+            <div className="flex-1 bg-white/3 rounded-2xl p-4 border border-white/5">
+              <div className="w-full h-full min-h-[60px]">
                 <SparklineChart 
                   values={[ohlc.open, ohlc.low, ohlc.high, ohlc.close]} 
                   color={ohlc.close >= ohlc.open ? "#10B981" : "#EF4444"} 
                   width={100} 
-                  height={50} 
+                  height={60} 
                 />
               </div>
             </div>
-            {ohlc.spread && (
-              <div className="pt-3 border-t border-white/20">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-slate-300 font-semibold">Spread</p>
-                  <p className="text-base font-bold text-white">{ohlc.spread} pips</p>
-                </div>
-              </div>
-            )}
           </div>
+          
+          {ohlc.spread && (
+            <div className="mt-6 pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-white/50 font-medium">Spread</p>
+                <p className="text-sm font-semibold text-white">{ohlc.spread} pips</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Market Regime Panel */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-indigo-500/25 via-purple-500/20 to-pink-500/15 backdrop-blur-2xl border border-indigo-500/50 p-5 space-y-4 shadow-[0_12px_40px_rgba(99,102,241,0.35)] hover:shadow-[0_16px_48px_rgba(99,102,241,0.45)] hover:border-indigo-500/70 transition-all duration-300">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">Market Regime</h3>
+        {/* Market Regime Card - Landscape */}
+        <div className="relative rounded-3xl bg-gradient-to-br from-indigo-500/15 via-purple-500/10 to-pink-500/8 backdrop-blur-3xl border border-white/10 p-6 md:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:border-white/20 transition-all duration-500">
+          <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-6">Market Regime</h3>
           {context?.regime && (
-            <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Status */}
               <div className="space-y-3">
-                <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">Status</p>
-                <span
-                  className={`inline-block text-sm px-4 py-2 rounded-xl font-bold shadow-lg ${
-                    context.regime.trendStatus === "TRENDING_UP"
-                      ? "bg-emerald-500/30 text-emerald-300 border-2 border-emerald-400/50 shadow-emerald-500/20"
-                      : context.regime.trendStatus === "TRENDING_DOWN"
-                      ? "bg-red-500/30 text-red-300 border-2 border-red-400/50 shadow-red-500/20"
-                      : "bg-slate-500/30 text-slate-300 border-2 border-slate-500/50 shadow-slate-500/20"
-                  }`}
-                >
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Status</p>
+                <span className={`inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold ${
+                  context.regime.trendStatus === "TRENDING_UP"
+                    ? "bg-emerald-500/20 text-emerald-300"
+                    : context.regime.trendStatus === "TRENDING_DOWN"
+                    ? "bg-red-500/20 text-red-300"
+                    : "bg-white/10 text-white/80"
+                }`}>
                   {context.regime.trendStatus.replace("_", " ")}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">ADX</p>
-                  <p className="text-2xl font-bold text-white leading-tight">{context.regime.adx.toFixed(1)}</p>
-                  <ProgressBar value={context.regime.adx} max={50} color={context.regime.adx > 25 ? "#10B981" : context.regime.adx > 20 ? "#F59E0B" : "#6B7280"} height={5} />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">BB Width</p>
-                  <p className="text-2xl font-bold text-white leading-tight">{context.regime.bollingerWidthPercentile.toFixed(0)}%</p>
-                  <ProgressBar value={context.regime.bollingerWidthPercentile} max={100} color={context.regime.bollingerWidthPercentile > 70 ? "#EF4444" : context.regime.bollingerWidthPercentile > 50 ? "#F59E0B" : "#10B981"} height={5} />
-                </div>
+              
+              {/* ADX */}
+              <div className="space-y-3">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">ADX</p>
+                <p className="text-2xl font-semibold text-white">{context.regime.adx.toFixed(1)}</p>
+                <ProgressBar value={context.regime.adx} max={50} color={context.regime.adx > 25 ? "#10B981" : context.regime.adx > 20 ? "#F59E0B" : "#6B7280"} height={4} />
               </div>
-              <div className="pt-3 border-t border-white/20 space-y-3">
-                <p className="text-[11px] text-slate-300 uppercase tracking-wider font-bold">Volatility</p>
-                <span
-                  className={`inline-block text-sm px-4 py-2 rounded-xl font-bold shadow-lg ${
-                    context.regime.volatilityState === "EXPLOSIVE"
-                      ? "bg-red-500/30 text-red-300 border-2 border-red-400/50 shadow-red-500/20"
-                      : context.regime.volatilityState === "NORMAL"
-                      ? "bg-yellow-500/30 text-yellow-300 border-2 border-yellow-400/50 shadow-yellow-500/20"
-                      : "bg-emerald-500/30 text-emerald-300 border-2 border-emerald-400/50 shadow-emerald-500/20"
-                  }`}
-                >
+              
+              {/* BB Width */}
+              <div className="space-y-3">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">BB Width</p>
+                <p className="text-2xl font-semibold text-white">{context.regime.bollingerWidthPercentile.toFixed(0)}%</p>
+                <ProgressBar value={context.regime.bollingerWidthPercentile} max={100} color={context.regime.bollingerWidthPercentile > 70 ? "#EF4444" : context.regime.bollingerWidthPercentile > 50 ? "#F59E0B" : "#10B981"} height={4} />
+              </div>
+              
+              {/* Volatility */}
+              <div className="space-y-3">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Volatility</p>
+                <span className={`inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold w-full ${
+                  context.regime.volatilityState === "EXPLOSIVE"
+                    ? "bg-red-500/20 text-red-300"
+                    : context.regime.volatilityState === "NORMAL"
+                    ? "bg-yellow-500/20 text-yellow-300"
+                    : "bg-emerald-500/20 text-emerald-300"
+                }`}>
                   {context.regime.volatilityState}
                 </span>
               </div>

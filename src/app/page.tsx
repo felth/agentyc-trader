@@ -129,246 +129,224 @@ export default function HomePage() {
     );
   }
 
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dayStr = today.toLocaleDateString('en-US', { weekday: 'long' });
+
   return (
-    <main className="space-y-6 pt-4 pb-24 max-w-md mx-auto px-4">
-      {/* Header / App Shell */}
-      <section className="relative h-48 rounded-[2rem] overflow-hidden mb-6 group">
+    <main className="space-y-6 pt-2 pb-24 max-w-md mx-auto px-4">
+      {/* Background Image with Date - Like health app */}
+      <section className="relative h-64 rounded-[2rem] overflow-hidden mb-6 -mx-4">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/hero-home.jpeg')" }}
         />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.1),_transparent_70%)]" />
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         
-        <div className="relative h-full flex flex-col justify-between px-6 py-5">
+        <div className="relative h-full flex flex-col px-6 py-6">
           {/* Top bar */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-auto">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-white tracking-tight">AGENTYC</span>
-              <span className="text-xs text-white/60 font-medium">TRADER</span>
+              <span className="text-sm font-bold text-white/90 tracking-tight">AGENTYC</span>
             </div>
             <div className="flex items-center gap-3">
-              <Link
-                href="/agent"
-                className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95"
-                aria-label="Agent"
-              >
-                <span className="text-base">🤖</span>
-              </Link>
-              <Link
-                href="/library"
-                className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95"
-                aria-label="Library"
-              >
-                <span className="text-base">📚</span>
-              </Link>
+              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+                <span className="text-sm">🔍</span>
+              </button>
+              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center relative">
+                <span className="text-sm">🔔</span>
+              </button>
               <Link
                 href="/profile"
                 className={[
-                  "w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center hover:bg-white/10 transition-all active:scale-95",
+                  "w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center",
                   pathname === "/profile"
                     ? "bg-ultra-accent/20 border-ultra-accent/50"
                     : "bg-white/5 border-white/10"
                 ].join(" ")}
                 aria-label="Settings"
               >
-                <span className="text-base">⚙️</span>
+                <span className="text-sm">⚙️</span>
               </Link>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Trading Dashboard</p>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Live Cockpit</h1>
-            <p className="text-sm text-white/70">{time}</p>
+          {/* Large Date Display - Like health app */}
+          <div className="mt-auto">
+            <p className="text-6xl font-bold text-white/90 tracking-tight mb-1" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+              {dateStr}
+            </p>
+            <p className="text-sm text-white/70 font-medium">{dayStr}</p>
+            <p className="text-xs text-white/60 mt-1">{time}</p>
           </div>
         </div>
       </section>
 
-      {/* AI Summary Section - Like health app motivational text */}
+      {/* Today's Summary - Like health app */}
       {aiSummary && (
         <section className="mb-6">
-          <div className="rounded-2xl bg-gradient-to-br from-ultra-accent/25 via-orange-500/15 to-amber-500/10 backdrop-blur-xl border border-ultra-accent/40 p-6 shadow-[0_12px_40px_rgba(245,99,0,0.25)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.35)] transition-all duration-300">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/30 flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_rgba(245,99,0,0.3)]">
-                <span className="text-2xl">🤖</span>
-              </div>
-              <div className="flex-1">
-                <p className="text-base text-white leading-relaxed font-medium">
-                  {aiSummary}
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-base">📅</span>
+            <h2 className="text-base font-bold text-white">Today</h2>
+          </div>
+          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+            <p className="text-sm text-white/90 leading-relaxed">
+              {aiSummary}
+            </p>
           </div>
         </section>
       )}
 
-      {/* Row 1 – Market Overview */}
-      <section className="space-y-4 mb-6">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-bold text-white">Market Overview</h2>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          {context?.marketOverview.benchmarkSymbols.slice(0, 6).map((sym, idx) => (
-            <div
-              key={sym.symbol}
-              className={`relative rounded-2xl backdrop-blur-2xl border p-4 space-y-2 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:scale-[1.03] ${
-                sym.pctChange >= 0
-                  ? "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30 hover:border-emerald-500/50"
-                  : "bg-gradient-to-br from-red-500/20 via-orange-500/15 to-amber-500/10 border-red-500/30 hover:border-red-500/50"
-              }`}
-            >
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{sym.symbol}</p>
-              <p className="text-xl font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
-              <div className="flex items-center gap-1.5">
-                <span className={`text-sm font-bold ${
-                  sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
-                }`}>
-                  {sym.pctChange >= 0 ? "↑" : "↓"}
-                </span>
-                <p
-                  className={`text-sm font-bold ${
+      {/* Main Content Area - Two Column Layout */}
+      <section className="grid grid-cols-[1fr_auto] gap-4 mb-6">
+        {/* Left Column - Market Overview */}
+        <div className="space-y-4">
+          <h2 className="text-base font-bold text-white">Market Overview</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {context?.marketOverview.benchmarkSymbols.slice(0, 6).map((sym, idx) => (
+              <div
+                key={sym.symbol}
+                className={`relative rounded-xl backdrop-blur-2xl border p-3 space-y-1.5 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-[1.02] ${
+                  sym.pctChange >= 0
+                    ? "bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-cyan-500/8 border-emerald-500/25"
+                    : "bg-gradient-to-br from-red-500/15 via-orange-500/10 to-amber-500/8 border-red-500/25"
+                }`}
+              >
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{sym.symbol}</p>
+                <p className="text-base font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
+                <div className="flex items-center gap-1">
+                  <span className={`text-xs font-bold ${
                     sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
-                  }`}
-                >
-                  {sym.pctChange >= 0 ? "+" : ""}
-                  {sym.pctChange.toFixed(2)}%
-                </p>
+                  }`}>
+                    {sym.pctChange >= 0 ? "↑" : "↓"}
+                  </span>
+                  <p
+                    className={`text-xs font-bold ${
+                      sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
+                    }`}
+                  >
+                    {sym.pctChange >= 0 ? "+" : ""}
+                    {sym.pctChange.toFixed(2)}%
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </section>
 
-      {/* Row 2 – Key Trading Metrics (Like Vital Trends) */}
-      <section className="space-y-4 mb-6">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-bold text-white">Trading Metrics</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+        {/* Right Column - Key Metrics (Like health app vertical stack) */}
+        <div className="space-y-2.5 w-[130px]">
           {/* Setup Confluence */}
-          <div className={`relative rounded-2xl backdrop-blur-2xl border p-5 space-y-4 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:scale-[1.02] ${
-            context?.strategyConfluence?.setupGrade === "A"
-              ? "bg-gradient-to-br from-emerald-500/25 via-teal-500/15 to-cyan-500/10 border-emerald-500/40"
-              : context?.strategyConfluence?.setupGrade === "B"
-              ? "bg-gradient-to-br from-yellow-500/25 via-amber-500/15 to-orange-500/10 border-yellow-500/40"
-              : "bg-gradient-to-br from-white/[0.08] to-white/[0.04] border-white/15"
-          }`}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Setup Confluence</p>
-              {context?.strategyConfluence && (
-                <span
-                  className={`text-xs px-3 py-1.5 rounded-xl font-bold shadow-lg ${
-                    context.strategyConfluence.setupGrade === "A"
-                      ? "bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 shadow-emerald-500/20"
-                      : context.strategyConfluence.setupGrade === "B"
-                      ? "bg-yellow-500/30 text-yellow-300 border border-yellow-400/50 shadow-yellow-500/20"
-                      : "bg-slate-500/20 text-slate-400 border border-slate-500/40"
-                  }`}
-                >
-                  {context.strategyConfluence.setupGrade}
-                </span>
-              )}
+          <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${
+                context?.strategyConfluence?.setupGrade === "A" ? "bg-emerald-400" :
+                context?.strategyConfluence?.setupGrade === "B" ? "bg-yellow-400" : "bg-slate-400"
+              }`} />
+              <p className="text-[10px] font-bold text-white uppercase tracking-wide">Setup</p>
             </div>
             {context?.strategyConfluence && (
               <>
-                <p className="text-3xl font-bold text-white tracking-tight">{context.strategyConfluence.setupMatchPct}%</p>
-                <ProgressBar value={context.strategyConfluence.setupMatchPct} color={context.strategyConfluence.setupGrade === "A" ? "#10B981" : context.strategyConfluence.setupGrade === "B" ? "#F59E0B" : "#6B7280"} height={6} />
+                <p className="text-2xl font-bold text-white leading-tight">{context.strategyConfluence.setupMatchPct}%</p>
               </>
             )}
           </div>
 
           {/* Market Regime */}
-          <div className="relative rounded-2xl bg-gradient-to-br from-blue-500/20 via-indigo-500/15 to-purple-500/10 backdrop-blur-2xl border border-blue-500/30 p-5 space-y-4 hover:border-blue-500/50 transition-all duration-300 shadow-[0_8px_24px_rgba(59,130,246,0.3)] hover:shadow-[0_12px_32px_rgba(59,130,246,0.4)] hover:scale-[1.02]">
-            <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Market Regime</p>
+          <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-blue-400" />
+              <p className="text-[10px] font-bold text-white uppercase tracking-wide">Regime</p>
+            </div>
             {context?.regime && (
               <>
-                <p className="text-3xl font-bold text-white tracking-tight">{context.regime.trendStatus.replace("_", " ")}</p>
-                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                  <span className="text-xs text-slate-300 font-medium">ADX: </span>
-                  <span className="text-base font-bold text-white">{context.regime.adx.toFixed(1)}</span>
-                </div>
+                <p className="text-2xl font-bold text-white leading-tight">{context.regime.trendStatus.replace("_", " ").split(" ")[0]}</p>
               </>
             )}
           </div>
 
           {/* Volume Delta */}
-          <div className={`relative rounded-2xl backdrop-blur-2xl border p-5 space-y-4 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:scale-[1.02] ${
-            context?.volume && context.volume.volumeDelta >= 0
-              ? "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30"
-              : "bg-gradient-to-br from-red-500/20 via-orange-500/15 to-amber-500/10 border-red-500/30"
-          }`}>
-            <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Volume Delta</p>
+          <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${
+                context?.volume && context.volume.volumeDelta >= 0 ? "bg-emerald-400" : "bg-red-400"
+              }`} />
+              <p className="text-[10px] font-bold text-white uppercase tracking-wide">Volume</p>
+            </div>
             {context?.volume && (
               <>
-                <p
-                  className={`text-3xl font-bold tracking-tight ${
-                    context.volume.volumeDelta >= 0 ? "text-emerald-400" : "text-red-400"
-                  }`}
-                >
+                <p className={`text-2xl font-bold leading-tight ${
+                  context.volume.volumeDelta >= 0 ? "text-emerald-400" : "text-red-400"
+                }`}>
                   {context.volume.volumeDelta >= 0 ? "+" : ""}
-                  {context.volume.volumeDelta.toLocaleString()}
+                  {Math.abs(context.volume.volumeDelta).toLocaleString()}
                 </p>
-                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                  <span className="text-xs text-slate-300 font-medium">CVD: </span>
-                  <span className={`text-base font-bold ${
-                    context.volume.cvd >= 0 ? "text-emerald-400" : "text-red-400"
-                  }`}>
-                    {context.volume.cvd >= 0 ? "+" : ""}
-                    {context.volume.cvd.toLocaleString()}
-                  </span>
-                </div>
-                <div className="pt-2 overflow-hidden">
-                  <div className="w-full">
-                    <SparklineChart 
-                      values={[0, -50, -120, -200, -280, -340]} 
-                      color={context.volume.volumeDelta >= 0 ? "#10B981" : "#EF4444"} 
-                      width={120} 
-                      height={24} 
-                    />
-                  </div>
-                </div>
               </>
             )}
           </div>
 
           {/* Behavioural State */}
-          <div className={`relative rounded-2xl backdrop-blur-2xl border p-5 space-y-4 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.6)] hover:scale-[1.02] ${
-            context?.behavioural?.overtradingFlag === "CRITICAL"
-              ? "bg-gradient-to-br from-red-500/25 via-orange-500/15 to-amber-500/10 border-red-500/40"
-              : context?.behavioural?.overtradingFlag === "WARNING"
-              ? "bg-gradient-to-br from-yellow-500/25 via-amber-500/15 to-orange-500/10 border-yellow-500/40"
-              : "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30"
-          }`}>
-            <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Trading State</p>
+          <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${
+                context?.behavioural?.overtradingFlag === "CRITICAL" ? "bg-red-400" :
+                context?.behavioural?.overtradingFlag === "WARNING" ? "bg-yellow-400" : "bg-emerald-400"
+              }`} />
+              <p className="text-[10px] font-bold text-white uppercase tracking-wide">State</p>
+            </div>
             {context?.behavioural && (
               <>
-                <p className="text-3xl font-bold text-white tracking-tight">
-                  {Math.floor(context.behavioural.minutesSinceLastBreak / 60)}h{" "}
-                  {context.behavioural.minutesSinceLastBreak % 60}m
+                <p className="text-2xl font-bold text-white leading-tight">
+                  {Math.floor(context.behavioural.minutesSinceLastBreak / 60)}h
                 </p>
-                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                  <span
-                    className={`text-xs px-3 py-1.5 rounded-xl font-bold shadow-lg ${
-                      context.behavioural.overtradingFlag === "CRITICAL"
-                        ? "bg-red-500/30 text-red-300 border border-red-400/50 shadow-red-500/20"
-                        : context.behavioural.overtradingFlag === "WARNING"
-                        ? "bg-yellow-500/30 text-yellow-300 border border-yellow-400/50 shadow-yellow-500/20"
-                        : "bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 shadow-emerald-500/20"
-                    }`}
-                  >
-                    {context.behavioural.overtradingFlag}
-                  </span>
-                </div>
               </>
             )}
           </div>
         </div>
       </section>
 
-      {/* Row 3 – Focus Symbol & Regime (Detailed) */}
+      {/* Performance Insight Card - Like health app */}
+      {context?.strategyConfluence && (
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">⭐</span>
+            <h2 className="text-base font-bold text-white">Performance Insight</h2>
+          </div>
+          <div className="relative rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+            <p className="text-sm text-white/90 leading-relaxed">
+              {context.strategyConfluence.notes || "Analyzing market conditions..."}
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* Today's Activity Section - Like health app */}
+      <section className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-white">Today's Activity</h2>
+          <Link href="/trades" className="text-sm text-white/70 font-medium hover:text-white transition-colors">
+            Add New
+          </Link>
+        </div>
+        <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">📊</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-white/70 leading-relaxed">
+                Nothing yet for today. Try syncing or adding a new trade.
+              </p>
+              <Link href="/trades" className="text-sm text-ultra-accent font-semibold mt-2 inline-block hover:underline">
+                Sync now →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Focus Symbol & Regime (Detailed) - Collapsible or Simplified */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Active Symbol Card */}
         <div className="relative rounded-2xl bg-gradient-to-br from-ultra-accent/25 via-orange-500/20 to-amber-500/15 backdrop-blur-2xl border border-ultra-accent/50 p-6 space-y-5 shadow-[0_12px_40px_rgba(245,99,0,0.35)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.45)] hover:border-ultra-accent/70 transition-all duration-300 hover:scale-[1.01]">

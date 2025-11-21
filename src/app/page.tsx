@@ -85,9 +85,9 @@ export default function HomePage() {
   }
 
   return (
-    <main className="space-y-5 pt-4 pb-24 max-w-md mx-auto px-4">
+    <main className="space-y-6 pt-4 pb-24 max-w-md mx-auto px-4">
       {/* Header / App Shell */}
-      <section className="relative h-48 rounded-[2rem] overflow-hidden mb-5 group">
+      <section className="relative h-48 rounded-[2rem] overflow-hidden mb-6 group">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/hero-home.jpeg')" }}
@@ -143,7 +143,7 @@ export default function HomePage() {
       </section>
 
       {/* Row 1 – Market Overview */}
-      <section className="space-y-3 mb-5">
+      <section className="space-y-4 mb-6">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Market Overview</h2>
         </div>
@@ -151,47 +151,54 @@ export default function HomePage() {
           {context?.marketOverview.benchmarkSymbols.map((sym, idx) => (
             <div
               key={sym.symbol}
-              className="rounded-xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-4 py-3 space-y-2 min-w-[120px] hover:bg-white/[0.06] transition-all shadow-[0_4px_16px_rgba(0,0,0,0.3)]"
+              className="relative rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-2xl border border-white/10 px-5 py-4 space-y-3 min-w-[140px] hover:from-white/[0.08] hover:to-white/[0.04] hover:border-white/20 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.5)] hover:scale-[1.02]"
             >
-              <p className="text-xs font-bold text-white">{sym.symbol}</p>
-              <p className="text-lg font-bold text-white">{sym.price.toLocaleString()}</p>
-              <p
-                className={`text-sm font-bold ${
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{sym.symbol}</p>
+              <p className="text-2xl font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
+              <div className="flex items-center gap-1.5">
+                <span className={`text-sm font-bold ${
                   sym.pctChange >= 0 ? "text-ultra-positive" : "text-ultra-negative"
-                }`}
-              >
-                {sym.pctChange >= 0 ? "+" : ""}
-                {sym.pctChange.toFixed(2)}%
-              </p>
+                }`}>
+                  {sym.pctChange >= 0 ? "↑" : "↓"}
+                </span>
+                <p
+                  className={`text-sm font-bold ${
+                    sym.pctChange >= 0 ? "text-ultra-positive" : "text-ultra-negative"
+                  }`}
+                >
+                  {sym.pctChange >= 0 ? "+" : ""}
+                  {sym.pctChange.toFixed(2)}%
+                </p>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
       {/* Row 2 – Focus Symbol & Regime */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Active Symbol Card */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <div className="flex items-center gap-2">
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <div className="flex items-center gap-2 flex-wrap">
             <select
               value={symbolContext.symbol}
               onChange={(e) => handleSymbolChange(e.target.value)}
-              className="text-base font-bold text-white bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 focus:outline-none focus:border-ultra-accent/50"
+              className="text-base font-bold text-white bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:border-ultra-accent/50 focus:ring-2 focus:ring-ultra-accent/20 transition-all"
             >
               <option value="XAUUSD">XAUUSD</option>
               <option value="EURUSD">EURUSD</option>
               <option value="BTCUSD">BTCUSD</option>
               <option value="SPX">SPX</option>
             </select>
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               {["M15", "H1", "H4", "D1"].map((tf) => (
                 <button
                   key={tf}
                   onClick={() => handleTimeframeChange(tf)}
-                  className={`px-2 py-1 rounded text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     symbolContext.timeframe === tf
-                      ? "bg-ultra-accent/20 text-ultra-accent border border-ultra-accent/50"
-                      : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/[0.08]"
+                      ? "bg-ultra-accent/25 text-ultra-accent border border-ultra-accent/50 shadow-[0_0_12px_rgba(245,99,0,0.3)]"
+                      : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/[0.08] hover:text-slate-300"
                   }`}
                 >
                   {tf}
@@ -200,42 +207,45 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="space-y-2">
-            <div className="grid grid-cols-4 gap-2 text-xs">
-              <div>
-                <p className="text-slate-500 mb-0.5">O</p>
-                <p className="font-bold text-white">{ohlc.open.toFixed(2)}</p>
+          <div className="space-y-3">
+            <div className="grid grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Open</p>
+                <p className="text-base font-bold text-white">{ohlc.open.toFixed(2)}</p>
               </div>
-              <div>
-                <p className="text-slate-500 mb-0.5">H</p>
-                <p className="font-bold text-ultra-positive">{ohlc.high.toFixed(2)}</p>
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">High</p>
+                <p className="text-base font-bold text-ultra-positive">{ohlc.high.toFixed(2)}</p>
               </div>
-              <div>
-                <p className="text-slate-500 mb-0.5">L</p>
-                <p className="font-bold text-ultra-negative">{ohlc.low.toFixed(2)}</p>
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Low</p>
+                <p className="text-base font-bold text-ultra-negative">{ohlc.low.toFixed(2)}</p>
               </div>
-              <div>
-                <p className="text-slate-500 mb-0.5">C</p>
-                <p className="font-bold text-white">{ohlc.close.toFixed(2)}</p>
+              <div className="space-y-1">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Close</p>
+                <p className="text-base font-bold text-white">{ohlc.close.toFixed(2)}</p>
               </div>
             </div>
             {ohlc.spread && (
-              <div className="pt-2 border-t border-white/5">
-                <p className="text-xs text-slate-400">Spread: {ohlc.spread} pips</p>
+              <div className="pt-3 border-t border-white/10">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-400 font-medium">Spread</p>
+                  <p className="text-sm font-bold text-white">{ohlc.spread} pips</p>
+                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* Market Regime Panel */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Market Regime</h3>
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Market Regime</h3>
           {context?.regime && (
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div>
-                <p className="text-xs text-slate-500 mb-1">Status</p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2">Status</p>
                 <span
-                  className={`text-xs px-2 py-1 rounded-full font-bold ${
+                  className={`inline-block text-xs px-3 py-1.5 rounded-xl font-bold ${
                     context.regime.trendStatus === "TRENDING_UP"
                       ? "bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/40"
                       : context.regime.trendStatus === "TRENDING_DOWN"
@@ -246,20 +256,20 @@ export default function HomePage() {
                   {context.regime.trendStatus.replace("_", " ")}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <p className="text-slate-500 mb-0.5">ADX</p>
-                  <p className="font-bold text-white">{context.regime.adx.toFixed(1)}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">ADX</p>
+                  <p className="text-xl font-bold text-white">{context.regime.adx.toFixed(1)}</p>
                 </div>
-                <div>
-                  <p className="text-slate-500 mb-0.5">BB Width</p>
-                  <p className="font-bold text-white">{context.regime.bollingerWidthPercentile.toFixed(0)}%</p>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">BB Width</p>
+                  <p className="text-xl font-bold text-white">{context.regime.bollingerWidthPercentile.toFixed(0)}%</p>
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Volatility</p>
+              <div className="pt-2 border-t border-white/10">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2">Volatility</p>
                 <span
-                  className={`text-xs px-2 py-1 rounded-full font-bold ${
+                  className={`inline-block text-xs px-3 py-1.5 rounded-xl font-bold ${
                     context.regime.volatilityState === "EXPLOSIVE"
                       ? "bg-ultra-negative/20 text-ultra-negative border border-ultra-negative/40"
                       : context.regime.volatilityState === "NORMAL"
@@ -276,31 +286,31 @@ export default function HomePage() {
       </section>
 
       {/* Row 3 – Order Flow & Volume */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* DOM Panel */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">DOM & Order Flow</h3>
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">DOM & Order Flow</h3>
           {context?.orderFlow && (
-            <div className="space-y-2">
-              <div className="text-xs space-y-1">
-                <div className="grid grid-cols-3 gap-2 font-semibold text-slate-500 pb-1 border-b border-white/5">
+            <div className="space-y-4">
+              <div className="text-xs space-y-2">
+                <div className="grid grid-cols-3 gap-3 font-semibold text-slate-500 pb-2 border-b border-white/10">
                   <div>Price</div>
                   <div className="text-right">Bid</div>
                   <div className="text-right">Ask</div>
                 </div>
                 {context.orderFlow.dom.slice(0, 5).map((level, idx) => (
-                  <div key={idx} className="grid grid-cols-3 gap-2">
-                    <div className="font-mono text-white">{level.price.toFixed(2)}</div>
-                    <div className="text-right font-mono text-ultra-positive">{level.bidSize}</div>
-                    <div className="text-right font-mono text-ultra-negative">{level.askSize}</div>
+                  <div key={idx} className="grid grid-cols-3 gap-3 py-1">
+                    <div className="font-mono text-sm text-white font-semibold">{level.price.toFixed(2)}</div>
+                    <div className="text-right font-mono text-sm text-ultra-positive font-bold">{level.bidSize}</div>
+                    <div className="text-right font-mono text-sm text-ultra-negative font-bold">{level.askSize}</div>
                   </div>
                 ))}
               </div>
-              <div className="pt-2 border-t border-white/5 space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Volume Imbalance</span>
+              <div className="pt-3 border-t border-white/10 space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-400 font-medium">Volume Imbalance</span>
                   <span
-                    className={`font-bold ${
+                    className={`text-sm font-bold ${
                       context.orderFlow.volumeImbalance > 0
                         ? "text-ultra-positive"
                         : "text-ultra-negative"
@@ -309,13 +319,13 @@ export default function HomePage() {
                     {(context.orderFlow.volumeImbalance * 100).toFixed(0)}%
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Liquidity Above</span>
-                  <span className="text-white">{context.orderFlow.restingLiquidityAbove}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-400 font-medium">Liquidity Above</span>
+                  <span className="text-sm font-bold text-white">{context.orderFlow.restingLiquidityAbove}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Liquidity Below</span>
-                  <span className="text-white">{context.orderFlow.restingLiquidityBelow}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-400 font-medium">Liquidity Below</span>
+                  <span className="text-sm font-bold text-white">{context.orderFlow.restingLiquidityBelow}</span>
                 </div>
               </div>
             </div>
@@ -323,19 +333,19 @@ export default function HomePage() {
         </div>
 
         {/* Volume Delta & CVD */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Volume Delta & CVD</h3>
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Volume Delta & CVD</h3>
           {context?.volume && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <p className="text-slate-500 mb-1">Bar Volume</p>
-                  <p className="text-lg font-bold text-white">{context.volume.barVolume.toLocaleString()}</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Bar Volume</p>
+                  <p className="text-2xl font-bold text-white tracking-tight">{context.volume.barVolume.toLocaleString()}</p>
                 </div>
-                <div>
-                  <p className="text-slate-500 mb-1">Volume Delta</p>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Volume Delta</p>
                   <p
-                    className={`text-lg font-bold ${
+                    className={`text-2xl font-bold tracking-tight ${
                       context.volume.volumeDelta >= 0
                         ? "text-ultra-positive"
                         : "text-ultra-negative"
@@ -346,11 +356,11 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-              <div className="pt-2 border-t border-white/5">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-500">CVD</span>
+              <div className="pt-3 border-t border-white/10 space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-400 font-medium">CVD</span>
                   <span
-                    className={`font-bold ${
+                    className={`text-base font-bold ${
                       context.volume.cvd >= 0 ? "text-ultra-positive" : "text-ultra-negative"
                     }`}
                   >
@@ -358,16 +368,18 @@ export default function HomePage() {
                     {context.volume.cvd.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs mt-2">
-                  <span className="text-slate-500">Tape Speed</span>
-                  <span className="font-bold text-white">{context.volume.tapeSpeed} ticks/s</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-400 font-medium">Tape Speed</span>
+                  <span className="text-base font-bold text-white">{context.volume.tapeSpeed} ticks/s</span>
                 </div>
               </div>
-              <div className="pt-2 border-t border-white/5">
-                <p className="text-xs text-slate-400">
+              <div className="pt-2">
+                <p className={`text-xs font-semibold ${
+                  context.volume.volumeDelta < 0 ? "text-ultra-negative" : "text-ultra-positive"
+                }`}>
                   {context.volume.volumeDelta < 0
-                    ? "Aggressive selling pressure"
-                    : "Aggressive buying pressure"}
+                    ? "↓ Aggressive selling pressure"
+                    : "↑ Aggressive buying pressure"}
                 </p>
               </div>
             </div>
@@ -376,34 +388,34 @@ export default function HomePage() {
       </section>
 
       {/* Row 4 – Execution & Risk */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Broker Execution Quality */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Execution Quality</h3>
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Execution Quality</h3>
           {context?.execution && (
-            <div className="space-y-2 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-slate-500 mb-1">Avg Slippage</p>
-                  <p className="font-bold text-white">{context.execution.avgSlippagePips.toFixed(2)} pips</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Avg Slippage</p>
+                  <p className="text-xl font-bold text-white">{context.execution.avgSlippagePips.toFixed(2)} pips</p>
                 </div>
-                <div>
-                  <p className="text-slate-500 mb-1">Max Slippage</p>
-                  <p className="font-bold text-ultra-negative">{context.execution.maxSlippagePips.toFixed(2)} pips</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
-                <div>
-                  <p className="text-slate-500 mb-1">Fill Rate</p>
-                  <p className="font-bold text-ultra-positive">{context.execution.fillRatePct}%</p>
-                </div>
-                <div>
-                  <p className="text-slate-500 mb-1">Rejection Rate</p>
-                  <p className="font-bold text-white">{context.execution.rejectionRatePct}%</p>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Max Slippage</p>
+                  <p className="text-xl font-bold text-ultra-negative">{context.execution.maxSlippagePips.toFixed(2)} pips</p>
                 </div>
               </div>
-              <div className="pt-2 border-t border-white/5">
-                <p className="text-xs text-slate-400 leading-relaxed">
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/10">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Fill Rate</p>
+                  <p className="text-xl font-bold text-ultra-positive">{context.execution.fillRatePct}%</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Rejection Rate</p>
+                  <p className="text-xl font-bold text-white">{context.execution.rejectionRatePct}%</p>
+                </div>
+              </div>
+              <div className="pt-3 border-t border-white/10">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   {context.execution.spreadExpansionNotes}
                 </p>
               </div>
@@ -412,16 +424,16 @@ export default function HomePage() {
         </div>
 
         {/* Correlation & Exposure */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Correlation & Exposure</h3>
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Correlation & Exposure</h3>
           {context?.correlation && (
-            <div className="space-y-3">
-              <div className="text-xs space-y-1">
+            <div className="space-y-4">
+              <div className="space-y-2.5">
                 {context.correlation.correlations.slice(0, 3).map((corr, idx) => (
-                  <div key={idx} className="flex justify-between items-center">
-                    <span className="text-white">{corr.symbol}</span>
+                  <div key={idx} className="flex justify-between items-center py-1.5">
+                    <span className="text-sm font-medium text-white">{corr.symbol}</span>
                     <span
-                      className={`font-bold ${
+                      className={`text-sm font-bold ${
                         Math.abs(corr.correlation) > 0.7
                           ? corr.correlation > 0
                             ? "text-ultra-positive"
@@ -435,21 +447,21 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <div className="pt-2 border-t border-white/5 space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">USD Exposure</span>
-                  <span className="font-bold text-white">
+              <div className="pt-3 border-t border-white/10 space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-400 font-medium">USD Exposure</span>
+                  <span className="text-base font-bold text-white">
                     {context.correlation.portfolioUsdExposurePct.toFixed(0)}%
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Beta to Equities</span>
-                  <span className="font-bold text-white">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-400 font-medium">Beta to Equities</span>
+                  <span className="text-base font-bold text-white">
                     {context.correlation.portfolioBetaToEquities.toFixed(2)}
                   </span>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed pt-1">
+              <p className="text-xs text-slate-300 leading-relaxed pt-1">
                 {context.correlation.notes}
               </p>
             </div>
@@ -458,32 +470,32 @@ export default function HomePage() {
       </section>
 
       {/* Row 5 – Volume Profile & Liquidity */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Volume Profile Snapshot */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Volume Profile</h3>
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Volume Profile</h3>
           {context?.volumeProfile && (
-            <div className="space-y-2 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-slate-500 mb-1">POC</p>
-                  <p className="font-bold text-white">{context.volumeProfile.pocPrice.toFixed(2)}</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">POC</p>
+                  <p className="text-xl font-bold text-white">{context.volumeProfile.pocPrice.toFixed(2)}</p>
                 </div>
-                <div>
-                  <p className="text-slate-500 mb-1">Value Area</p>
-                  <p className="font-bold text-white">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Value Area</p>
+                  <p className="text-sm font-bold text-white leading-tight">
                     {context.volumeProfile.valueAreaHigh.toFixed(2)} /{" "}
                     {context.volumeProfile.valueAreaLow.toFixed(2)}
                   </p>
                 </div>
               </div>
-              <div className="pt-2 border-t border-white/5">
-                <p className="text-slate-500 mb-1">High Volume Nodes</p>
-                <div className="flex flex-wrap gap-1">
+              <div className="pt-3 border-t border-white/10">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2">High Volume Nodes</p>
+                <div className="flex flex-wrap gap-1.5">
                   {context.volumeProfile.highVolumeNodes.map((price, idx) => (
                     <span
                       key={idx}
-                      className="px-2 py-0.5 rounded bg-ultra-accent/20 text-ultra-accent text-[10px] font-bold"
+                      className="px-2.5 py-1 rounded-lg bg-ultra-accent/25 text-ultra-accent text-[10px] font-bold border border-ultra-accent/30"
                     >
                       {price.toFixed(1)}
                     </span>
@@ -491,12 +503,12 @@ export default function HomePage() {
                 </div>
               </div>
               <div>
-                <p className="text-slate-500 mb-1">Low Volume Areas</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2">Low Volume Areas</p>
+                <div className="flex flex-wrap gap-1.5">
                   {context.volumeProfile.lowVolumeAreas.map((price, idx) => (
                     <span
                       key={idx}
-                      className="px-2 py-0.5 rounded bg-slate-500/20 text-slate-400 text-[10px] font-bold"
+                      className="px-2.5 py-1 rounded-lg bg-slate-500/20 text-slate-400 text-[10px] font-bold border border-slate-500/30"
                     >
                       {price.toFixed(1)}
                     </span>
@@ -508,32 +520,32 @@ export default function HomePage() {
         </div>
 
         {/* Liquidity Zones */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Liquidity Zones</h3>
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Liquidity Zones</h3>
           {context?.liquidityMap && (
-            <div className="space-y-2 text-xs">
+            <div className="space-y-4">
               <div>
-                <p className="text-slate-500 mb-1.5">Above Price</p>
-                <div className="space-y-1">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2.5">Above Price</p>
+                <div className="space-y-2">
                   {context.liquidityMap.zones
                     .filter((z) => z.direction === "above")
                     .map((zone, idx) => (
-                      <div key={idx} className="flex justify-between items-center">
-                        <span className="text-white">{zone.price.toFixed(2)}</span>
-                        <span className="text-slate-400 capitalize text-[10px]">{zone.type}</span>
+                      <div key={idx} className="flex justify-between items-center py-1.5">
+                        <span className="text-sm font-semibold text-white">{zone.price.toFixed(2)}</span>
+                        <span className="text-xs text-slate-400 capitalize px-2 py-0.5 rounded bg-white/5">{zone.type}</span>
                       </div>
                     ))}
                 </div>
               </div>
-              <div className="pt-2 border-t border-white/5">
-                <p className="text-slate-500 mb-1.5">Below Price</p>
-                <div className="space-y-1">
+              <div className="pt-3 border-t border-white/10">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2.5">Below Price</p>
+                <div className="space-y-2">
                   {context.liquidityMap.zones
                     .filter((z) => z.direction === "below")
                     .map((zone, idx) => (
-                      <div key={idx} className="flex justify-between items-center">
-                        <span className="text-white">{zone.price.toFixed(2)}</span>
-                        <span className="text-slate-400 capitalize text-[10px]">{zone.type}</span>
+                      <div key={idx} className="flex justify-between items-center py-1.5">
+                        <span className="text-sm font-semibold text-white">{zone.price.toFixed(2)}</span>
+                        <span className="text-xs text-slate-400 capitalize px-2 py-0.5 rounded bg-white/5">{zone.type}</span>
                       </div>
                     ))}
                 </div>
@@ -544,48 +556,48 @@ export default function HomePage() {
       </section>
 
       {/* Row 6 – Strategy & Behaviour */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Strategy Confluence */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Strategy Confluence</h3>
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Strategy Confluence</h3>
           {context?.strategyConfluence && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Setup Match</p>
-                  <p className="text-xl font-bold text-white">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Setup Match</p>
+                  <p className="text-3xl font-bold text-white tracking-tight">
                     {context.strategyConfluence.setupMatchPct}%
                   </p>
                 </div>
                 <span
-                  className={`text-xs px-3 py-1.5 rounded-full font-bold ${
+                  className={`text-xs px-3 py-2 rounded-xl font-bold ${
                     context.strategyConfluence.setupGrade === "A"
-                      ? "bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/40"
+                      ? "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40 shadow-[0_0_12px_rgba(50,215,75,0.2)]"
                       : context.strategyConfluence.setupGrade === "B"
-                      ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
+                      ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
                       : context.strategyConfluence.setupGrade === "C"
-                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/40"
+                      ? "bg-orange-500/25 text-orange-400 border border-orange-500/40"
                       : "bg-slate-500/20 text-slate-400 border border-slate-500/40"
                   }`}
                 >
                   {context.strategyConfluence.setupGrade}-Setup
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Pattern</p>
-                  <p className="text-sm font-bold text-white">
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/10">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Pattern</p>
+                  <p className="text-base font-bold text-white">
                     {context.strategyConfluence.candlePattern}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Momentum</p>
-                  <p className="text-sm font-bold text-white">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Momentum</p>
+                  <p className="text-base font-bold text-white">
                     {context.strategyConfluence.momentumScore}/100
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed pt-1">
+              <p className="text-xs text-slate-300 leading-relaxed pt-1">
                 {context.strategyConfluence.notes}
               </p>
             </div>
@@ -593,39 +605,39 @@ export default function HomePage() {
         </div>
 
         {/* Behavioural State */}
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Behavioural State</h3>
+        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-white/[0.02] backdrop-blur-2xl border border-white/10 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/20 transition-all duration-300">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Behavioural State</h3>
           {context?.behavioural && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Time Since Break</p>
-                  <p className="text-xl font-bold text-white">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Time Since Break</p>
+                  <p className="text-3xl font-bold text-white tracking-tight">
                     {Math.floor(context.behavioural.minutesSinceLastBreak / 60)}h{" "}
                     {context.behavioural.minutesSinceLastBreak % 60}m
                   </p>
                 </div>
                 <span
-                  className={`text-xs px-3 py-1.5 rounded-full font-bold ${
+                  className={`text-xs px-3 py-2 rounded-xl font-bold ${
                     context.behavioural.overtradingFlag === "CRITICAL"
-                      ? "bg-ultra-negative/20 text-ultra-negative border border-ultra-negative/40"
+                      ? "bg-ultra-negative/25 text-ultra-negative border border-ultra-negative/40 shadow-[0_0_12px_rgba(255,69,58,0.2)]"
                       : context.behavioural.overtradingFlag === "WARNING"
-                      ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
-                      : "bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/40"
+                      ? "bg-yellow-500/25 text-yellow-400 border border-yellow-500/40"
+                      : "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
                   }`}
                 >
                   {context.behavioural.overtradingFlag}
                 </span>
               </div>
               {context.behavioural.manualStateTag && (
-                <div className="pt-2 border-t border-white/5">
-                  <p className="text-xs text-slate-500 mb-1">Manual State</p>
+                <div className="pt-3 border-t border-white/10">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-2">Manual State</p>
                   <span
-                    className={`text-xs px-3 py-1.5 rounded-full font-bold ${
+                    className={`inline-block text-xs px-3 py-2 rounded-xl font-bold ${
                       context.behavioural.manualStateTag === "STRESSED"
-                        ? "bg-ultra-negative/20 text-ultra-negative border border-ultra-negative/40"
+                        ? "bg-ultra-negative/25 text-ultra-negative border border-ultra-negative/40"
                         : context.behavioural.manualStateTag === "CALM"
-                        ? "bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/40"
+                        ? "bg-ultra-positive/25 text-ultra-positive border border-ultra-positive/40"
                         : "bg-slate-500/20 text-slate-400 border border-slate-500/40"
                     }`}
                   >
@@ -639,36 +651,38 @@ export default function HomePage() {
       </section>
 
       {/* Row 7 – Agent Insight Strip */}
-      <section className="mb-5">
-        <div className="rounded-2xl bg-gradient-to-br from-[#F56300]/15 via-[#F56300]/5 to-cyan-500/5 backdrop-blur-2xl border border-white/10 p-4 shadow-[0_8px_32px_rgba(245,99,0,0.15)]">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xl">🤖</span>
+      <section className="mb-6">
+        <div className="relative rounded-2xl bg-gradient-to-br from-[#F56300]/20 via-[#F56300]/10 to-cyan-500/10 backdrop-blur-2xl border border-white/20 p-6 shadow-[0_12px_40px_rgba(245,99,0,0.25)] hover:shadow-[0_16px_48px_rgba(245,99,0,0.35)] transition-all duration-300">
+          <div className="flex items-start justify-between gap-5">
+            <div className="flex-1 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+                  <span className="text-2xl">🤖</span>
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">
+                  <h3 className="text-base font-bold text-white">
                     AGENTYC View for {symbolContext.symbol} @ {symbolContext.timeframe}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-300 mt-1">
                     {context?.regime?.trendStatus || "RANGING"} •{" "}
                     {context?.strategyConfluence?.setupGrade || "None"}-Setup
                   </p>
                 </div>
               </div>
               {context?.strategyConfluence && (
-                <div className="space-y-1 text-xs">
-                  <p className="text-slate-300">
-                    <span className="font-bold">Bias:</span>{" "}
-                    {context.strategyConfluence.momentumScore > 50 ? "BULLISH" : "BEARISH"}
+                <div className="space-y-1.5 text-sm">
+                  <p className="text-slate-200">
+                    <span className="font-bold text-white">Bias:</span>{" "}
+                    <span className={context.strategyConfluence.momentumScore > 50 ? "text-ultra-positive" : "text-ultra-negative"}>
+                      {context.strategyConfluence.momentumScore > 50 ? "BULLISH" : "BEARISH"}
+                    </span>
                   </p>
-                  <p className="text-slate-300">
-                    <span className="font-bold">Key Levels:</span>{" "}
+                  <p className="text-slate-200">
+                    <span className="font-bold text-white">Key Levels:</span>{" "}
                     {context.volumeProfile?.pocPrice.toFixed(2) || "—"} (POC),{" "}
                     {context.volumeProfile?.valueAreaHigh.toFixed(2) || "—"} (VAH)
                   </p>
-                  <p className="text-ultra-accent font-semibold">
+                  <p className="text-ultra-accent font-semibold pt-1">
                     {context.strategyConfluence.notes || "Analyzing market conditions..."}
                   </p>
                 </div>
@@ -676,7 +690,7 @@ export default function HomePage() {
             </div>
             <Link
               href="/agent"
-              className="px-4 py-2 rounded-xl bg-ultra-accent text-black font-bold text-sm hover:bg-ultra-accentHover transition-all active:scale-95 whitespace-nowrap"
+              className="px-5 py-3 rounded-xl bg-ultra-accent text-black font-bold text-sm hover:bg-ultra-accentHover transition-all active:scale-95 whitespace-nowrap shadow-[0_4px_12px_rgba(245,99,0,0.4)] hover:shadow-[0_6px_16px_rgba(245,99,0,0.5)]"
             >
               Open Agent
             </Link>

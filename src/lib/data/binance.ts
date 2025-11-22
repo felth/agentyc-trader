@@ -6,8 +6,9 @@ export function sign(query: string, apiSecret: string) {
 }
 
 export async function binancePublic(path: string, params?: Record<string, any>) {
-  // Check env var at runtime, not module load time
-  const BASE_URL = process.env.BINANCE_BASE_URL || "https://api.binance.com";
+  // Use data.binance.com for public endpoints (bypasses geographic restrictions)
+  // Falls back to api.binance.com if BASE_URL env var is set
+  const BASE_URL = process.env.BINANCE_BASE_URL || "https://data.binance.com";
   const url = new URL(`${BASE_URL}${path}`);
   if (params) {
     for (const [k, v] of Object.entries(params)) {
@@ -18,7 +19,7 @@ export async function binancePublic(path: string, params?: Record<string, any>) 
   if (!res.ok) {
     const errorText = await res.text().catch(() => "");
     if (res.status === 451) {
-      throw new Error(`Binance IP restriction (451): Your server IP may not be whitelisted. Check Binance API settings for IP restrictions.`);
+      throw new Error(`Binance geographic restriction (451): Requests from your server region are blocked. Try using data.binance.com endpoint or deploy from a non-restricted region.`);
     }
     throw new Error(`Binance error ${res.status}: ${errorText || res.statusText}`);
   }

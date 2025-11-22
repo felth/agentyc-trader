@@ -6,17 +6,9 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   try {
-    // Check env vars first
-    const BINANCE_API_KEY = process.env.BINANCE_API_KEY;
-    const BINANCE_API_SECRET = process.env.BINANCE_API_SECRET;
-    const BINANCE_BASE_URL = process.env.BINANCE_BASE_URL;
-
-    if (!BINANCE_API_KEY || !BINANCE_API_SECRET || !BINANCE_BASE_URL) {
-      return NextResponse.json(
-        { ok: false, error: "Binance API credentials not configured on server" },
-        { status: 500 }
-      );
-    }
+    // For public endpoints, we only need BASE_URL (API_KEY/SECRET not required)
+    // Default fallback so module can load during build
+    const BINANCE_BASE_URL = process.env.BINANCE_BASE_URL || "https://api.binance.com";
 
     const { searchParams } = new URL(req.url);
     const symbol = searchParams.get("symbol") ?? "BTCUSDT";

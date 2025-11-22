@@ -27,15 +27,25 @@ export async function fmp(path: string, params?: FmpParams) {
   }
   
   // Check API key only when function is called, not at module load
-  url.searchParams.append("apikey", getFmpApiKey());
+  // FMP uses "apikey" as query parameter
+  const apiKey = getFmpApiKey();
+  url.searchParams.append("apikey", apiKey);
+  
+  // Also try "apiKey" if "apikey" doesn't work (some endpoints use different names)
+  // url.searchParams.append("apiKey", apiKey);
 
-  const res = await fetch(url.toString(), {
+  const fullUrl = url.toString();
+  console.log(`[FMP] Calling: ${fullUrl.replace(apiKey, "***REDACTED***")}`);
+
+  const res = await fetch(fullUrl, {
     // economic calendar can be near-real-time, but not tick data
     next: { revalidate: 60 },
   });
 
   if (!res.ok) {
-    throw new Error(`FMP error: ${res.status} ${res.statusText}`);
+    const errorText = await res.text().catch(() => "");
+    console.error(`[FMP] Error ${res.status}: ${errorText}`);
+    throw new Error(`FMP error: ${res.status} ${res.statusText}. ${errorText.substring(0, 200)}`);
   }
 
   return res.json();

@@ -4,14 +4,14 @@ import { cache } from "react";
 
 const FMP_BASE_URL = process.env.FMP_BASE_URL || "https://financialmodelingprep.com/api/v3";
 
-const FMP_API_KEY = process.env.FMP_API_KEY;
-
-if (!FMP_API_KEY) {
-  throw new Error("Missing FMP_API_KEY in environment");
+// Lazy getter for API key - only checked when function is called, not at module load time
+function getFmpApiKey(): string {
+  const apiKey = process.env.FMP_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing FMP_API_KEY in environment");
+  }
+  return apiKey;
 }
-
-// After the check above, TypeScript knows it's defined
-const API_KEY = FMP_API_KEY;
 
 type FmpParams = Record<string, string | number | boolean | undefined>;
 
@@ -26,7 +26,8 @@ export async function fmp(path: string, params?: FmpParams) {
     }
   }
   
-  url.searchParams.append("apikey", API_KEY);
+  // Check API key only when function is called, not at module load
+  url.searchParams.append("apikey", getFmpApiKey());
 
   const res = await fetch(url.toString(), {
     // economic calendar can be near-real-time, but not tick data

@@ -15,7 +15,13 @@ export async function binancePublic(path: string, params?: Record<string, any>) 
     }
   }
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`Binance error: ${res.status}`);
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    if (res.status === 451) {
+      throw new Error(`Binance IP restriction (451): Your server IP may not be whitelisted. Check Binance API settings for IP restrictions.`);
+    }
+    throw new Error(`Binance error ${res.status}: ${errorText || res.statusText}`);
+  }
   return res.json();
 }
 

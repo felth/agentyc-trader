@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { AgentContextBlock } from "@/types/trading";
+import type { AgentContextBlock, MacroCalendarData } from "@/types/trading";
 
 export const runtime = "nodejs";
 
@@ -132,7 +132,81 @@ export async function GET(req: NextRequest) {
     // Generate AI summary based on context
     const aiSummary = `Market conditions for ${symbol} are ${context.regime.trendStatus.toLowerCase()}. Your ${context.strategyConfluence.setupGrade}-setup is showing ${context.strategyConfluence.setupMatchPct}% confluence with a bullish engulfing pattern. Volume delta at ${context.volume.volumeDelta} indicates ${context.volume.volumeDelta < 0 ? 'selling pressure' : 'buying pressure'}. Key levels to watch: POC at ${context.volumeProfile.pocPrice.toFixed(2)}, VAH at ${context.volumeProfile.valueAreaHigh.toFixed(2)}. ${context.behavioural.overtradingFlag === 'WARNING' ? '⚠️ Consider taking a break soon—overtrading risk detected.' : 'All systems are green for trading.'}`;
 
-    return NextResponse.json({ ok: true, context, aiSummary });
+    // Generate mock macro calendar data
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const macroCalendar: MacroCalendarData = {
+      today: [
+        {
+          id: "1",
+          time: new Date(today.getTime() + 8.5 * 60 * 60 * 1000).toISOString(), // 08:30 ET
+          timeDisplay: "08:30 ET",
+          country: "US",
+          category: "ECONOMIC",
+          name: "Non-Farm Payrolls",
+          impact: "HIGH",
+          currency: "USD",
+          forecast: "200K",
+          previous: "187K",
+          description: "Employment change excluding farm workers",
+        },
+        {
+          id: "2",
+          time: new Date(today.getTime() + 10 * 60 * 60 * 1000).toISOString(), // 10:00 ET
+          timeDisplay: "10:00 ET",
+          country: "US",
+          category: "ECONOMIC",
+          name: "ISM Manufacturing PMI",
+          impact: "MEDIUM",
+          currency: "USD",
+          forecast: "52.3",
+          previous: "51.2",
+          description: "Purchasing Managers Index",
+        },
+        {
+          id: "3",
+          time: new Date(today.getTime() + 14 * 60 * 60 * 1000).toISOString(), // 14:00 ET
+          timeDisplay: "14:00 ET",
+          country: "US",
+          category: "CENTRAL_BANK",
+          name: "FOMC Meeting Minutes",
+          impact: "HIGH",
+          currency: "USD",
+          description: "Federal Reserve meeting minutes release",
+        },
+        {
+          id: "4",
+          time: new Date(today.getTime() + 12 * 60 * 60 * 1000).toISOString(), // 12:00 ET
+          timeDisplay: "12:00 ET",
+          country: "EU",
+          category: "ECONOMIC",
+          name: "CPI (YoY)",
+          impact: "HIGH",
+          currency: "EUR",
+          forecast: "2.8%",
+          previous: "2.9%",
+          description: "Consumer Price Index year-over-year",
+        },
+        {
+          id: "5",
+          time: new Date(today.getTime() + 9 * 60 * 60 * 1000).toISOString(), // 09:00 ET
+          timeDisplay: "09:00 ET",
+          country: "UK",
+          category: "ECONOMIC",
+          name: "GDP (QoQ)",
+          impact: "MEDIUM",
+          currency: "GBP",
+          forecast: "0.3%",
+          previous: "0.2%",
+          description: "Gross Domestic Product quarter-over-quarter",
+        },
+      ],
+      upcoming: [],
+      timezone: "America/New_York",
+    };
+
+    return NextResponse.json({ ok: true, context, aiSummary, macroCalendar });
   } catch (err: any) {
     console.error("Mock dashboard API error:", err);
     return NextResponse.json(

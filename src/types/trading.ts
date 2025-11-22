@@ -173,29 +173,6 @@ export interface AgentContextBlock {
   portfolio: PortfolioSnapshot;
 }
 
-// Agent Context Block (complete context sent to agent)
-export interface AgentContextBlock {
-  symbolContext: SymbolContext;
-  marketOverview: {
-    benchmarkSymbols: {
-      symbol: string;
-      price: number;
-      pctChange: number;
-    }[];
-  };
-  orderFlow: OrderFlowData;
-  volume: VolumeData;
-  execution: ExecutionStats;
-  correlation: CorrelationData;
-  regime: MarketRegimeData;
-  volumeProfile: VolumeProfileData;
-  liquidityMap: LiquidityMapData;
-  strategyConfluence: StrategyConfluenceData;
-  behavioural: BehaviouralStateData;
-  positioning: PositioningData;
-  portfolio: PortfolioSnapshot;
-}
-
 // Market Overview Symbol (simplified for Row 1)
 export interface MarketSymbol {
   symbol: string;
@@ -203,5 +180,30 @@ export interface MarketSymbol {
   changePct: number;
   sessionHigh: number;
   sessionLow: number;
+}
+
+// Macro Calendar Event
+export type EventImpact = "HIGH" | "MEDIUM" | "LOW";
+export type EventCategory = "ECONOMIC" | "CENTRAL_BANK" | "POLITICAL" | "CORPORATE";
+
+export interface MacroCalendarEvent {
+  id: string;
+  time: string;              // ISO timestamp
+  timeDisplay: string;       // "08:30 ET" or "14:00 GMT"
+  country: string;           // "US", "EU", "UK", etc.
+  category: EventCategory;
+  name: string;              // "Non-Farm Payrolls", "CPI", "FOMC Decision"
+  impact: EventImpact;
+  currency?: string;         // "USD", "EUR", etc.
+  forecast?: string | number; // Forecasted value
+  previous?: string | number; // Previous value
+  actual?: string | number;   // Actual value (if released)
+  description?: string;       // Brief description
+}
+
+export interface MacroCalendarData {
+  today: MacroCalendarEvent[];
+  upcoming: MacroCalendarEvent[]; // Next few days
+  timezone: string; // "America/New_York" or "UTC"
 }
 

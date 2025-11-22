@@ -23,9 +23,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Test with simple profile endpoint (new stable endpoint: /company/profile/)
-    const testUrl = `${FMP_BASE_URL}/company/profile/AAPL?apikey=${FMP_API_KEY}`;
-    console.log(`[test/fmp-basic] Calling: ${FMP_BASE_URL}/company/profile/AAPL?apikey=***REDACTED***`);
+    // Test with simple profile endpoint (correct format: /profile?symbol=, not /company/profile/)
+    // According to FMP docs: https://site.financialmodelingprep.com/developer/docs
+    const testUrl = `${FMP_BASE_URL}/profile?symbol=AAPL&apikey=${FMP_API_KEY}`;
+    console.log(`[test/fmp-basic] Calling: ${FMP_BASE_URL}/profile?symbol=AAPL&apikey=***REDACTED***`);
 
     const res = await fetch(testUrl);
 
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
           ok: false,
           error: `FMP API error: ${res.status} ${res.statusText}`,
           details: errorText,
-          url: `${FMP_BASE_URL}/company/profile/AAPL?apikey=***REDACTED***`,
+          url: `${FMP_BASE_URL}/profile?symbol=AAPL&apikey=***REDACTED***`,
         },
         { status: res.status }
       );

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOrderBook, getTicker } from "@/lib/data/binance";
 
 // Ensure this route uses nodejs runtime for serverless
+// This route only uses public Binance endpoints (no auth required)
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {

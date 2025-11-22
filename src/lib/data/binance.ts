@@ -1,20 +1,20 @@
 import crypto from "crypto";
 
-const API_KEY = process.env.BINANCE_API_KEY!;
-const API_SECRET = process.env.BINANCE_API_SECRET!;
-const BASE_URL = process.env.BINANCE_BASE_URL!;
-
-// Validate environment variables
-if (!API_KEY || !API_SECRET || !BASE_URL) {
-  throw new Error("Missing BINANCE_API_KEY, BINANCE_API_SECRET, or BINANCE_BASE_URL");
+// Signed request generator (Binance standard) - only needed for signed requests
+function sign(query: string, apiSecret: string) {
+  return crypto.createHmac("sha256", apiSecret).update(query).digest("hex");
 }
 
-// Signed request generator (Binance standard)
-function sign(query: string) {
-  return crypto.createHmac("sha256", API_SECRET).update(query).digest("hex");
+function getBaseUrl(): string {
+  const BASE_URL = process.env.BINANCE_BASE_URL;
+  if (!BASE_URL) {
+    throw new Error("Missing BINANCE_BASE_URL");
+  }
+  return BASE_URL;
 }
 
 export async function binancePublic(path: string, params?: Record<string, any>) {
+  const BASE_URL = getBaseUrl();
   const url = new URL(`${BASE_URL}${path}`);
   if (params) {
     for (const [k, v] of Object.entries(params)) {

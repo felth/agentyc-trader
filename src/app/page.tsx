@@ -202,6 +202,65 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* Performance Insight Card - Like health app */}
+      {context?.strategyConfluence && (
+        <section className="mb-6">
+          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">⭐</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white mb-1">Performance Insight</h3>
+                <p className="text-xs text-slate-400">{symbolContext.symbol} @ {symbolContext.timeframe}</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-200 leading-relaxed">
+              {context.strategyConfluence.notes || "Analyzing market conditions..."}
+            </p>
+            <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">Key Levels:</span>
+                <span className="text-sm font-bold text-white">
+                  {context.volumeProfile?.pocPrice.toFixed(2) || "—"} (POC)
+                </span>
+              </div>
+              <Link
+                href="/agent"
+                className="text-xs text-ultra-accent font-semibold hover:underline"
+              >
+                Open Agent →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Today's Activity Section - Like health app */}
+      <section className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-white">Today's Activity</h2>
+          <Link href="/trades" className="text-sm text-white/70 font-medium hover:text-white transition-colors">
+            Add New
+          </Link>
+        </div>
+        <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">📊</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-white/70 leading-relaxed">
+                Nothing yet for today. Try syncing or adding a new trade.
+              </p>
+              <Link href="/trades" className="text-sm text-ultra-accent font-semibold mt-2 inline-block hover:underline">
+                Sync now →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Macro Calendar - Apple-inspired design */}
       {macroCalendar && macroCalendar.today.length > 0 && (
         <section className="mb-6">
@@ -423,46 +482,6 @@ export default function HomePage() {
               </>
             )}
           </div>
-      </section>
-
-      {/* Performance Insight Card - Like health app */}
-      {context?.strategyConfluence && (
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">⭐</span>
-            <h2 className="text-base font-bold text-white">Performance Insight</h2>
-          </div>
-          <div className="relative rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-            <p className="text-sm text-white/90 leading-relaxed">
-              {context.strategyConfluence.notes || "Analyzing market conditions..."}
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* Today's Activity Section - Like health app */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-white">Today's Activity</h2>
-          <Link href="/trades" className="text-sm text-white/70 font-medium hover:text-white transition-colors">
-            Add New
-          </Link>
-        </div>
-        <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-lg">📊</span>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-white/70 leading-relaxed">
-                Nothing yet for today. Try syncing or adding a new trade.
-              </p>
-              <Link href="/trades" className="text-sm text-ultra-accent font-semibold mt-2 inline-block hover:underline">
-                Sync now →
-              </Link>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* Focus Symbol & Regime (Detailed) - Apple-style Landscape Cards Stacked */}
@@ -865,40 +884,6 @@ export default function HomePage() {
           )}
         </div>
       </section>
-
-      {/* Performance Insight Card - Like health app */}
-      {context?.strategyConfluence && (
-        <section className="mb-6">
-          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">⭐</span>
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white mb-1">Performance Insight</h3>
-                <p className="text-xs text-slate-400">{symbolContext.symbol} @ {symbolContext.timeframe}</p>
-              </div>
-            </div>
-            <p className="text-sm text-slate-200 leading-relaxed">
-              {context.strategyConfluence.notes || "Analyzing market conditions..."}
-            </p>
-            <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">Key Levels:</span>
-                <span className="text-sm font-bold text-white">
-                  {context.volumeProfile?.pocPrice.toFixed(2) || "—"} (POC)
-                </span>
-              </div>
-              <Link
-                href="/agent"
-                className="text-xs text-ultra-accent font-semibold hover:underline"
-              >
-                Open Agent →
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
     </main>
   );
 }

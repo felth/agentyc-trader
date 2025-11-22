@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getQuote } from "@/lib/data/massive";
 
+export const runtime = "nodejs";
+
 export async function GET(req: NextRequest) {
   try {
     // Validate environment variables are set (getQuote will use them)

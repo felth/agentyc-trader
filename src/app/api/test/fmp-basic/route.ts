@@ -6,7 +6,8 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   try {
-    const FMP_BASE_URL = process.env.FMP_BASE_URL || "https://financialmodelingprep.com/api/v3";
+    // FMP has moved from /api/v3 to /stable endpoints (legacy v3 endpoints deprecated Aug 31, 2025)
+    const FMP_BASE_URL = process.env.FMP_BASE_URL || "https://financialmodelingprep.com/stable";
     const FMP_API_KEY = process.env.FMP_API_KEY;
 
     console.log("[test/fmp-basic] Starting FMP basic test");

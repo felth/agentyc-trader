@@ -2,7 +2,8 @@
 
 import { cache } from "react";
 
-const FMP_BASE_URL = process.env.FMP_BASE_URL || "https://financialmodelingprep.com/api/v3";
+// FMP has moved from /api/v3 to /stable endpoints (legacy v3 endpoints deprecated Aug 31, 2025)
+const FMP_BASE_URL = process.env.FMP_BASE_URL || "https://financialmodelingprep.com/stable";
 
 // Lazy getter for API key - only checked when function is called, not at module load time
 function getFmpApiKey(): string {

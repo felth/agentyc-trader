@@ -66,8 +66,8 @@ export type EconomicCalendarItem = {
 
 export const getEconomicCalendar = cache(
   async (from: string, to: string): Promise<EconomicCalendarItem[]> => {
-    // FMP economic calendar endpoint
-    const data = await fmp("/economic_calendar", { from, to });
+    // FMP economic calendar endpoint (NOTE: hyphen, not underscore)
+    const data = await fmp("/economic-calendar", { from, to });
     return data as EconomicCalendarItem[];
   }
 );

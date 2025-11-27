@@ -1,23 +1,36 @@
 // src/lib/data/ibkrBridge.ts
 
 // Thin client for talking to the IBKR Bridge on your droplet
-const BRIDGE_URL = process.env.IBKR_BRIDGE_URL;
-const BRIDGE_KEY = process.env.IBKR_BRIDGE_KEY;
 
-if (!BRIDGE_URL || !BRIDGE_KEY) {
-  throw new Error('IBKR_BRIDGE_URL or IBKR_BRIDGE_KEY is not set');
+// Lazy getters for environment variables - only checked when functions are called, not at module load time
+function getBridgeUrl(): string {
+  const url = process.env.IBKR_BRIDGE_URL;
+  if (!url) {
+    throw new Error('IBKR_BRIDGE_URL is not set');
+  }
+  return url;
+}
+
+function getBridgeKey(): string {
+  const key = process.env.IBKR_BRIDGE_KEY;
+  if (!key) {
+    throw new Error('IBKR_BRIDGE_KEY is not set');
+  }
+  return key;
 }
 
 async function callBridge<T>(
   path: string,
   init: RequestInit = {}
 ): Promise<T> {
-  const url = `${BRIDGE_URL}${path}`;
+  const bridgeUrl = getBridgeUrl();
+  const bridgeKey = getBridgeKey();
+  const url = `${bridgeUrl}${path}`;
   const res = await fetch(url, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      'X-Bridge-Key': BRIDGE_KEY!,
+      'X-Bridge-Key': bridgeKey,
       ...(init.headers || {}),
     },
     // Bridge is off-origin, always server-side calls

@@ -56,16 +56,14 @@ export async function getIbkrHealth() {
   );
 }
 
+// IMPORTANT: use POST with JSON body, not GET with ?symbol=
 export async function getIbkrPrice(symbol: string) {
-  return callBridge<{
-    symbol: string;
-    last: number;
-    bid: number | null;
-    ask: number | null;
-    timestamp: string;
-  }>(
-    `/price?symbol=${encodeURIComponent(symbol)}`,
-    { method: 'GET' }
+  return callBridge<{ ok: boolean; symbol: string; price: number }>(
+    '/price',
+    {
+      method: 'POST',
+      body: JSON.stringify({ symbol }),
+    }
   );
 }
 

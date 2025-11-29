@@ -86,72 +86,55 @@ export async function getIbkrOverview(): Promise<IbkrOverviewSnapshot> {
   );
 }
 
-// Account (mapped to simpler structure)
-export type IbkrAccount = {
+export type BridgeAccount = {
+  ok: boolean;
+  accountId: string;
+  balance: number;
   equity: number;
-  cash: number;
+  unrealizedPnl: number;
   buyingPower: number;
-  dayPnl: number;
-  openPnl: number;
-  currency: string;
 };
 
-export async function getIbkrAccount(): Promise<IbkrAccount> {
-  const overview = await getIbkrOverview();
-  return {
-    equity: overview.equity,
-    cash: overview.cash,
-    buyingPower: overview.margin_available,
-    dayPnl: overview.pnl_day,
-    openPnl: overview.pnl_unrealized,
-    currency: overview.currency,
-  };
+export type BridgePositions = {
+  ok: boolean;
+  positions: Array<{
+    symbol: string;
+    quantity: number;
+    avgPrice: number;
+    marketPrice: number;
+    unrealizedPnl: number;
+  }>;
+};
+
+export type BridgeOrders = {
+  ok: boolean;
+  orders: Array<{
+    id?: string;
+    symbol?: string;
+    side?: string;
+    quantity?: number;
+    status?: string;
+  }>;
+};
+
+// ✅ FIXED: these must match the FastAPI routes in app.py EXACTLY
+
+export async function getIbkrAccount() {
+  return callBridge<BridgeAccount>("/account", {
+    method: "GET",
+  });
 }
 
-// Positions
-export type IbkrPosition = {
-  symbol: string;
-  asset_class: string;
-  qty: number;
-  avg_price: number;
-  market_price: number;
-  market_value: number;
-  unrealized_pnl: number;
-  realized_pnl_day: number;
-  currency: string;
-  exchange?: string | null;
-};
-
-export async function getIbkrPositions(): Promise<IbkrPosition[]> {
-  const response = await callBridge<{ ok: boolean; data: IbkrPosition[] }>(
-    '/account/positions',
-    { method: 'GET' }
-  );
-  return response.data;
+export async function getIbkrPositions() {
+  return callBridge<BridgePositions>("/positions", {
+    method: "GET",
+  });
 }
 
-// Orders
-export type IbkrOrder = {
-  id: string;
-  symbol: string;
-  side: string;
-  type: string;
-  status: string;
-  qty: number;
-  filled_qty: number;
-  limit_price?: number | null;
-  stop_price?: number | null;
-  time_in_force?: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export async function getIbkrOrders(): Promise<IbkrOrder[]> {
-  const response = await callBridge<{ ok: boolean; data: IbkrOrder[] }>(
-    '/orders/open',
-    { method: 'GET' }
-  );
-  return response.data;
+export async function getIbkrOrders() {
+  return callBridge<BridgeOrders>("/orders", {
+    method: "GET",
+  });
 }
 
 // Place order

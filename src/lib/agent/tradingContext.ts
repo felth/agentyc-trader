@@ -1,11 +1,11 @@
 // src/lib/agent/tradingContext.ts
 
-import { getIbkrAccount, getIbkrPositions, getIbkrOrders, IbkrAccount, IbkrPosition, IbkrOrder } from "@/lib/data/ibkrBridge";
+import { getIbkrAccount, getIbkrPositions, getIbkrOrders, BridgeAccount, BridgePositions, BridgeOrders } from "@/lib/data/ibkrBridge";
 
 export type TradingContext = {
-  account: IbkrAccount;
-  positions: IbkrPosition[];
-  orders: IbkrOrder[];
+  account: BridgeAccount;
+  positions: BridgePositions;
+  orders: BridgeOrders;
   riskProfile: {
     maxPerTrade: number;
     maxDailyLoss: number;

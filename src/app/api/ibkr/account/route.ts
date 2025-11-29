@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getIbkrOverview } from '@/lib/data/ibkrBridge';
+import { getIbkrAccount } from '@/lib/data/ibkrBridge';
 
 export async function GET() {
   try {
-    const account = await getIbkrOverview();
+    const account = await getIbkrAccount();
     return NextResponse.json({ ok: true, account });
   } catch (error: any) {
     return NextResponse.json(

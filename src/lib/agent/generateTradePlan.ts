@@ -1,98 +1,78 @@
-import { TradePlan } from "@/lib/agent/tradeSchema";
-import { TradingContext } from "@/lib/agent/tradingContext";
-import OpenAI from "openai";
+import { TradingContext } from './tradingContext';
+import { TradePlan } from './tradeSchema';
 
-export async function generateTradePlan(context: TradingContext): Promise<TradePlan> {
-  const systemPrompt = `
-You are Agentyc Trader, a cautious trading co-pilot.
+const MAX_SINGLE_TRADE_RISK_USD = 500;
+const MAX_DAILY_LOSS_USD = 2000;
 
-Rules:
-- Never place trades directly. You only SUGGEST trades as structured JSON.
-- New trades MUST respect:
-  - maxSingleTradeRiskUsd: ${context.riskProfile.maxSingleTradeRiskUsd}
-  - maxDailyLossUsd: ${context.riskProfile.maxDailyLossUsd}
-  - allowShortSelling: ${context.riskProfile.allowShortSelling} (if false, no short entries).
-- Closing trades is always allowed, but still explain why.
-- If the user seems emotional, reduce size or suggest no trade.
+export async function generateTradePlan(ctx: TradingContext): Promise<TradePlan> {
+  const { account, positions } = ctx;
 
-You MUST respond with a JSON object of type TradePlan only.
-Do not include any extra text or code fences.
+  // Fallback if account missing
+  if (!account?.accountId) {
+    return {
+      mode: 'RULE_BASED',
+      timestamp: new Date().toISOString(),
+      accountId: 'UNKNOWN',
+      dailyLossLimitUsd: MAX_DAILY_LOSS_USD,
+      singleTradeLimitUsd: MAX_SINGLE_TRADE_RISK_USD,
+      orders: []
+    };
+  }
 
-TradePlan structure:
-{
-  "mode": "SIMULATION" | "LIVE_CONFIRM_REQUIRED",
-  "contextSummary": "Brief summary of market context",
-  "suggestedCommands": [
-    {
-      "action": "OPEN_LONG" | "OPEN_SHORT" | "CLOSE_POSITION" | "CANCEL_ORDER",
-      "symbol": "AAPL",
-      "quantity": 10,
-      "timeInForce": "DAY" | "GTC",
-      "orderType": "MARKET" | "LIMIT",
-      "limitPrice": 150.00,
-      "reason": "Brief 1-2 sentence explanation",
-      "riskNotes": "What is at risk and why it fits limits"
-    }
-  ]
+  const acct = account;
+
+  // Very simple rule set for now:
+  // - If there are no positions, propose ONE small long in the strongest watchlist symbol (e.g. AAPL)
+  // - If there IS an open position, propose "no new trades" (agent is in risk-on mode already)
+  const hasOpenPositions = Array.isArray(positions) && positions.length > 0;
+
+  if (hasOpenPositions) {
+    return {
+      mode: 'RULE_BASED',
+      timestamp: new Date().toISOString(),
+      accountId: acct.accountId,
+      dailyLossLimitUsd: MAX_DAILY_LOSS_USD,
+      singleTradeLimitUsd: MAX_SINGLE_TRADE_RISK_USD,
+      orders: []
+    };
+  }
+
+  const riskPerTrade = Math.min(
+    MAX_SINGLE_TRADE_RISK_USD,
+    acct.buyingPower * 0.005 // 0.5% of BP as an example
+  );
+
+  const symbol = 'AAPL'; // placeholder; later we'll pick from watchlist/context
+  const entry = 270;     // placeholder level
+  const stop = entry - 5;
+  const target = entry + 10;
+
+  // Risk per share = entry - stop
+  const riskPerShare = entry - stop;
+  const size = riskPerShare > 0 ? Math.floor(riskPerTrade / riskPerShare) : 0;
+
+  const orders = size > 0
+    ? [
+        {
+          symbol,
+          side: 'BUY' as const,
+          size,
+          orderType: 'LIMIT' as const,
+          entry,
+          stopLoss: stop,
+          takeProfit: target,
+          rationale: 'Rule-based starter plan: single long position with fixed R:R, capped to maxSingleTradeRiskUsd.',
+          maxRiskUsd: riskPerTrade
+        }
+      ]
+    : [];
+
+  return {
+    mode: 'RULE_BASED',
+    timestamp: new Date().toISOString(),
+    accountId: acct.accountId,
+    dailyLossLimitUsd: MAX_DAILY_LOSS_USD,
+    singleTradeLimitUsd: MAX_SINGLE_TRADE_RISK_USD,
+    orders
+  };
 }
-`;
-
-  const contextSummary = `
-Account:
-- Balance: ${context.account.balance}
-- Equity: ${context.account.equity}
-- Unrealized PnL: ${context.account.unrealizedPnl}
-- Buying power: ${context.account.buyingPower}
-
-Positions:
-${context.positions.length > 0
-  ? context.positions
-      .map(
-        (p) =>
-          `- ${p.symbol}: ${p.quantity} @ ${p.avgPrice} (mkt ${p.marketPrice}, uPnL ${p.unrealizedPnl})`
-      )
-      .join("\n")
-  : "- None"}
-
-Open orders:
-${context.orders.length > 0
-  ? context.orders.map((o) => `- ${o.symbol} ${o.side} ${o.quantity} (${o.status})`).join("\n")
-  : "- None"}
-`;
-
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY!,
-  });
-
-  const completion = await openai.chat.completions.create({
-    model: process.env.OPENAI_AGENT_MODEL || "gpt-4o-mini",
-    temperature: 0.2,
-    messages: [
-      { role: "system", content: systemPrompt },
-      {
-        role: "user",
-        content: `Generate a trade plan based on current trading context:\n${contextSummary}`,
-      },
-    ],
-    response_format: { type: "json_object" },
-  });
-
-  const rawContent = completion.choices[0]?.message?.content;
-  if (!rawContent) {
-    throw new Error("Agent did not return a response");
-  }
-
-  let plan: TradePlan;
-  try {
-    plan = JSON.parse(rawContent) as TradePlan;
-  } catch (parseError) {
-    throw new Error("Agent did not return valid JSON");
-  }
-
-  if (!plan || !Array.isArray(plan.suggestedCommands)) {
-    throw new Error("Agent did not return a valid TradePlan");
-  }
-
-  return plan;
-}
-

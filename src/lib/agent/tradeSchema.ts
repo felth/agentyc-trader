@@ -1,5 +1,3 @@
-// src/lib/agent/tradeSchema.ts
-
 export type TradeActionType =
   | "OPEN_LONG"
   | "OPEN_SHORT"
@@ -13,13 +11,30 @@ export type TradeCommand = {
   timeInForce: "DAY" | "GTC";
   orderType: "MARKET" | "LIMIT";
   limitPrice?: number;
-  reason: string;          // Agent's reasoning in 1–2 sentences
-  riskNotes: string;       // What is at risk and why it fits limits
+  reason: string;
+  riskNotes: string;
 };
 
-export type TradePlan = {
-  mode: "SIMULATION" | "LIVE_CONFIRM_REQUIRED";
-  contextSummary: string;
-  suggestedCommands: TradeCommand[];
-};
+export type TradePlanSide = 'BUY' | 'SELL';
+export type TradePlanOrderType = 'MARKET' | 'LIMIT';
 
+export interface TradePlanOrder {
+  symbol: string;
+  side: TradePlanSide;
+  size: number;
+  orderType: TradePlanOrderType;
+  entry?: number | null;
+  stopLoss?: number | null;
+  takeProfit?: number | null;
+  rationale: string;
+  maxRiskUsd: number;
+}
+
+export interface TradePlan {
+  mode: 'RULE_BASED';
+  timestamp: string;
+  accountId: string;
+  dailyLossLimitUsd: number;
+  singleTradeLimitUsd: number;
+  orders: TradePlanOrder[];
+}

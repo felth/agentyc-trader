@@ -86,3 +86,127 @@ export async function getIbkrOverview(): Promise<IbkrOverviewSnapshot> {
   );
 }
 
+// Account (mapped to simpler structure)
+export type IbkrAccount = {
+  equity: number;
+  cash: number;
+  buyingPower: number;
+  dayPnl: number;
+  openPnl: number;
+  currency: string;
+};
+
+export async function getIbkrAccount(): Promise<IbkrAccount> {
+  const overview = await getIbkrOverview();
+  return {
+    equity: overview.equity,
+    cash: overview.cash,
+    buyingPower: overview.margin_available,
+    dayPnl: overview.pnl_day,
+    openPnl: overview.pnl_unrealized,
+    currency: overview.currency,
+  };
+}
+
+// Positions
+export type IbkrPosition = {
+  symbol: string;
+  asset_class: string;
+  qty: number;
+  avg_price: number;
+  market_price: number;
+  market_value: number;
+  unrealized_pnl: number;
+  realized_pnl_day: number;
+  currency: string;
+  exchange?: string | null;
+};
+
+export async function getIbkrPositions(): Promise<IbkrPosition[]> {
+  const response = await callBridge<{ ok: boolean; data: IbkrPosition[] }>(
+    '/account/positions',
+    { method: 'GET' }
+  );
+  return response.data;
+}
+
+// Orders
+export type IbkrOrder = {
+  id: string;
+  symbol: string;
+  side: string;
+  type: string;
+  status: string;
+  qty: number;
+  filled_qty: number;
+  limit_price?: number | null;
+  stop_price?: number | null;
+  time_in_force?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function getIbkrOrders(): Promise<IbkrOrder[]> {
+  const response = await callBridge<{ ok: boolean; data: IbkrOrder[] }>(
+    '/orders/open',
+    { method: 'GET' }
+  );
+  return response.data;
+}
+
+// Place order
+export type PlaceOrderRequest = {
+  symbol: string;
+  side: string;
+  type: string;
+  qty: number;
+  limit_price?: number | null;
+  stop_price?: number | null;
+  time_in_force?: string;
+};
+
+export type PlaceOrderResponse = {
+  ok: boolean;
+  order_id: string;
+  status: string;
+  symbol: string;
+  side: string;
+  type: string;
+  qty: number;
+  limit_price?: number | null;
+  stop_price?: number | null;
+  time_in_force?: string | null;
+  submitted_at: string;
+};
+
+export async function placeIbkrOrder(req: PlaceOrderRequest): Promise<PlaceOrderResponse> {
+  return callBridge<PlaceOrderResponse>(
+    '/orders/place',
+    {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }
+  );
+}
+
+// Cancel order
+export type CancelOrderRequest = {
+  order_id: string;
+};
+
+export type CancelOrderResponse = {
+  ok: boolean;
+  order_id: string;
+  status: string;
+};
+
+export async function cancelIbkrOrder(orderId: string): Promise<CancelOrderResponse> {
+  return callBridge<CancelOrderResponse>(
+    '/orders/cancel',
+    {
+      method: 'POST',
+      body: JSON.stringify({ order_id: orderId }),
+    }
+  );
+}
+

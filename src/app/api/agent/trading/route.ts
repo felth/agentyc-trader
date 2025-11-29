@@ -49,9 +49,6 @@ export async function POST(req: Request) {
     });
 
   } catch (err: any) {
-
-    console.error("[TRADING_AGENT_ERROR]", err);
-
     return NextResponse.json(
 
       { ok: false, error: err?.message ?? "Trading agent error" },

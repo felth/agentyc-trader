@@ -80,11 +80,25 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [aiSummary, setAiSummary] = useState<string>("");
   const [macroCalendar, setMacroCalendar] = useState<MacroCalendarData | null>(null);
+  const [tradingContext, setTradingContext] = useState<any>(null);
 
   // Fetch dashboard context
   useEffect(() => {
     fetchDashboardContext();
+    fetchTradingContext();
   }, [symbolContext.symbol, symbolContext.timeframe]);
+
+  async function fetchTradingContext() {
+    try {
+      const res = await fetch('/api/agent/trading-context');
+      const data = await res.json();
+      if (data.ok) {
+        setTradingContext(data.context);
+      }
+    } catch (err) {
+      // Silent error handling
+    }
+  }
 
   async function fetchDashboardContext() {
     try {
@@ -198,6 +212,46 @@ export default function HomePage() {
             <p className="text-sm text-white/90 leading-relaxed">
               {aiSummary}
             </p>
+          </div>
+        </section>
+      )}
+
+      {/* Trading Context - Read-only display */}
+      {tradingContext && (
+        <section className="mb-6">
+          <h2 className="text-base font-bold text-white mb-3">Trading Context</h2>
+          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)] space-y-4">
+            {/* Account */}
+            <div>
+              <h3 className="text-sm font-bold text-white mb-2">Account</h3>
+              <pre className="text-xs text-white/70 overflow-x-auto">
+                {JSON.stringify(tradingContext.account, null, 2)}
+              </pre>
+            </div>
+            {/* Buying Power */}
+            <div>
+              <h3 className="text-sm font-bold text-white mb-2">Buying Power</h3>
+              <p className="text-sm text-white/70">{tradingContext.account?.buyingPower}</p>
+            </div>
+            {/* Open PnL */}
+            <div>
+              <h3 className="text-sm font-bold text-white mb-2">Open PnL</h3>
+              <p className="text-sm text-white/70">{tradingContext.account?.openPnl}</p>
+            </div>
+            {/* Positions */}
+            <div>
+              <h3 className="text-sm font-bold text-white mb-2">Positions</h3>
+              <pre className="text-xs text-white/70 overflow-x-auto">
+                {JSON.stringify(tradingContext.positions, null, 2)}
+              </pre>
+            </div>
+            {/* Orders */}
+            <div>
+              <h3 className="text-sm font-bold text-white mb-2">Orders</h3>
+              <pre className="text-xs text-white/70 overflow-x-auto">
+                {JSON.stringify(tradingContext.orders, null, 2)}
+              </pre>
+            </div>
           </div>
         </section>
       )}

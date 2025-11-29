@@ -26,16 +26,25 @@ async function callBridge<T>(
   const bridgeUrl = getBridgeUrl();
   const bridgeKey = getBridgeKey();
   const url = `${bridgeUrl}${path}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Bridge-Key': bridgeKey,
-      ...(init.headers || {}),
-    },
-    // Bridge is off-origin, always server-side calls
-    cache: 'no-store',
-  });
+  
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Bridge-Key': bridgeKey,
+        ...(init.headers || {}),
+      },
+      // Bridge is off-origin, always server-side calls
+      cache: 'no-store',
+    });
+  } catch (fetchError: any) {
+    const errorMessage = fetchError?.message || 'Unknown fetch error';
+    throw new Error(
+      `IBKR Bridge connection failed: ${errorMessage}. URL: ${bridgeUrl}${path}`
+    );
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');

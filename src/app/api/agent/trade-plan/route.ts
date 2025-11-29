@@ -9,8 +9,17 @@ export async function GET() {
 
     return NextResponse.json({ ok: true, plan });
   } catch (err: any) {
+    const errorMessage = err?.message || "Unknown error";
+    const isNetworkError = errorMessage.includes("connection failed") || errorMessage.includes("fetch failed");
+    
     return NextResponse.json(
-      { ok: false, error: err?.message || "Unknown error" },
+      { 
+        ok: false, 
+        error: errorMessage,
+        ...(isNetworkError && { 
+          hint: "IBKR Bridge may be unreachable. Check IBKR_BRIDGE_URL and network connectivity." 
+        })
+      },
       { status: 500 }
     );
   }

@@ -106,7 +106,7 @@ ${context.orders.length > 0
     }
 
     // Safety: validate basic shape before returning
-    if (!plan || !Array.isArray(plan.suggestedCommands)) {
+    if (!plan || !plan.mode || typeof plan.mode !== 'string') {
       throw new Error("Agent did not return a valid TradePlan");
     }
 

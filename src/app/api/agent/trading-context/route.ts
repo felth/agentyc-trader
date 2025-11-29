@@ -2,13 +2,13 @@
 
 import { NextResponse } from "next/server";
 
-import { getTradingContext } from "@/lib/agent/tradingContext";
+import { buildTradingContext } from "@/lib/agent/tradingContext";
 
 export async function GET() {
 
   try {
 
-    const ctx = await getTradingContext();
+    const ctx = await buildTradingContext();
 
     return NextResponse.json({ ok: true, context: ctx });
 

@@ -1,63 +1,120 @@
-// src/app/api/agent/trading/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { buildTradingContext } from "@/lib/agent/tradingContext";
+import { TradePlan } from "@/lib/agent/tradeSchema";
+import OpenAI from "openai";
 
-import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 
-import { getTradingContext } from "@/lib/agent/tradingContext";
-
-type AgentRequest = {
-
-  input: string;
-
-};
-
-export async function POST(req: Request) {
-
+export async function POST(req: NextRequest) {
   try {
+    const userMessage = await req.json(); // { message: string }
 
-    const body = (await req.json()) as AgentRequest;
-
-    if (!body.input || typeof body.input !== "string") {
-
+    if (!userMessage.message || typeof userMessage.message !== "string") {
       return NextResponse.json(
-
-        { ok: false, error: "Missing 'input' string" },
-
-        { status: 400 },
-
+        { ok: false, error: "Missing 'message' string" },
+        { status: 400 }
       );
-
     }
 
-    const context = await getTradingContext();
+    const context = await buildTradingContext();
 
-    const reply = {
+    const systemPrompt = `
+You are Agentyc Trader, a cautious trading co-pilot.
 
-      message:
+Rules:
+- Never place trades directly. You only SUGGEST trades as structured JSON.
+- New trades MUST respect:
+  - maxSingleTradeRiskUsd: ${context.riskProfile.maxSingleTradeRiskUsd}
+  - maxDailyLossUsd: ${context.riskProfile.maxDailyLossUsd}
+  - allowShortSelling: ${context.riskProfile.allowShortSelling} (if false, no short entries).
+- Closing trades is always allowed, but still explain why.
+- If the user seems emotional, reduce size or suggest no trade.
 
-        "Trading agent stub. LLM wiring not yet connected, but context is ready.",
+You MUST respond with a JSON object of type TradePlan only.
+Do not include any extra text or code fences.
 
-    };
+TradePlan structure:
+{
+  "mode": "SIMULATION" | "LIVE_CONFIRM_REQUIRED",
+  "contextSummary": "Brief summary of market context",
+  "suggestedCommands": [
+    {
+      "action": "OPEN_LONG" | "OPEN_SHORT" | "CLOSE_POSITION" | "CANCEL_ORDER",
+      "symbol": "AAPL",
+      "quantity": 10,
+      "timeInForce": "DAY" | "GTC",
+      "orderType": "MARKET" | "LIMIT",
+      "limitPrice": 150.00, // optional, only for LIMIT orders
+      "reason": "Brief 1-2 sentence explanation",
+      "riskNotes": "What is at risk and why it fits limits"
+    }
+  ]
+}
+`;
 
-    return NextResponse.json({
+    const contextSummary = `
+Account:
+- Balance: ${context.account.balance}
+- Equity: ${context.account.equity}
+- Unrealized PnL: ${context.account.unrealizedPnl}
+- Buying power: ${context.account.buyingPower}
 
-      ok: true,
+Positions:
+${context.positions.length > 0
+  ? context.positions
+      .map(
+        (p) =>
+          `- ${p.symbol}: ${p.quantity} @ ${p.avgPrice} (mkt ${p.marketPrice}, uPnL ${p.unrealizedPnl})`
+      )
+      .join("\n")
+  : "- None"}
 
-      reply,
+Open orders:
+${context.orders.length > 0
+  ? context.orders.map((o) => `- ${o.symbol} ${o.side} ${o.quantity} (${o.status})`).join("\n")
+  : "- None"}
+`;
 
-      context,
-
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY!,
     });
 
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_AGENT_MODEL || "gpt-4o-mini",
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Current trading context:\n${contextSummary}\n\nUser message:\n${userMessage.message}`,
+        },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const rawContent = completion.choices[0]?.message?.content;
+    if (!rawContent) {
+      throw new Error("Agent did not return a response");
+    }
+
+    // Parse JSON response
+    let plan: TradePlan;
+    try {
+      plan = JSON.parse(rawContent) as TradePlan;
+    } catch (parseError) {
+      throw new Error("Agent did not return valid JSON");
+    }
+
+    // Safety: validate basic shape before returning
+    if (!plan || !Array.isArray(plan.suggestedCommands)) {
+      throw new Error("Agent did not return a valid TradePlan");
+    }
+
+    return NextResponse.json({ ok: true, plan });
   } catch (err: any) {
     return NextResponse.json(
-
-      { ok: false, error: err?.message ?? "Trading agent error" },
-
-      { status: 500 },
-
+      { ok: false, error: err?.message ?? "Agent error" },
+      { status: 500 }
     );
-
   }
-
 }
-

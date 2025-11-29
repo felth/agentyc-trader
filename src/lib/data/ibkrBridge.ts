@@ -67,3 +67,22 @@ export async function getIbkrPrice(symbol: string) {
   );
 }
 
+// Account overview / summary
+export type IbkrOverviewSnapshot = {
+  equity: number;
+  cash: number;
+  margin_available: number;
+  maintenance_margin: number;
+  pnl_day: number;
+  pnl_unrealized: number;
+  pnl_realized: number;
+  currency: string;
+};
+
+export async function getIbkrOverview(): Promise<IbkrOverviewSnapshot> {
+  return callBridge<IbkrOverviewSnapshot>(
+    '/account/summary',
+    { method: 'GET' }
+  );
+}
+

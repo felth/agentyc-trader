@@ -41,8 +41,9 @@ async function callBridge<T>(
     });
   } catch (fetchError: any) {
     const errorMessage = fetchError?.message || 'Unknown fetch error';
+    const errorCode = fetchError?.code || 'NO_CODE';
     throw new Error(
-      `IBKR Bridge connection failed: ${errorMessage}. URL: ${bridgeUrl}${path}`
+      `IBKR Bridge connection failed: ${errorMessage} (code: ${errorCode}). URL: ${bridgeUrl}${path}. Hint: Check if the bridge service is running and firewall allows connections from Vercel IPs.`
     );
   }
 

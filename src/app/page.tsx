@@ -173,7 +173,7 @@ export default function HomePage() {
   return (
     <main className="space-y-6 pt-2 pb-24 max-w-md mx-auto px-4">
       {/* Background Image with Date - Like health app */}
-      <section className="relative h-64 rounded-[2rem] overflow-hidden mb-6 -mx-4">
+      <section className="relative h-48 rounded-[2rem] overflow-hidden mb-5 -mx-4">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/hero-home.jpeg')" }}

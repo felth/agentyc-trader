@@ -3,6 +3,7 @@ import { getFxIntraday } from "@/lib/data/alphaVantage";
 
 // Ensure this route uses nodejs runtime for serverless
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {

@@ -1,13 +1,26 @@
 import { cache } from "react";
 
-const BASE_URL = process.env.COINGECKO_BASE_URL!;
-const API_KEY = process.env.COINGECKO_API_KEY!;
+// Lazy getters for environment variables - only checked when functions are called
+function getCoinGeckoBaseUrl(): string {
+  const url = process.env.COINGECKO_BASE_URL;
+  if (!url) {
+    throw new Error("Missing COINGECKO_BASE_URL in environment");
+  }
+  return url;
+}
 
-if (!BASE_URL || !API_KEY) {
-  throw new Error("Missing COINGECKO_BASE_URL or COINGECKO_API_KEY");
+function getCoinGeckoApiKey(): string {
+  const key = process.env.COINGECKO_API_KEY;
+  if (!key) {
+    throw new Error("Missing COINGECKO_API_KEY in environment");
+  }
+  return key;
 }
 
 async function coingecko(path: string, params?: Record<string, string | number | boolean>): Promise<any> {
+  const BASE_URL = getCoinGeckoBaseUrl();
+  const API_KEY = getCoinGeckoApiKey();
+  
   const url = new URL(`${BASE_URL}${path}`);
   if (params) {
     for (const [k, v] of Object.entries(params)) {

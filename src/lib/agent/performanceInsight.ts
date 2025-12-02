@@ -10,13 +10,26 @@ export type PerformanceInsight = {
   volumeScore: number;
 };
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
-
 export async function generatePerformanceInsight(): Promise<PerformanceInsight> {
+  // Fallback if OpenAI API key is missing
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  if (!openaiApiKey) {
+    return {
+      insightText: "Market data loading. Check key levels and wait for confirmation.",
+      keyLevels: ["—", "—", "—"],
+      regime: "RANGING",
+      setupScore: 50,
+      volumeScore: 50,
+    };
+  }
+
   try {
     const marketOverview = await fetchMarketOverview();
+    
+    // Create OpenAI client lazily (only when function is called)
+    const openai = new OpenAI({
+      apiKey: openaiApiKey,
+    });
 
     const prompt = `Given this market snapshot, provide a concise trading insight in JSON format:
 - SPX: ${marketOverview.spx.value} (${marketOverview.spx.changePct > 0 ? '+' : ''}${marketOverview.spx.changePct.toFixed(2)}%)

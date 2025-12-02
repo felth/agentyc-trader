@@ -21,6 +21,8 @@ import type {
   MacroCalendarData,
   MacroCalendarEvent,
 } from "@/types/trading";
+import type { TradePlan } from "@/lib/agent/tradeSchema";
+import { TradePlanCard } from "@/components/TradePlanCard";
 
 // Simple Sparkline Chart Component
 function SparklineChart({ values, color = "#32D74B", width = 80, height = 30 }: { values: number[]; color?: string; width?: number; height?: number }) {
@@ -81,6 +83,8 @@ export default function HomePage() {
   const [aiSummary, setAiSummary] = useState<string>("");
   const [macroCalendar, setMacroCalendar] = useState<MacroCalendarData | null>(null);
   const [tradingContext, setTradingContext] = useState<any>(null);
+  const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
 
   // Fetch dashboard context
   useEffect(() => {
@@ -97,6 +101,21 @@ export default function HomePage() {
       }
     } catch (err) {
       // Silent error handling
+    }
+  }
+
+  async function fetchTradePlan() {
+    try {
+      setLoadingPlan(true);
+      const res = await fetch('/api/agent/trade-plan');
+      const data = await res.json();
+      if (data.ok && data.plan) {
+        setTradePlan(data.plan);
+      }
+    } catch (err) {
+      console.error('Failed to fetch trade plan:', err);
+    } finally {
+      setLoadingPlan(false);
     }
   }
 
@@ -255,6 +274,13 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Trade Plan Section */}
+      <TradePlanCard
+        plan={tradePlan}
+        loading={loadingPlan}
+        onGenerate={fetchTradePlan}
+      />
 
       {/* Performance Insight Card - Like health app */}
       {context?.strategyConfluence && (

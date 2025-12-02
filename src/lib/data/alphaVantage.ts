@@ -1,16 +1,19 @@
 import { cache } from "react";
 
-const ALPHAVANTAGE_API_KEY = process.env.ALPHAVANTAGE_API_KEY;
-
-if (!ALPHAVANTAGE_API_KEY) {
-  throw new Error("ALPHAVANTAGE_API_KEY is not set");
-}
-
-// TypeScript narrowing: after the check above, we know it's defined
-const API_KEY = ALPHAVANTAGE_API_KEY;
 const ALPHAVANTAGE_BASE_URL = "https://www.alphavantage.co/query";
 
+// Lazy getter for API key - only checked when function is called
+function getAlphaVantageApiKey(): string {
+  const apiKey = process.env.ALPHAVANTAGE_API_KEY;
+  if (!apiKey) {
+    throw new Error("ALPHAVANTAGE_API_KEY is not set");
+  }
+  return apiKey;
+}
+
 async function alpha(params: Record<string, string | number>): Promise<any> {
+  const API_KEY = getAlphaVantageApiKey();
+  
   const url = new URL(ALPHAVANTAGE_BASE_URL);
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.append(key, String(value));

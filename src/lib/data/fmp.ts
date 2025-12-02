@@ -35,17 +35,13 @@ export async function fmp(path: string, params?: FmpParams) {
   // Also try "apiKey" if "apikey" doesn't work (some endpoints use different names)
   // url.searchParams.append("apiKey", apiKey);
 
-  const fullUrl = url.toString();
-  console.log(`[FMP] Calling: ${fullUrl.replace(apiKey, "***REDACTED***")}`);
-
-  const res = await fetch(fullUrl, {
+  const res = await fetch(url.toString(), {
     // economic calendar can be near-real-time, but not tick data
     next: { revalidate: 60 },
   });
 
   if (!res.ok) {
     const errorText = await res.text().catch(() => "");
-    console.error(`[FMP] Error ${res.status}: ${errorText}`);
     throw new Error(`FMP error: ${res.status} ${res.statusText}. ${errorText.substring(0, 200)}`);
   }
 

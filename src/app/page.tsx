@@ -23,6 +23,7 @@ import type {
 } from "@/types/trading";
 import type { TradePlan } from "@/lib/agent/tradeSchema";
 import { TradePlanCard } from "@/components/TradePlanCard";
+import type { MarketOverviewSnapshot } from "@/lib/data/marketOverview";
 
 // Simple Sparkline Chart Component
 function SparklineChart({ values, color = "#32D74B", width = 80, height = 30 }: { values: number[]; color?: string; width?: number; height?: number }) {
@@ -85,11 +86,13 @@ export default function HomePage() {
   const [tradingContext, setTradingContext] = useState<any>(null);
   const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
+  const [marketOverview, setMarketOverview] = useState<MarketOverviewSnapshot | null>(null);
 
   // Fetch dashboard context
   useEffect(() => {
     fetchDashboardContext();
     fetchTradingContext();
+    fetchMarketOverview();
   }, [symbolContext.symbol, symbolContext.timeframe]);
 
   async function fetchTradingContext() {
@@ -109,13 +112,29 @@ export default function HomePage() {
       setLoadingPlan(true);
       const res = await fetch('/api/agent/trade-plan');
       const data = await res.json();
-      if (data.ok && data.plan) {
-        setTradePlan(data.plan);
+      if (data.ok) {
+        // Always set the plan, even if orders array is empty
+        setTradePlan(data.plan || null);
+      } else {
+        // On error, show error state but don't reset plan
+        console.error('Failed to fetch trade plan:', data.error);
       }
     } catch (err) {
       console.error('Failed to fetch trade plan:', err);
     } finally {
       setLoadingPlan(false);
+    }
+  }
+
+  async function fetchMarketOverview() {
+    try {
+      const res = await fetch('/api/market/overview');
+      const data = await res.json();
+      if (data.ok && data.snapshot) {
+        setMarketOverview(data.snapshot);
+      }
+    } catch (err) {
+      // Silent error handling - fallback to mock data
     }
   }
 
@@ -463,34 +482,92 @@ export default function HomePage() {
       <section className="space-y-4 mb-6">
         <h2 className="text-base font-bold text-white">Market Overview</h2>
         <div className="grid grid-cols-3 gap-3">
-          {context?.marketOverview.benchmarkSymbols.slice(0, 6).map((sym, idx) => (
-            <div
-              key={sym.symbol}
-              className={`relative rounded-xl backdrop-blur-2xl border p-4 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-[1.02] ${
-                sym.pctChange >= 0
-                  ? "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30"
-                  : "bg-gradient-to-br from-red-500/20 via-orange-500/15 to-amber-500/10 border-red-500/30"
-              }`}
-            >
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{sym.symbol}</p>
-              <p className="text-lg font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
-              <div className="flex items-center gap-1.5">
-                <span className={`text-sm font-bold ${
-                  sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
-                }`}>
-                  {sym.pctChange >= 0 ? "↑" : "↓"}
-                </span>
-                <p
-                  className={`text-sm font-bold ${
-                    sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
+          {marketOverview ? (
+            <>
+              {[
+                { symbol: "SPX", data: marketOverview.spx },
+                { symbol: "NDX", data: marketOverview.ndx },
+                { symbol: "DXY", data: marketOverview.dxy },
+                { symbol: "VIX", data: marketOverview.vix },
+                { symbol: "XAUUSD", data: marketOverview.xauusd },
+                { symbol: "BTCUSD", data: marketOverview.btcusd },
+              ].map((item) => (
+                <div
+                  key={item.symbol}
+                  className={`relative rounded-xl backdrop-blur-2xl border p-4 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-[1.02] ${
+                    item.data.changePct >= 0
+                      ? "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30"
+                      : "bg-gradient-to-br from-red-500/20 via-orange-500/15 to-amber-500/10 border-red-500/30"
                   }`}
                 >
-                  {sym.pctChange >= 0 ? "+" : ""}
-                  {sym.pctChange.toFixed(2)}%
-                </p>
+                  <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{item.symbol}</p>
+                  <p className="text-lg font-bold text-white tracking-tight">
+                    {item.data.value > 0 ? item.data.value.toLocaleString(undefined, {
+                      minimumFractionDigits: item.symbol === "DXY" || item.symbol === "VIX" ? 2 : 0,
+                      maximumFractionDigits: item.symbol === "XAUUSD" || item.symbol === "BTCUSD" ? 2 : 2,
+                    }) : "—"}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-sm font-bold ${
+                      item.data.changePct >= 0 ? "text-emerald-400" : "text-red-400"
+                    }`}>
+                      {item.data.changePct >= 0 ? "↑" : "↓"}
+                    </span>
+                    <p
+                      className={`text-sm font-bold ${
+                        item.data.changePct >= 0 ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      {item.data.changePct >= 0 ? "+" : ""}
+                      {item.data.changePct.toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : context?.marketOverview?.benchmarkSymbols ? (
+            // Fallback to mock data if real data not loaded yet
+            context.marketOverview.benchmarkSymbols.slice(0, 6).map((sym: any) => (
+              <div
+                key={sym.symbol}
+                className={`relative rounded-xl backdrop-blur-2xl border p-4 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-[1.02] ${
+                  sym.pctChange >= 0
+                    ? "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30"
+                    : "bg-gradient-to-br from-red-500/20 via-orange-500/15 to-amber-500/10 border-red-500/30"
+                }`}
+              >
+                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{sym.symbol}</p>
+                <p className="text-lg font-bold text-white tracking-tight">{sym.price.toLocaleString()}</p>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-sm font-bold ${
+                    sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
+                  }`}>
+                    {sym.pctChange >= 0 ? "↑" : "↓"}
+                  </span>
+                  <p
+                    className={`text-sm font-bold ${
+                      sym.pctChange >= 0 ? "text-emerald-400" : "text-red-400"
+                    }`}
+                  >
+                    {sym.pctChange >= 0 ? "+" : ""}
+                    {sym.pctChange.toFixed(2)}%
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            // Loading state
+            Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="relative rounded-xl backdrop-blur-2xl border border-white/10 p-4 space-y-2 bg-white/5 animate-pulse"
+              >
+                <div className="h-3 w-12 bg-white/10 rounded" />
+                <div className="h-6 w-20 bg-white/10 rounded" />
+                <div className="h-4 w-16 bg-white/10 rounded" />
+              </div>
+            ))
+          )}
         </div>
       </section>
 

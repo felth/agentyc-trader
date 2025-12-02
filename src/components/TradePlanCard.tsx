@@ -24,7 +24,14 @@ export function TradePlanCard({ plan, loading, onGenerate }: TradePlanCardProps)
       </div>
 
       <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-        {plan ? (
+        {!plan ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-white/50 mb-1">No trade plan generated yet</p>
+            <p className="text-xs text-white/40">
+              Click "Generate Plan" to create a trade plan based on current context
+            </p>
+          </div>
+        ) : (
           <div className="space-y-5">
             {/* Mode & Limits Row */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -119,17 +126,11 @@ export function TradePlanCard({ plan, loading, onGenerate }: TradePlanCardProps)
                 </div>
               ) : (
                 <div className="text-center py-6">
-                  <p className="text-sm text-white/50">(none yet)</p>
+                  <p className="text-sm text-white/50">No trades fit your rules right now.</p>
+                  <p className="text-xs text-white/40 mt-1">The agent is waiting for a better setup.</p>
                 </div>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-sm text-white/50 mb-1">No trade plan generated yet</p>
-            <p className="text-xs text-white/40">
-              Click "Generate Plan" to create a trade plan based on current context
-            </p>
           </div>
         )}
       </div>

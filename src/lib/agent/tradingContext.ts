@@ -1,6 +1,8 @@
 // src/lib/agent/tradingContext.ts
 
 import { getIbkrAccount, getIbkrPositions, getIbkrOrders } from "@/lib/data/ibkrBridge";
+import { riskLimits } from "./riskConfig";
+import { fetchMarketOverview, type MarketOverviewSnapshot } from "@/lib/data/marketOverview";
 
 export type TradingContext = {
   account: {
@@ -28,15 +30,24 @@ export type TradingContext = {
   riskProfile: {
     maxSingleTradeRiskUsd: number;
     maxDailyLossUsd: number;
-    allowShortSelling: boolean;
+    maxOpenTrades: number;
   };
+  marketOverview: MarketOverviewSnapshot;
 };
 
 export async function buildTradingContext(): Promise<TradingContext> {
-  const [accountRes, positionsRes, ordersRes] = await Promise.all([
+  const [accountRes, positionsRes, ordersRes, marketOverview] = await Promise.all([
     getIbkrAccount(),
     getIbkrPositions(),
     getIbkrOrders(),
+    fetchMarketOverview().catch(() => ({
+      spx: { value: 5500, changePct: 0 },
+      ndx: { value: 18000, changePct: 0 },
+      dxy: { value: 104.5, changePct: 0 },
+      vix: { value: 15, changePct: 0 },
+      xauusd: { value: 2380, changePct: 0 },
+      btcusd: { value: 95000, changePct: 0 },
+    })),
   ]);
 
   if (!accountRes.ok) throw new Error("Failed to load IBKR account");
@@ -71,9 +82,10 @@ export async function buildTradingContext(): Promise<TradingContext> {
       status: o.status,
     })),
     riskProfile: {
-      maxSingleTradeRiskUsd: 500,      // safe defaults for now
-      maxDailyLossUsd: 2000,
-      allowShortSelling: false,
+      maxSingleTradeRiskUsd: riskLimits.maxSingleTradeRiskUsd,
+      maxDailyLossUsd: riskLimits.maxDailyLossUsd,
+      maxOpenTrades: riskLimits.maxOpenTrades,
     },
+    marketOverview,
   };
 }

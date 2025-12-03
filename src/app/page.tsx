@@ -525,74 +525,27 @@ export default function HomePage() {
       </section>
 
       {/* Key Metrics - Side by Side */}
-      <section className="grid grid-cols-2 gap-3 mb-6">
-          {/* Setup Confluence */}
+      {dashboard?.volumeDelta && (
+        <section className="grid grid-cols-2 gap-3 mb-6">
+          {/* Volume Delta Quick View */}
           <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${
-                context?.strategyConfluence?.setupGrade === "A" ? "bg-emerald-400" :
-                context?.strategyConfluence?.setupGrade === "B" ? "bg-yellow-400" : "bg-slate-400"
-              }`} />
-              <p className="text-[10px] font-bold text-white uppercase tracking-wide">Setup</p>
-            </div>
-            {context?.strategyConfluence && (
-              <>
-                <p className="text-2xl font-bold text-white leading-tight">{context.strategyConfluence.setupMatchPct}%</p>
-              </>
-            )}
-          </div>
-
-          {/* Market Regime */}
-          <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-blue-400" />
-              <p className="text-[10px] font-bold text-white uppercase tracking-wide">Regime</p>
-            </div>
-            {context?.regime && (
-              <>
-                <p className="text-2xl font-bold text-white leading-tight">{context.regime.trendStatus.replace("_", " ").split(" ")[0]}</p>
-              </>
-            )}
-          </div>
-
-          {/* Volume Delta */}
-          <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-            <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${
-                context?.volume && context.volume.volumeDelta >= 0 ? "bg-emerald-400" : "bg-red-400"
+                (dashboard.volumeDelta.volumeDelta ?? 0) >= 0 ? "bg-emerald-400" : "bg-red-400"
               }`} />
               <p className="text-[10px] font-bold text-white uppercase tracking-wide">Volume</p>
             </div>
-            {context?.volume && (
-              <>
-                <p className={`text-2xl font-bold leading-tight ${
-                  context.volume.volumeDelta >= 0 ? "text-emerald-400" : "text-red-400"
-                }`}>
-                  {context.volume.volumeDelta >= 0 ? "+" : ""}
-                  {Math.abs(context.volume.volumeDelta).toLocaleString()}
-                </p>
-              </>
+            {dashboard.volumeDelta.volumeDelta !== null && (
+              <p className={`text-2xl font-bold leading-tight ${
+                dashboard.volumeDelta.volumeDelta >= 0 ? "text-emerald-400" : "text-red-400"
+              }`}>
+                {dashboard.volumeDelta.volumeDelta >= 0 ? "+" : ""}
+                {Math.abs(dashboard.volumeDelta.volumeDelta).toLocaleString()}
+              </p>
             )}
           </div>
-
-          {/* Behavioural State */}
-          <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-            <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${
-                context?.behavioural?.overtradingFlag === "CRITICAL" ? "bg-red-400" :
-                context?.behavioural?.overtradingFlag === "WARNING" ? "bg-yellow-400" : "bg-emerald-400"
-              }`} />
-              <p className="text-[10px] font-bold text-white uppercase tracking-wide">State</p>
-            </div>
-            {context?.behavioural && (
-              <>
-                <p className="text-2xl font-bold text-white leading-tight">
-                  {Math.floor(context.behavioural.minutesSinceLastBreak / 60)}h
-                </p>
-              </>
-            )}
-          </div>
-      </section>
+        </section>
+      )}
 
       {/* Focus Symbol & Regime (Detailed) - Apple-style Landscape Cards Stacked */}
       <section className="space-y-6 mb-8">
@@ -674,55 +627,6 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Market Regime Card - Landscape */}
-        <div className="relative rounded-3xl bg-gradient-to-br from-indigo-500/15 via-purple-500/10 to-pink-500/8 backdrop-blur-3xl border border-white/10 p-6 md:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:border-white/20 transition-all duration-500">
-          <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-6">Market Regime</h3>
-          {context?.regime && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {/* Status */}
-              <div className="space-y-3">
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Status</p>
-                <span className={`inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold ${
-                  context.regime.trendStatus === "TRENDING_UP"
-                    ? "bg-emerald-500/20 text-emerald-300"
-                    : context.regime.trendStatus === "TRENDING_DOWN"
-                    ? "bg-red-500/20 text-red-300"
-                    : "bg-white/10 text-white/80"
-                }`}>
-                  {context.regime.trendStatus.replace("_", " ")}
-                </span>
-              </div>
-              
-              {/* ADX */}
-              <div className="space-y-3">
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">ADX</p>
-                <p className="text-2xl font-semibold text-white">{context.regime.adx.toFixed(1)}</p>
-                <ProgressBar value={context.regime.adx} max={50} color={context.regime.adx > 25 ? "#10B981" : context.regime.adx > 20 ? "#F59E0B" : "#6B7280"} height={4} />
-              </div>
-              
-              {/* BB Width */}
-              <div className="space-y-3">
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">BB Width</p>
-                <p className="text-2xl font-semibold text-white">{context.regime.bollingerWidthPercentile.toFixed(0)}%</p>
-                <ProgressBar value={context.regime.bollingerWidthPercentile} max={100} color={context.regime.bollingerWidthPercentile > 70 ? "#EF4444" : context.regime.bollingerWidthPercentile > 50 ? "#F59E0B" : "#10B981"} height={4} />
-              </div>
-              
-              {/* Volatility */}
-              <div className="space-y-3">
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Volatility</p>
-                <span className={`inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold w-full ${
-                  context.regime.volatilityState === "EXPLOSIVE"
-                    ? "bg-red-500/20 text-red-300"
-                    : context.regime.volatilityState === "NORMAL"
-                    ? "bg-yellow-500/20 text-yellow-300"
-                    : "bg-emerald-500/20 text-emerald-300"
-                }`}>
-                  {context.regime.volatilityState}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
       </section>
 
       {/* Row 3 – Order Flow & Volume */}

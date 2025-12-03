@@ -585,27 +585,27 @@ export default function HomePage() {
           {/* OHLC & Chart - Horizontal Layout */}
           <div className="flex flex-col md:flex-row gap-6">
             {/* OHLC Values */}
-            <div className="grid grid-cols-4 gap-4 flex-1">
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Open</p>
-                <p className="text-xl font-semibold text-white">{ohlc.open.toFixed(2)}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 flex-1 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium whitespace-nowrap">Open</p>
+                <p className="text-xl font-semibold text-white truncate">{ohlc.open.toFixed(2)}</p>
               </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">High</p>
-                <p className="text-xl font-semibold text-emerald-400">{ohlc.high.toFixed(2)}</p>
+              <div className="space-y-1.5 min-w-0">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium whitespace-nowrap">High</p>
+                <p className="text-xl font-semibold text-emerald-400 truncate">{ohlc.high.toFixed(2)}</p>
               </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Low</p>
-                <p className="text-xl font-semibold text-red-400">{ohlc.low.toFixed(2)}</p>
+              <div className="space-y-1.5 min-w-0">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium whitespace-nowrap">Low</p>
+                <p className="text-xl font-semibold text-red-400 truncate">{ohlc.low.toFixed(2)}</p>
               </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium">Close</p>
-                <p className="text-xl font-semibold text-white">{ohlc.close.toFixed(2)}</p>
+              <div className="space-y-1.5 min-w-0">
+                <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium whitespace-nowrap">Close</p>
+                <p className="text-xl font-semibold text-white truncate">{ohlc.close.toFixed(2)}</p>
               </div>
             </div>
             
             {/* Chart */}
-            <div className="flex-1 bg-white/3 rounded-2xl p-4 border border-white/5">
+            <div className="flex-1 bg-white/3 rounded-2xl p-4 border border-white/5 min-w-0">
               <div className="w-full h-full min-h-[60px]">
                 <SparklineChart 
                   values={[ohlc.open, ohlc.low, ohlc.high, ohlc.close]} 

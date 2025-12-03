@@ -1,13 +1,26 @@
 import { cache } from "react";
 
-const BASE_URL = process.env.MASSIVE_BASE_URL!;
-const API_KEY = process.env.MASSIVE_API_KEY!;
+// Lazy getters for API credentials - only checked when functions are called
+function getMassiveBaseUrl(): string {
+  const baseUrl = process.env.MASSIVE_BASE_URL;
+  if (!baseUrl) {
+    throw new Error("MASSIVE_BASE_URL is not set");
+  }
+  return baseUrl;
+}
 
-if (!BASE_URL || !API_KEY) {
-  throw new Error("Massive API env vars missing");
+function getMassiveApiKey(): string {
+  const apiKey = process.env.MASSIVE_API_KEY;
+  if (!apiKey) {
+    throw new Error("MASSIVE_API_KEY is not set");
+  }
+  return apiKey;
 }
 
 function buildUrl(path: string, params?: Record<string, any>): string {
+  const BASE_URL = getMassiveBaseUrl();
+  const API_KEY = getMassiveApiKey();
+  
   const url = new URL(`${BASE_URL}${path}`);
   if (params) {
     for (const [key, value] of Object.entries(params)) {

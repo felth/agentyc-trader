@@ -27,18 +27,26 @@ async function callBridge<T>(
   const bridgeKey = getBridgeKey();
   const url = `${bridgeUrl}${path}`;
   
+  // Add timeout wrapper (5 seconds)
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('IBKR Bridge timeout after 5 seconds')), 5000);
+  });
+
   let res: Response;
   try {
-    res = await fetch(url, {
-      ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Bridge-Key': bridgeKey,
-        ...(init.headers || {}),
-      },
-      // Bridge is off-origin, always server-side calls
-      cache: 'no-store',
-    });
+    res = await Promise.race([
+      fetch(url, {
+        ...init,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Bridge-Key': bridgeKey,
+          ...(init.headers || {}),
+        },
+        // Bridge is off-origin, always server-side calls
+        cache: 'no-store',
+      }),
+      timeoutPromise,
+    ]);
   } catch (fetchError: any) {
     const errorMessage = fetchError?.message || 'Unknown fetch error';
     const errorCode = fetchError?.code || 'NO_CODE';

@@ -116,8 +116,43 @@ import { fetchMarketOverview as getMarketOverviewRaw, type MarketOverviewSnapsho
 import { getTodayEconomicCalendar } from "./economicCalendar";
 
 export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
+  // Add timeout wrapper for trading context
+  const timeoutPromise = new Promise<ReturnType<typeof buildTradingContext>>((_, reject) => {
+    setTimeout(() => reject(new Error("Trading context timeout")), 10000); // 10s timeout
+  });
+
   const [ctx, mo, calendar] = await Promise.all([
-    buildTradingContext(),
+    Promise.race([
+      buildTradingContext(),
+      timeoutPromise,
+    ]).catch((err) => {
+      console.error("[buildDashboardSnapshot] Trading context failed:", err?.message);
+      // Return minimal fallback context
+      return {
+        account: {
+          accountId: "UNKNOWN",
+          balance: 0,
+          equity: 0,
+          unrealizedPnl: 0,
+          buyingPower: 0,
+        },
+        positions: [],
+        orders: [],
+        riskProfile: {
+          maxSingleTradeRiskUsd: 500,
+          maxDailyLossUsd: 2000,
+          maxOpenTrades: 3,
+        },
+        marketOverview: {
+          spx: { value: 5500, changePct: 0 },
+          ndx: { value: 18000, changePct: 0 },
+          dxy: { value: 104.5, changePct: 0 },
+          vix: { value: 15, changePct: 0 },
+          xauusd: { value: 2380, changePct: 0 },
+          btcusd: { value: 95000, changePct: 0 },
+        },
+      };
+    }),
     getMarketOverviewRaw().catch(() => null),
     getTodayEconomicCalendar().catch(() => ({
       date: new Date().toISOString().slice(0, 10),

@@ -36,10 +36,20 @@ export type TradingContext = {
 };
 
 export async function buildTradingContext(): Promise<TradingContext> {
+  // Wrap each IBKR call with error handling so one failure doesn't block others
   const [accountRes, positionsRes, ordersRes, marketOverview] = await Promise.all([
-    getIbkrAccount(),
-    getIbkrPositions(),
-    getIbkrOrders(),
+    getIbkrAccount().catch((err) => {
+      console.error("[buildTradingContext] Account fetch failed:", err?.message);
+      return { ok: false, error: err?.message || "Account fetch failed" };
+    }),
+    getIbkrPositions().catch((err) => {
+      console.error("[buildTradingContext] Positions fetch failed:", err?.message);
+      return { ok: false, error: err?.message || "Positions fetch failed" };
+    }),
+    getIbkrOrders().catch((err) => {
+      console.error("[buildTradingContext] Orders fetch failed:", err?.message);
+      return { ok: false, error: err?.message || "Orders fetch failed" };
+    }),
     fetchMarketOverview().catch(() => ({
       spx: { value: 5500, changePct: 0 },
       ndx: { value: 18000, changePct: 0 },
@@ -50,21 +60,30 @@ export async function buildTradingContext(): Promise<TradingContext> {
     })),
   ]);
 
-  if (!accountRes.ok) throw new Error("Failed to load IBKR account");
-  if (!positionsRes.ok) throw new Error("Failed to load IBKR positions");
-  if (!ordersRes.ok) throw new Error("Failed to load IBKR orders");
-
-  const account = accountRes;
-  const positions = Array.isArray(positionsRes.positions) ? positionsRes.positions : [];
-  const orders = Array.isArray(ordersRes.orders) ? ordersRes.orders : [];
+  // Use fallback values if IBKR calls failed
+  const account = accountRes?.ok ? accountRes : {
+    accountId: "UNKNOWN",
+    balance: 0,
+    equity: 0,
+    unrealizedPnl: 0,
+    buyingPower: 0,
+  };
+  
+  const positions = positionsRes?.ok && Array.isArray(positionsRes.positions) 
+    ? positionsRes.positions 
+    : [];
+  
+  const orders = ordersRes?.ok && Array.isArray(ordersRes.orders) 
+    ? ordersRes.orders 
+    : [];
 
   return {
     account: {
-      accountId: accountRes.accountId,
-      balance: accountRes.balance,
-      equity: accountRes.equity,
-      unrealizedPnl: accountRes.unrealizedPnl,
-      buyingPower: accountRes.buyingPower,
+      accountId: account.accountId || "UNKNOWN",
+      balance: account.balance || 0,
+      equity: account.equity || 0,
+      unrealizedPnl: account.unrealizedPnl || 0,
+      buyingPower: account.buyingPower || 0,
     },
     positions: positions.map((p: any) => ({
       symbol: p.symbol,

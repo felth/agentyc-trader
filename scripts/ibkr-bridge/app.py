@@ -6,6 +6,8 @@ from typing import List, Optional
 
 from datetime import datetime, timedelta
 
+import httpx
+
 
 
 # -------------------------------------------------
@@ -18,7 +20,7 @@ from datetime import datetime, timedelta
 
 BRIDGE_KEY = "agentyc-bridge-9u1Px"  # MUST match Vercel IBKR_BRIDGE_KEY
 
-IB_GATEWAY_URL = "https://localhost:5000/v1/api"   # TODO: point to real IBKR Gateway
+IB_GATEWAY_URL = "https://localhost:5000/v1/api"
 
 
 
@@ -41,6 +43,53 @@ def verify_key(header_key: Optional[str]):
     if header_key != BRIDGE_KEY:
 
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+
+# Alias for consistency with spec
+verify = verify_key
+
+
+async def ib_get(path: str) -> dict:
+
+    """
+
+    Call IBKR Client Portal Gateway GET /v1/api/{path}
+
+    - Verify=False because IBKR uses a self-signed cert by default
+
+    - Raises HTTPException on non-2xx responses
+
+    """
+
+    url = f"{IB_GATEWAY_URL.rstrip('/')}/{path.lstrip('/')}"
+
+    try:
+
+        async with httpx.AsyncClient(verify=False, timeout=10) as client:
+
+            resp = await client.get(url)
+
+    except httpx.RequestError as e:
+
+        raise HTTPException(
+
+            status_code=502,
+
+            detail=f"IBKR gateway connection error: {str(e)}"
+
+        )
+
+    if resp.status_code >= 400:
+
+        raise HTTPException(
+
+            status_code=resp.status_code,
+
+            detail=f"IBKR gateway error {resp.status_code}: {resp.text}"
+
+        )
+
+    return resp.json()
 
 
 
@@ -578,6 +627,142 @@ async def search_instruments(
 
 # -------------------------------------------------
 
+
+@app.get("/account")
+async def account(x_bridge_key: str = Header(None)):
+    verify(x_bridge_key)
+
+    # 1) Get list of accounts from IBKR
+    data = await ib_get("portfolio/accounts")
+
+    # Expect a list; take the first account as "primary"
+    if not isinstance(data, list) or not data:
+        raise HTTPException(status_code=500, detail="No IBKR accounts returned")
+
+    acct = data[0]
+    account_id = acct.get("accountId") or acct.get("id") or acct.get("account")
+
+    if not account_id:
+        raise HTTPException(status_code=500, detail="Unable to determine IBKR account id")
+
+    # 2) Get balances / summary for that account
+    # NOTE: endpoint name/schema must be checked against IBKR Client Portal docs.
+    # This mapping is an example and may need adjustment based on the actual payload.
+    summary = await ib_get(f"portfolio/{account_id}/summary")
+
+    # Very conservative mapping: pull the fields if present, otherwise 0
+    def safe_get(obj, key, default=0.0):
+        try:
+            v = obj.get(key, default)
+            return float(v) if isinstance(v, (int, float, str)) else default
+        except Exception:
+            return default
+
+    balance = safe_get(summary, "cashbalance", 0.0)
+    equity = safe_get(summary, "netliquidation", balance)
+    unrealized_pnl = safe_get(summary, "unrealizedpnl", 0.0)
+    buying_power = safe_get(summary, "availablefunds", 0.0)
+
+    return {
+        "ok": True,
+        "accountId": account_id,
+        "balance": balance,
+        "equity": equity,
+        "unrealizedPnl": unrealized_pnl,
+        "buyingPower": buying_power,
+    }
+
+
+@app.get("/positions")
+async def positions(x_bridge_key: str = Header(None)):
+    verify(x_bridge_key)
+
+    # Get accounts again
+    accts = await ib_get("portfolio/accounts")
+    if not isinstance(accts, list) or not accts:
+        raise HTTPException(status_code=500, detail="No IBKR accounts returned")
+
+    account_id = (
+        accts[0].get("accountId")
+        or accts[0].get("id")
+        or accts[0].get("account")
+    )
+
+    if not account_id:
+        raise HTTPException(status_code=500, detail="Unable to determine IBKR account id")
+
+    # Positions endpoint
+    pos = await ib_get(f"portfolio/{account_id}/positions")
+
+    # Normalize to our internal shape
+    normalized = []
+    if isinstance(pos, list):
+        for p in pos:
+            symbol = p.get("contract", {}).get("symbol") or p.get("symbol")
+            if not symbol:
+                continue
+            qty = p.get("position") or p.get("positionQty") or p.get("qty") or 0
+            avg_price = p.get("avgPrice") or p.get("avgCost") or 0
+            mkt_price = p.get("mktPrice") or p.get("marketPrice") or 0
+            unrealized = p.get("unrealizedPnl") or 0
+
+            try:
+                qty = float(qty)
+                avg_price = float(avg_price)
+                mkt_price = float(mkt_price)
+                unrealized = float(unrealized)
+            except Exception:
+                continue
+
+            normalized.append(
+                {
+                    "symbol": symbol,
+                    "quantity": qty,
+                    "avgPrice": avg_price,
+                    "marketPrice": mkt_price,
+                    "unrealizedPnl": unrealized,
+                }
+            )
+
+    return {"ok": True, "positions": normalized}
+
+
+@app.get("/orders")
+async def orders(x_bridge_key: str = Header(None)):
+    verify(x_bridge_key)
+
+    # Open orders endpoint
+    # NOTE: endpoint path may differ; verify against IBKR Client Portal docs.
+    raw = await ib_get("iserver/account/orders")
+
+    orders = []
+    if isinstance(raw, list):
+        for o in raw:
+            try:
+                orders.append(
+                    {
+                        "id": o.get("orderId") or o.get("id"),
+                        "symbol": (
+                            o.get("contract", {}).get("symbol")
+                            or o.get("symbol")
+                        ),
+                        "side": o.get("side") or o.get("action"),
+                        "quantity": float(
+                            o.get("quantity")
+                            or o.get("orderQty")
+                            or o.get("totalQuantity")
+                            or 0
+                        ),
+                        "status": o.get("status"),
+                        "limitPrice": float(o.get("lmtPrice") or o.get("limitPrice") or 0)
+                        if o.get("lmtPrice") or o.get("limitPrice")
+                        else None,
+                    }
+                )
+            except Exception:
+                continue
+
+    return {"ok": True, "orders": orders}
 
 
 @app.get("/account/summary", response_model=AccountSummary)

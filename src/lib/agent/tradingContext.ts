@@ -37,31 +37,39 @@ export type TradingContext = {
 
 export async function buildTradingContext(): Promise<TradingContext> {
   // Wrap each IBKR call with error handling so one failure doesn't block others
-  const [accountRes, positionsRes, ordersRes, marketOverview] = await Promise.all([
-    getIbkrAccount().catch((err) => {
-      console.error("[buildTradingContext] Account fetch failed:", err?.message);
-      return { ok: false, error: err?.message || "Account fetch failed" };
-    }),
-    getIbkrPositions().catch((err) => {
-      console.error("[buildTradingContext] Positions fetch failed:", err?.message);
-      return { ok: false, error: err?.message || "Positions fetch failed" };
-    }),
-    getIbkrOrders().catch((err) => {
-      console.error("[buildTradingContext] Orders fetch failed:", err?.message);
-      return { ok: false, error: err?.message || "Orders fetch failed" };
-    }),
-    fetchMarketOverview().catch(() => ({
-      spx: { value: 5500, changePct: 0 },
-      ndx: { value: 18000, changePct: 0 },
-      dxy: { value: 104.5, changePct: 0 },
-      vix: { value: 15, changePct: 0 },
-      xauusd: { value: 2380, changePct: 0 },
-      btcusd: { value: 95000, changePct: 0 },
-    })),
-  ]);
+  let accountRes: Awaited<ReturnType<typeof getIbkrAccount>> | null = null;
+  let positionsRes: Awaited<ReturnType<typeof getIbkrPositions>> | null = null;
+  let ordersRes: Awaited<ReturnType<typeof getIbkrOrders>> | null = null;
+  
+  try {
+    accountRes = await getIbkrAccount();
+  } catch (err: any) {
+    console.error("[buildTradingContext] Account fetch failed:", err?.message);
+  }
+
+  try {
+    positionsRes = await getIbkrPositions();
+  } catch (err: any) {
+    console.error("[buildTradingContext] Positions fetch failed:", err?.message);
+  }
+
+  try {
+    ordersRes = await getIbkrOrders();
+  } catch (err: any) {
+    console.error("[buildTradingContext] Orders fetch failed:", err?.message);
+  }
+
+  const marketOverview = await fetchMarketOverview().catch(() => ({
+    spx: { value: 5500, changePct: 0 },
+    ndx: { value: 18000, changePct: 0 },
+    dxy: { value: 104.5, changePct: 0 },
+    vix: { value: 15, changePct: 0 },
+    xauusd: { value: 2380, changePct: 0 },
+    btcusd: { value: 95000, changePct: 0 },
+  }));
 
   // Use fallback values if IBKR calls failed
-  const account = accountRes?.ok ? {
+  const account = (accountRes && accountRes.ok) ? {
     accountId: accountRes.accountId || "UNKNOWN",
     balance: accountRes.balance || 0,
     equity: accountRes.equity || 0,
@@ -75,11 +83,11 @@ export async function buildTradingContext(): Promise<TradingContext> {
     buyingPower: 0,
   };
   
-  const positions = positionsRes?.ok && Array.isArray(positionsRes.positions) 
+  const positions = (positionsRes && positionsRes.ok && Array.isArray(positionsRes.positions))
     ? positionsRes.positions 
     : [];
   
-  const orders = ordersRes?.ok && Array.isArray(ordersRes.orders) 
+  const orders = (ordersRes && ordersRes.ok && Array.isArray(ordersRes.orders))
     ? ordersRes.orders 
     : [];
 

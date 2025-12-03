@@ -61,7 +61,13 @@ export async function buildTradingContext(): Promise<TradingContext> {
   ]);
 
   // Use fallback values if IBKR calls failed
-  const account = accountRes?.ok ? accountRes : {
+  const account = accountRes?.ok ? {
+    accountId: accountRes.accountId || "UNKNOWN",
+    balance: accountRes.balance || 0,
+    equity: accountRes.equity || 0,
+    unrealizedPnl: accountRes.unrealizedPnl || 0,
+    buyingPower: accountRes.buyingPower || 0,
+  } : {
     accountId: "UNKNOWN",
     balance: 0,
     equity: 0,
@@ -78,13 +84,7 @@ export async function buildTradingContext(): Promise<TradingContext> {
     : [];
 
   return {
-    account: {
-      accountId: account.accountId || "UNKNOWN",
-      balance: account.balance || 0,
-      equity: account.equity || 0,
-      unrealizedPnl: account.unrealizedPnl || 0,
-      buyingPower: account.buyingPower || 0,
-    },
+    account,
     positions: positions.map((p: any) => ({
       symbol: p.symbol,
       quantity: p.quantity,

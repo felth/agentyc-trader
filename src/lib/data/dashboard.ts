@@ -114,44 +114,36 @@ export type DashboardSnapshot = {
 import { buildTradingContext } from "../agent/tradingContext";
 import { fetchMarketOverview as getMarketOverviewRaw, type MarketOverviewSnapshot as MarketOverviewRaw } from "./marketOverview";
 import { getTodayEconomicCalendar } from "./economicCalendar";
+import { getIbkrAccount, getIbkrPositions, getIbkrOrders } from "./ibkrBridge";
 
 export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
-  // Add timeout wrapper for trading context
-  const timeoutPromise = new Promise<ReturnType<typeof buildTradingContext>>((_, reject) => {
-    setTimeout(() => reject(new Error("Trading context timeout")), 10000); // 10s timeout
+  // Fetch IBKR data directly with timeout protection (10s timeout per call)
+  const ibkrTimeout = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error("IBKR data fetch timeout")), 10000);
   });
 
-  const [ctx, mo, calendar] = await Promise.all([
+  // Fetch all data in parallel - catch errors but don't use fallback zeros
+  const [accountRes, positionsRes, ordersRes, mo, calendar] = await Promise.all([
     Promise.race([
-      buildTradingContext(),
-      timeoutPromise,
+      getIbkrAccount(),
+      ibkrTimeout,
     ]).catch((err) => {
-      console.error("[buildDashboardSnapshot] Trading context failed:", err?.message);
-      // Return minimal fallback context
-      return {
-        account: {
-          accountId: "UNKNOWN",
-          balance: 0,
-          equity: 0,
-          unrealizedPnl: 0,
-          buyingPower: 0,
-        },
-        positions: [],
-        orders: [],
-        riskProfile: {
-          maxSingleTradeRiskUsd: 500,
-          maxDailyLossUsd: 2000,
-          maxOpenTrades: 3,
-        },
-        marketOverview: {
-          spx: { value: 5500, changePct: 0 },
-          ndx: { value: 18000, changePct: 0 },
-          dxy: { value: 104.5, changePct: 0 },
-          vix: { value: 15, changePct: 0 },
-          xauusd: { value: 2380, changePct: 0 },
-          btcusd: { value: 95000, changePct: 0 },
-        },
-      };
+      console.error("[buildDashboardSnapshot] Account fetch failed:", err?.message);
+      return null; // Return null instead of fallback zeros
+    }),
+    Promise.race([
+      getIbkrPositions(),
+      ibkrTimeout,
+    ]).catch((err) => {
+      console.error("[buildDashboardSnapshot] Positions fetch failed:", err?.message);
+      return null; // Return null instead of fallback zeros
+    }),
+    Promise.race([
+      getIbkrOrders(),
+      ibkrTimeout,
+    ]).catch((err) => {
+      console.error("[buildDashboardSnapshot] Orders fetch failed:", err?.message);
+      return null; // Return null instead of fallback zeros
     }),
     getMarketOverviewRaw().catch(() => null),
     getTodayEconomicCalendar().catch(() => ({
@@ -160,6 +152,42 @@ export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
       source: "SIMULATED" as const,
     })),
   ]);
+
+  // Extract real IBKR data - use actual values or empty/null (no fallback zeros)
+  const account = accountRes && accountRes.ok ? {
+    accountId: accountRes.accountId,
+    balance: accountRes.balance,
+    equity: accountRes.equity,
+    unrealizedPnl: accountRes.unrealizedPnl,
+    buyingPower: accountRes.buyingPower,
+  } : {
+    accountId: "",
+    balance: 0,
+    equity: 0,
+    unrealizedPnl: 0,
+    buyingPower: 0,
+  };
+
+  const positions = positionsRes && positionsRes.ok && Array.isArray(positionsRes.positions)
+    ? positionsRes.positions.map((p) => ({
+        symbol: p.symbol,
+        quantity: p.quantity,
+        avgPrice: p.avgPrice,
+        marketPrice: p.marketPrice,
+        unrealizedPnl: p.unrealizedPnl,
+      }))
+    : [];
+
+  const orders = ordersRes && ordersRes.ok && Array.isArray(ordersRes.orders)
+    ? ordersRes.orders.map((o) => ({
+        id: o.id,
+        symbol: o.symbol,
+        side: o.side as "BUY" | "SELL" | undefined,
+        quantity: o.quantity,
+        orderType: undefined as string | undefined,
+        status: o.status,
+      }))
+    : [];
 
   const market = mo?.xauusd ?? mo?.spx ?? null; // pick a primary instrument for microstructure derivations, e.g. XAUUSD
 
@@ -288,14 +316,14 @@ export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
   };
 
   const dailyActivity: DailyActivitySnapshot = {
-    hasTradesToday: (ctx.orders?.length ?? 0) > 0,
-    notes: (ctx.orders?.length ?? 0) > 0 ? "Trades detected for today." : "Nothing yet for today.",
+    hasTradesToday: orders.length > 0,
+    notes: orders.length > 0 ? "Trades detected for today." : "Nothing yet for today.",
   };
 
   return {
-    account: ctx.account,
-    positions: ctx.positions,
-    orders: ctx.orders,
+    account,
+    positions,
+    orders,
     marketOverview: marketOverviewTiles,
     executionQuality,
     correlationExposure,

@@ -1,0 +1,92 @@
+================================================================================
+IBKR BRIDGE DEPLOYMENT - EXECUTE THESE COMMANDS ON THE DROPLET
+================================================================================
+
+Since I cannot SSH directly into your droplet, please run these commands
+on the droplet via your SSH session.
+
+--------------------------------------------------------------------------------
+STEP 1: SSH into the droplet (if not already connected)
+--------------------------------------------------------------------------------
+
+ssh user@104.248.42.213
+
+--------------------------------------------------------------------------------
+STEP 2: Copy and paste this ENTIRE block into your SSH session
+--------------------------------------------------------------------------------
+
+# Quick deployment commands
+BRIDGE_DIR="/opt/ibkr-bridge"
+sudo mkdir -p "$BRIDGE_DIR" && sudo chown $USER:$USER "$BRIDGE_DIR"
+cd "$BRIDGE_DIR"
+
+# Install dependencies if needed
+pip3 install --user fastapi uvicorn httpx pydantic 2>/dev/null || sudo pip3 install fastapi uvicorn httpx pydantic
+
+# Fetch latest code
+TEMP=$(mktemp -d) && cd "$TEMP" && \
+git clone --depth 1 https://github.com/felth/agentyc-trader.git repo && \
+cp repo/scripts/ibkr-bridge/app.py "$BRIDGE_DIR/app.py" && \
+cd "$BRIDGE_DIR" && rm -rf "$TEMP"
+
+# Stop existing bridge
+pkill -f uvicorn || true && sleep 2
+
+# Start bridge
+cd "$BRIDGE_DIR" && \
+nohup python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 > bridge.log 2>&1 & \
+sleep 3 && echo "Bridge PID: $!"
+
+--------------------------------------------------------------------------------
+STEP 3: Verify the deployment
+--------------------------------------------------------------------------------
+
+# Test bridge health
+curl -s -H "X-Bridge-Key: agentyc-bridge-9u1Px" http://127.0.0.1:8000/health | jq
+
+# Test bridge account endpoint (should call real IBKR Gateway)
+curl -s -H "X-Bridge-Key: agentyc-bridge-9u1Px" http://127.0.0.1:8000/account | jq
+
+# Test IBKR Gateway connection
+curl -s -k https://localhost:5000/v1/api/iserver/auth/status | jq
+
+# Check bridge logs if needed
+tail -f /opt/ibkr-bridge/bridge.log
+
+--------------------------------------------------------------------------------
+EXPECTED RESULTS
+--------------------------------------------------------------------------------
+
+1. Bridge Health Check should return:
+   {"ok": true, "service": "ibkr-bridge", "status": "running"}
+
+2. Bridge Account Endpoint should return REAL IBKR data (not mock data):
+   {
+     "ok": true,
+     "accountId": "...",
+     "balance": ...,
+     "equity": ...,
+     "unrealizedPnl": ...,
+     "buyingPower": ...
+   }
+
+3. IBKR Gateway Status should show:
+   {"authenticated": true} or {"connected": true}
+
+--------------------------------------------------------------------------------
+TROUBLESHOOTING
+--------------------------------------------------------------------------------
+
+If bridge fails to start:
+  tail -20 /opt/ibkr-bridge/bridge.log
+
+If IBKR Gateway is not reachable:
+  - Verify IBKR Client Portal Gateway is running on port 5000
+  - Check: curl -k https://localhost:5000/v1/api/iserver/auth/status
+
+If account endpoint returns errors:
+  - Check bridge logs: tail -f /opt/ibkr-bridge/bridge.log
+  - Verify IBKR Gateway is authenticated
+
+================================================================================
+

@@ -92,6 +92,36 @@ async def ib_get(path: str) -> dict:
     return resp.json()
 
 
+def summary_metric(summary: dict, key: str, default: float = 0.0) -> float:
+    """
+    Safely extract a numeric 'amount' from the IBKR summary object:
+    {
+      "key": { "amount": 123.45, ... }
+    }
+    """
+    try:
+        node = summary.get(key) or {}
+        amt = node.get("amount")
+        if amt is None:
+            return float(default)
+        return float(amt)
+    except Exception:
+        return float(default)
+
+
+def positions_unrealized_pnl(positions: list[dict]) -> float:
+    """Sum unrealized PnL from positions list."""
+    total = 0.0
+    for p in positions:
+        try:
+            val = p.get("unrealizedPnl")
+            if val is not None:
+                total += float(val)
+        except Exception:
+            continue
+    return total
+
+
 
 
 
@@ -645,23 +675,25 @@ async def account(x_bridge_key: str = Header(None)):
     if not account_id:
         raise HTTPException(status_code=500, detail="Unable to determine IBKR account id")
 
-    # 2) Get balances / summary for that account
-    # NOTE: endpoint name/schema must be checked against IBKR Client Portal docs.
-    # This mapping is an example and may need adjustment based on the actual payload.
+    # 2) Get summary and positions for that account
     summary = await ib_get(f"portfolio/{account_id}/summary")
+    positions_data = await ib_get(f"portfolio/{account_id}/positions")
 
-    # Very conservative mapping: pull the fields if present, otherwise 0
-    def safe_get(obj, key, default=0.0):
-        try:
-            v = obj.get(key, default)
-            return float(v) if isinstance(v, (int, float, str)) else default
-        except Exception:
-            return default
+    # 3) Map metrics with proper fallbacks
+    balance = summary_metric(summary, "totalcashvalue", 0.0)
+    if balance == 0.0:
+        # fallback to settledcash if totalcashvalue is absent
+        balance = summary_metric(summary, "settledcash", 0.0)
 
-    balance = safe_get(summary, "cashbalance", 0.0)
-    equity = safe_get(summary, "netliquidation", balance)
-    unrealized_pnl = safe_get(summary, "unrealizedpnl", 0.0)
-    buying_power = safe_get(summary, "availablefunds", 0.0)
+    equity = summary_metric(summary, "netliquidation", 0.0)
+    buying_power = summary_metric(summary, "buyingpower", 0.0)
+
+    # Unrealized PnL: prefer summary key if present, else derive from positions
+    unrealized_from_summary = summary_metric(summary, "unrealizedpnl", 0.0)
+    if unrealized_from_summary != 0.0:
+        unrealized_pnl = unrealized_from_summary
+    else:
+        unrealized_pnl = positions_unrealized_pnl(positions_data if isinstance(positions_data, list) else [])
 
     return {
         "ok": True,
@@ -692,37 +724,35 @@ async def positions(x_bridge_key: str = Header(None)):
         raise HTTPException(status_code=500, detail="Unable to determine IBKR account id")
 
     # Positions endpoint
-    pos = await ib_get(f"portfolio/{account_id}/positions")
+    raw_positions = await ib_get(f"portfolio/{account_id}/positions")
 
     # Normalize to our internal shape
     normalized = []
-    if isinstance(pos, list):
-        for p in pos:
-            symbol = p.get("contract", {}).get("symbol") or p.get("symbol")
-            if not symbol:
-                continue
-            qty = p.get("position") or p.get("positionQty") or p.get("qty") or 0
-            avg_price = p.get("avgPrice") or p.get("avgCost") or 0
-            mkt_price = p.get("mktPrice") or p.get("marketPrice") or 0
-            unrealized = p.get("unrealizedPnl") or 0
-
+    if isinstance(raw_positions, list):
+        for p in raw_positions:
             try:
-                qty = float(qty)
-                avg_price = float(avg_price)
-                mkt_price = float(mkt_price)
-                unrealized = float(unrealized)
-            except Exception:
-                continue
+                # Symbol: prefer ticker, fallback to contractDesc
+                symbol = (p.get("ticker") or p.get("contractDesc") or "").strip()
+                if not symbol:
+                    continue
 
-            normalized.append(
-                {
-                    "symbol": symbol,
-                    "quantity": qty,
-                    "avgPrice": avg_price,
-                    "marketPrice": mkt_price,
-                    "unrealizedPnl": unrealized,
-                }
-            )
+                qty = float(p.get("position") or 0.0)
+                avg_price = float(p.get("avgPrice") or 0.0)
+                mkt_price = float(p.get("mktPrice") or 0.0)
+                unrealized = float(p.get("unrealizedPnl") or 0.0)
+
+                normalized.append(
+                    {
+                        "symbol": symbol,
+                        "quantity": qty,
+                        "avgPrice": avg_price,
+                        "marketPrice": mkt_price,
+                        "unrealizedPnl": unrealized,
+                    }
+                )
+            except Exception:
+                # Skip any broken lines
+                continue
 
     return {"ok": True, "positions": normalized}
 

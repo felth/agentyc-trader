@@ -185,10 +185,29 @@ export default function HomePage() {
     setTimeout(() => {
       let pollCount = 0;
       const maxPolls = 12; // Poll for 1 minute (12 * 5s = 60s)
-      const pollInterval = setInterval(() => {
+      const pollInterval = setInterval(async () => {
         pollCount++;
-        fetchIbkrStatus();
-        if (pollCount >= maxPolls || (ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated)) {
+        const res = await fetch('/api/ibkr/status').catch(() => null);
+        if (res) {
+          const data = await res.json().catch(() => null);
+          if (data?.ok) {
+            const bridgeOk = data.bridge?.ok === true;
+            const gatewayAuthenticated = data.gateway?.ok === true && data.gateway?.status?.authenticated === true;
+            // Update state
+            setIbkrStatus({
+              ok: true,
+              bridgeOk,
+              gatewayAuthenticated,
+            });
+            // Stop polling if authenticated
+            if (bridgeOk && gatewayAuthenticated) {
+              clearInterval(pollInterval);
+              return;
+            }
+          }
+        }
+        // Stop polling after max attempts
+        if (pollCount >= maxPolls) {
           clearInterval(pollInterval);
         }
       }, 5000);

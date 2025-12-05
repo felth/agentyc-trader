@@ -86,11 +86,17 @@ export default function HomePage() {
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [performanceInsight, setPerformanceInsight] = useState<{ insightText: string; keyLevels: string[]; regime: string; setupScore: number; volumeScore: number } | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
+  const [ibkrStatus, setIbkrStatus] = useState<{
+    ok: boolean;
+    bridgeOk: boolean;
+    gatewayAuthenticated: boolean;
+  } | null>(null);
 
   // Fetch dashboard snapshot and performance insight
   useEffect(() => {
     fetchDashboard();
     fetchPerformanceInsight();
+    fetchIbkrStatus();
   }, []);
 
   async function fetchDashboard() {
@@ -145,6 +151,50 @@ export default function HomePage() {
     }
   }
 
+  async function fetchIbkrStatus() {
+    try {
+      const res = await fetch('/api/ibkr/status');
+      const data = await res.json();
+      if (data.ok) {
+        const bridgeOk = data.bridge?.ok === true;
+        const gatewayAuthenticated = data.gateway?.ok === true && data.gateway?.status?.authenticated === true;
+        setIbkrStatus({
+          ok: true,
+          bridgeOk,
+          gatewayAuthenticated,
+        });
+      } else {
+        setIbkrStatus({
+          ok: false,
+          bridgeOk: false,
+          gatewayAuthenticated: false,
+        });
+      }
+    } catch (err) {
+      setIbkrStatus({
+        ok: false,
+        bridgeOk: false,
+        gatewayAuthenticated: false,
+      });
+    }
+  }
+
+  function handleReconnectIbkr() {
+    window.open('https://gateway.agentyc.app', '_blank');
+    // Optionally poll status after opening the reconnect page
+    setTimeout(() => {
+      let pollCount = 0;
+      const maxPolls = 12; // Poll for 1 minute (12 * 5s = 60s)
+      const pollInterval = setInterval(() => {
+        pollCount++;
+        fetchIbkrStatus();
+        if (pollCount >= maxPolls || (ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated)) {
+          clearInterval(pollInterval);
+        }
+      }, 5000);
+    }, 3000);
+  }
+
   const handleSymbolChange = (symbol: string) => {
     setSymbolContext({ ...symbolContext, symbol });
   };
@@ -179,6 +229,26 @@ export default function HomePage() {
 
   return (
     <main className="space-y-6 pt-2 pb-24 max-w-md mx-auto px-4">
+      {/* IBKR Connection Status Banner */}
+      {ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
+        <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-2">
+              <h3 className="text-sm font-bold text-amber-400">IBKR not connected</h3>
+              <p className="text-xs text-amber-300/90 leading-relaxed">
+                To refresh your live brokerage data, tap Reconnect and complete login in the IBKR app.
+              </p>
+            </div>
+            <button
+              onClick={handleReconnectIbkr}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap"
+            >
+              Reconnect IBKR
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Background Image with Date - Like health app */}
       <section className="relative h-48 rounded-[2rem] overflow-hidden mb-5 -mx-4">
         <div

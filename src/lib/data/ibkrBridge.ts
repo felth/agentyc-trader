@@ -74,6 +74,13 @@ export async function getIbkrHealth() {
   );
 }
 
+export async function getIbkrGatewayAuthStatus() {
+  return callBridge<{ ok: boolean; status?: any; error?: string }>(
+    '/gateway/auth-status',
+    { method: 'GET' }
+  );
+}
+
 // IMPORTANT: use POST with JSON body, not GET with ?symbol=
 export async function getIbkrPrice(symbol: string) {
   return callBridge<{ ok: boolean; symbol: string; price: number }>(

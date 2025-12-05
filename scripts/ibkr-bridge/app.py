@@ -412,6 +412,27 @@ async def ping(x_bridge_key: str = Header(None)):
     return {"ok": True, "pong": True, "ts": datetime.utcnow()}
 
 
+@app.get("/gateway/auth-status")
+async def gateway_auth_status(x_bridge_key: str = Header(None)):
+    verify(x_bridge_key)
+    """
+    Proxy through to the IBKR Client Portal Gateway auth status on the droplet:
+       https://localhost:5000/v1/api/iserver/auth/status
+    """
+    url = "https://localhost:5000/v1/api/iserver/auth/status"
+    try:
+        async with httpx.AsyncClient(verify=False, timeout=5.0) as client:
+            r = await client.get(url)
+            r.raise_for_status()
+            data = r.json()
+            return {"ok": True, "status": data}
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": f"Gateway auth status fetch failed: {e.__class__.__name__}: {e}",
+        }
+
+
 
 
 

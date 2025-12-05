@@ -1,0 +1,17 @@
+[Unit]
+Description=IBKR Client Portal Gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/ibkr-gateway/clientportal
+ExecStart=/opt/ibkr-gateway/clientportal/bin/run.sh root/conf.yaml
+Restart=on-failure
+RestartSec=5
+# You can change user later, but currently droplet uses root
+User=root
+
+[Install]
+WantedBy=multi-user.target
+

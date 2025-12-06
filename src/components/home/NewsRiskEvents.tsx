@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import SourceStatusBadge, { type Status } from "@/components/ui/SourceStatusBadge";
-import { minutesUntil } from "@/lib/timeUtils";
+import { minutesUntil as calcMinutesUntil } from "@/lib/timeUtils";
 
 type Event = {
   id: string;
@@ -29,7 +29,7 @@ export default function NewsRiskEvents({
 
   // Check for imminent high-impact events
   const imminentHighImpact = events?.some(
-    (e) => e.impactLevel === "HIGH" && minutesUntil(e.releaseTime) <= 45
+    (e) => e.impactLevel === "HIGH" && calcMinutesUntil(e.releaseTime) <= 45
   );
 
   // Notify parent component (use useEffect to avoid stale closures)
@@ -61,7 +61,7 @@ export default function NewsRiskEvents({
 
       <div className="space-y-3">
         {displayEvents.map((event) => {
-          const minsUntil = minutesUntil(event.releaseTime);
+          const minsUntil = calcMinutesUntil(event.releaseTime);
           const hours = Math.max(0, Math.floor(minsUntil / 60));
           const mins = Math.max(0, minsUntil % 60);
           const countdownText = minsUntil > 0 ? `${hours}h ${mins}m` : "Past";

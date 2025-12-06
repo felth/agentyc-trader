@@ -25,7 +25,9 @@ export function MarketOverviewGrid({ tiles }: MarketOverviewGridProps) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-bold text-white">Market Overview</h3>
           <span className="text-[10px] text-white/40 uppercase tracking-wider">
-            {tiles.length > 0 && tiles[0].source === "LIVE" ? "Live" : "Derived"}
+            {tiles.length > 0 && tiles[0].source === "LIVE" 
+              ? "FMP / Coinbase / CoinGecko (live)" 
+              : "Derived"}
           </span>
         </div>
 

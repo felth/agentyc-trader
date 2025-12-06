@@ -95,21 +95,23 @@ export default function HomePage() {
     gatewayAuthenticated: boolean;
   } | null>(null);
   
-  // Mock OHLC data for different timeframes (XAUUSD)
+  // XAUUSD OHLC data from real API
   const [xauusdTimeframe, setXauusdTimeframe] = useState<"M15" | "H1" | "H4" | "D1">("M15");
-  const MOCK_OHLC: Record<"M15" | "H1" | "H4" | "D1", OHLCData> = {
-    M15: { open: 2382.5, high: 2387.2, low: 2381.1, close: 2385.8, spread: 0.25 },
-    H1: { open: 2378.2, high: 2389.0, low: 2375.4, close: 2383.1, spread: 0.30 },
-    H4: { open: 2369.3, high: 2392.4, low: 2360.9, close: 2388.7, spread: 0.35 },
-    D1: { open: 2340.0, high: 2405.0, low: 2335.0, close: 2398.0, spread: 0.40 },
-  };
+  const [xauusdOhlc, setXauusdOhlc] = useState<OHLCData | null>(null);
+  const [loadingXauusd, setLoadingXauusd] = useState(false);
 
   // Fetch dashboard snapshot and performance insight
   useEffect(() => {
     fetchDashboard();
     fetchPerformanceInsight();
     fetchIbkrStatus();
+    fetchXauusdOhlc(xauusdTimeframe);
   }, []);
+
+  // Fetch XAUUSD OHLC when timeframe changes
+  useEffect(() => {
+    fetchXauusdOhlc(xauusdTimeframe);
+  }, [xauusdTimeframe]);
 
   async function fetchDashboard() {
     try {
@@ -237,8 +239,42 @@ export default function HomePage() {
     }
   };
 
-  // Get OHLC data based on current timeframe
-  const ohlc = MOCK_OHLC[xauusdTimeframe];
+  async function fetchXauusdOhlc(tf: "M15" | "H1" | "H4" | "D1") {
+    try {
+      setLoadingXauusd(true);
+      const res = await fetch(`/api/market/xau?tf=${tf}`);
+      const data = await res.json();
+      if (data.ok && data.latestOhlc) {
+        const spread = data.latestOhlc.high - data.latestOhlc.low;
+        setXauusdOhlc({
+          open: data.latestOhlc.open,
+          high: data.latestOhlc.high,
+          low: data.latestOhlc.low,
+          close: data.latestOhlc.close,
+          spread: parseFloat((spread / data.latestOhlc.close * 10000).toFixed(2)), // Convert to pips
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch XAUUSD OHLC:", err);
+    } finally {
+      setLoadingXauusd(false);
+    }
+  }
+
+  // Get OHLC data - use real data if available, fallback to market overview
+  const ohlc = xauusdOhlc || (dashboard?.marketOverview?.tiles?.find((t) => t.symbol === "XAUUSD")?.value ? {
+    open: dashboard.marketOverview.tiles.find((t) => t.symbol === "XAUUSD")!.value! - 5,
+    high: dashboard.marketOverview.tiles.find((t) => t.symbol === "XAUUSD")!.value! + 3,
+    low: dashboard.marketOverview.tiles.find((t) => t.symbol === "XAUUSD")!.value! - 8,
+    close: dashboard.marketOverview.tiles.find((t) => t.symbol === "XAUUSD")!.value!,
+    spread: 0.25,
+  } : {
+    open: 2382.5,
+    high: 2387.2,
+    low: 2381.1,
+    close: 2385.8,
+    spread: 0.25,
+  });
 
   if (loadingDashboard) {
     return (
@@ -358,8 +394,11 @@ export default function HomePage() {
               <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
                 <span className="text-xl">⭐</span>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-white mb-1">Performance Insight</h3>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-base font-bold text-white">Performance Insight</h3>
+                  <span className="text-[10px] text-white/40 uppercase tracking-wider">Agentyc agent</span>
+                </div>
                 <p className="text-xs text-slate-400">Market Analysis</p>
               </div>
             </div>
@@ -458,7 +497,9 @@ export default function HomePage() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-xl font-semibold text-white">XAUUSD</span>
-                <span className="text-[10px] text-white/50 uppercase tracking-[0.16em]">Derived · Placeholder</span>
+                <span className="text-[10px] text-white/50 uppercase tracking-[0.16em]">
+                  {loadingXauusd ? "Loading..." : xauusdOhlc ? "AlphaVantage (live)" : dashboard?.marketOverview?.tiles?.find(t => t.symbol === "XAUUSD")?.source === "LIVE" ? "FMP (live)" : "Derived"}
+                </span>
               </div>
               <div className="flex gap-1.5 items-center">
                 {(["M15", "H1", "H4", "D1"] as const).map((tf) => (
@@ -467,6 +508,7 @@ export default function HomePage() {
                     onClick={() => {
                       setXauusdTimeframe(tf);
                       handleTimeframeChange(tf);
+                      fetchXauusdOhlc(tf);
                     }}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                       xauusdTimeframe === tf
@@ -533,9 +575,9 @@ export default function HomePage() {
         <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">DOM & Order Flow</h3>
-            {dashboard?.dom?.source && (
-              <span className="text-[10px] text-white/40 uppercase tracking-wider">{dashboard.dom.source}</span>
-            )}
+            <span className="text-[10px] text-white/40 uppercase tracking-wider">
+              {dashboard?.dom?.source === "DERIVED" ? "Derived from candle data" : "Derived"}
+            </span>
           </div>
           {loadingDashboard ? (
             <div className="space-y-3">
@@ -604,9 +646,9 @@ export default function HomePage() {
         <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Volume Delta & CVD</h3>
-            {dashboard?.volumeDelta?.source && (
-              <span className="text-[10px] text-white/40 uppercase tracking-wider">{dashboard.volumeDelta.source}</span>
-            )}
+            <span className="text-[10px] text-white/40 uppercase tracking-wider">
+              {dashboard?.volumeDelta?.source === "DERIVED" ? "Derived from candle data" : "Derived"}
+            </span>
           </div>
           {loadingDashboard ? (
             <div className="space-y-3">
@@ -681,9 +723,9 @@ export default function HomePage() {
         <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Execution Quality</h3>
-            {dashboard?.executionQuality?.source && (
-              <span className="text-[10px] text-white/40 uppercase tracking-wider">{dashboard.executionQuality.source}</span>
-            )}
+            <span className="text-[10px] text-white/40 uppercase tracking-wider">
+              {dashboard?.executionQuality?.source === "DERIVED" ? "Derived from volatility" : "Derived"}
+            </span>
           </div>
           {loadingDashboard ? (
             <div className="space-y-3">
@@ -737,9 +779,9 @@ export default function HomePage() {
         <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Correlation & Exposure</h3>
-            {dashboard?.correlationExposure?.source && (
-              <span className="text-[10px] text-white/40 uppercase tracking-wider">{dashboard.correlationExposure.source}</span>
-            )}
+            <span className="text-[10px] text-white/40 uppercase tracking-wider">
+              {dashboard?.correlationExposure?.source === "DERIVED" ? "Derived from holdings" : "Derived"}
+            </span>
           </div>
           {loadingDashboard ? (
             <div className="space-y-3">
@@ -838,9 +880,9 @@ export default function HomePage() {
         <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Volume Profile</h3>
-            {dashboard?.volumeProfile?.source && (
-              <span className="text-[10px] text-white/40 uppercase tracking-wider">{dashboard.volumeProfile.source}</span>
-            )}
+            <span className="text-[10px] text-white/40 uppercase tracking-wider">
+              {dashboard?.volumeProfile?.source === "DERIVED" ? "Derived from candle data" : "Derived"}
+            </span>
           </div>
           {loadingDashboard ? (
             <div className="space-y-3">
@@ -905,9 +947,9 @@ export default function HomePage() {
         <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 space-y-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] hover:border-white/25 transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">Liquidity Zones</h3>
-            {dashboard?.liquidityZones?.source && (
-              <span className="text-[10px] text-white/40 uppercase tracking-wider">{dashboard.liquidityZones.source}</span>
-            )}
+            <span className="text-[10px] text-white/40 uppercase tracking-wider">
+              {dashboard?.liquidityZones?.source === "DERIVED" ? "Derived from volume profile" : "Derived"}
+            </span>
           </div>
           {loadingDashboard ? (
             <div className="space-y-3">

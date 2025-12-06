@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import type { EconomicCalendarSnapshot } from "@/lib/data/dashboard";
 
 type EconomicCalendarCardProps = {
@@ -20,9 +21,14 @@ export function EconomicCalendarCard({ calendar }: EconomicCalendarCardProps) {
           <span className="text-base">📊</span>
           <h2 className="text-base font-bold text-white">Economic Calendar</h2>
         </div>
-        <span className="text-xs text-white/50 font-medium">
-          {new Date(calendar.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-white/40 uppercase tracking-wider">
+            {calendar.source === "LIVE" ? "FMP (live)" : "Simulated"}
+          </span>
+          <span className="text-xs text-white/50 font-medium">
+            {new Date(calendar.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </span>
+        </div>
       </div>
       
       <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 shadow-[0_8px_24px_rgba(0,0,0,0.4)] overflow-hidden">
@@ -120,6 +126,16 @@ export function EconomicCalendarCard({ calendar }: EconomicCalendarCardProps) {
             {showAll ? "Show fewer events" : `Show ${remaining} more event${remaining > 1 ? 's' : ''}`}
           </button>
         )}
+        
+        {/* View Full Calendar Button */}
+        <div className="px-5 py-3 border-t border-white/10 bg-white/[0.02]">
+          <Link
+            href="/performance?tab=calendar"
+            className="block w-full text-center text-xs text-white/60 hover:text-white/90 font-medium transition-colors"
+          >
+            View full calendar →
+          </Link>
+        </div>
       </div>
     </div>
   );

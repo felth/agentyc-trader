@@ -87,7 +87,7 @@ export default function NewsRiskEvents({
                     {event.title}
                   </p>
                   <p className="text-[12px] text-white/50">
-                    {releaseTime.toLocaleTimeString("en-US", {
+                    {new Date(event.releaseTime).toLocaleTimeString("en-US", {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}

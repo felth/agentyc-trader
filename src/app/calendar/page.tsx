@@ -51,10 +51,10 @@ export default function CalendarPage() {
 
   const getImpactColors = (importance: EconomicCalendarItem["importance"]) => {
     switch (importance) {
-      case "HIGH": return { bg: "bg-red-500/15", text: "text-red-300", dot: "bg-red-500" };
-      case "MEDIUM": return { bg: "bg-amber-500/15", text: "text-amber-200", dot: "bg-amber-500" };
-      case "LOW": return { bg: "bg-slate-500/15", text: "text-slate-300", dot: "bg-slate-500" };
-      default: return { bg: "bg-slate-500/15", text: "text-slate-300", dot: "bg-slate-500" };
+      case "HIGH": return { bg: "bg-red-500/15", text: "text-red-300", dot: "bg-red-500", border: "border-red-500/30" };
+      case "MEDIUM": return { bg: "bg-amber-500/15", text: "text-amber-200", dot: "bg-amber-500", border: "border-amber-500/30" };
+      case "LOW": return { bg: "bg-slate-500/15", text: "text-slate-300", dot: "bg-slate-500", border: "border-slate-500/30" };
+      default: return { bg: "bg-slate-500/15", text: "text-slate-300", dot: "bg-slate-500", border: "border-slate-500/30" };
     }
   };
 
@@ -159,7 +159,7 @@ export default function CalendarPage() {
                             </h3>
                           </div>
 
-                          <div className={`flex-shrink-0 px-2.5 py-1 rounded-lg ${colors.bg} border ${colors.border || "border-transparent"} backdrop-blur-sm`}>
+                          <div className={`flex-shrink-0 px-2.5 py-1 rounded-lg ${colors.bg} border ${colors.border} backdrop-blur-sm`}>
                             <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>
                               {event.importance}
                             </span>

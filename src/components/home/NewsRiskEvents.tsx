@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import SourceStatusBadge, { type Status } from "@/components/ui/SourceStatusBadge";
 import { minutesUntil } from "@/lib/timeUtils";
@@ -21,9 +22,22 @@ type NewsRiskEventsProps = {
 export default function NewsRiskEvents({
   events,
   status,
+  onImminentHighImpact,
 }: NewsRiskEventsProps) {
   // Show only next 3 events
   const displayEvents = events.slice(0, 3);
+
+  // Check for imminent high-impact events
+  const imminentHighImpact = events?.some(
+    (e) => e.impactLevel === "HIGH" && minutesUntil(e.releaseTime) <= 45
+  );
+
+  // Notify parent component (use useEffect to avoid stale closures)
+  React.useEffect(() => {
+    if (onImminentHighImpact) {
+      onImminentHighImpact(imminentHighImpact);
+    }
+  }, [imminentHighImpact, onImminentHighImpact]);
 
   if (displayEvents.length === 0) {
     return (
@@ -47,16 +61,12 @@ export default function NewsRiskEvents({
 
       <div className="space-y-3">
         {displayEvents.map((event) => {
-          const releaseTime = new Date(event.releaseTime);
-          const now = new Date();
-          const minutesUntil = Math.floor(
-            (releaseTime.getTime() - now.getTime()) / (1000 * 60)
-          );
-          const hours = Math.max(0, Math.floor(minutesUntil / 60));
-          const mins = Math.max(0, minutesUntil % 60);
-          const countdownText = minutesUntil > 0 ? `${hours}h ${mins}m` : "Past";
+          const minsUntil = minutesUntil(event.releaseTime);
+          const hours = Math.max(0, Math.floor(minsUntil / 60));
+          const mins = Math.max(0, minsUntil % 60);
+          const countdownText = minsUntil > 0 ? `${hours}h ${mins}m` : "Past";
 
-          const isHighRisk = event.impactLevel === "HIGH" && minutesUntil < 45;
+          const isHighRisk = event.impactLevel === "HIGH" && minsUntil <= 45;
           const borderColor =
             event.impactLevel === "HIGH"
               ? "border-[#FF4D4D]"

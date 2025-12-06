@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SourceStatusBadge, { type Status } from "@/components/ui/SourceStatusBadge";
+import type { ReactNode } from "react";
 
 type MarketRegimeCardProps = {
   trendRegime: "UP" | "DOWN" | "RANGE";
@@ -11,6 +12,7 @@ type MarketRegimeCardProps = {
   summary: string; // Human language summary
   fmpStatus: Status;
   derivedStatus: Status;
+  agentHint?: ReactNode;
 };
 
 export default function MarketRegimeCard({
@@ -20,6 +22,7 @@ export default function MarketRegimeCard({
   summary,
   fmpStatus,
   derivedStatus,
+  agentHint,
 }: MarketRegimeCardProps) {
   const router = useRouter();
 
@@ -35,6 +38,7 @@ export default function MarketRegimeCard({
       href="/market"
       className="relative block rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:border-white/25 active:scale-[0.99]"
     >
+      {agentHint && <div className="absolute top-2 left-4 z-10">{agentHint}</div>}
       <div className="absolute top-4 right-4 flex flex-col gap-1 items-end">
         <span className="text-[12px] uppercase font-semibold tracking-wide" style={{ color: fmpStatus === "LIVE" ? "#00FF7F" : fmpStatus === "DEGRADED" ? "#FFBF00" : "#FF4D4D" }}>
           FMP • {fmpStatus}

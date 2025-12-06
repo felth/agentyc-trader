@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SourceStatusBadge, { type Status } from "@/components/ui/SourceStatusBadge";
+import type { ReactNode } from "react";
 
 type AgentTradePlanCardProps = {
   hasPlan: boolean;
   actionableBullets?: string[]; // Top 3 actionable items
   status: Status; // IDLE or LIVE
   onGeneratePlan?: () => void;
+  agentHint?: ReactNode;
 };
 
 export default function AgentTradePlanCard({
@@ -16,12 +18,14 @@ export default function AgentTradePlanCard({
   actionableBullets = [],
   status,
   onGeneratePlan,
+  agentHint,
 }: AgentTradePlanCardProps) {
   const router = useRouter();
 
   return (
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7">
       <SourceStatusBadge provider="AGENT" status={status} />
+      {agentHint && <div className="absolute top-2 left-4 z-10">{agentHint}</div>}
 
       <h3 className="text-[16px] font-semibold text-white mb-4">
         Agent Trade Plan

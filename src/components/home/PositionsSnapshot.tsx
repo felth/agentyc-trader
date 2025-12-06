@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SourceStatusBadge from "@/components/ui/SourceStatusBadge";
+import type { ReactNode } from "react";
 
 type Position = {
   symbol: string;
@@ -14,11 +15,13 @@ type Position = {
 type PositionsSnapshotProps = {
   positions: Position[];
   status: "LIVE" | "DEGRADED" | "ERROR";
+  agentHint?: ReactNode;
 };
 
 export default function PositionsSnapshot({
   positions,
   status,
+  agentHint,
 }: PositionsSnapshotProps) {
   const router = useRouter();
 
@@ -26,6 +29,7 @@ export default function PositionsSnapshot({
     return (
       <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7">
         <SourceStatusBadge provider="IBKR" status={status} />
+        {agentHint && <div className="absolute top-2 left-4 z-10">{agentHint}</div>}
         <p className="text-white/50 text-[14px]">No active trades</p>
       </div>
     );
@@ -37,6 +41,7 @@ export default function PositionsSnapshot({
       className="relative block rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:border-white/25 active:scale-[0.99]"
     >
       <SourceStatusBadge provider="IBKR" status={status} />
+      {agentHint && <div className="absolute top-2 left-4 z-10">{agentHint}</div>}
       
       <div className="flex flex-wrap gap-3 overflow-x-auto pb-2">
         {positions.map((pos) => (

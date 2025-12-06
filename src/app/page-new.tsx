@@ -9,7 +9,6 @@ import InteractiveWatchlist from "@/components/home/InteractiveWatchlist";
 import NewsRiskEvents from "@/components/home/NewsRiskEvents";
 import AgentTradePlanCard from "@/components/home/AgentTradePlanCard";
 import SystemHealthFooter from "@/components/home/SystemHealthFooter";
-import AgentHintTag from "@/components/ui/AgentHintTag";
 import type { DashboardSnapshot } from "@/lib/data/dashboard";
 import type { TradePlan } from "@/lib/agent/tradeSchema";
 
@@ -157,98 +156,65 @@ export default function HomePage() {
       )}
 
       {/* Section 2: Account & Risk */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Today's Account & Risk
-        </h2>
-        {dashboard?.account && (
-          <AccountRiskCard
-            netLiquidity={dashboard.account.equity}
-            buyingPower={dashboard.account.buyingPower}
-            dailyPnl={dailyPnl}
-            openRiskR={openRiskR}
-            positionsCount={dashboard.positions?.length || 0}
-            status={ibkrCardStatus}
-          />
-        )}
-      </div>
+      {dashboard?.account && (
+        <AccountRiskCard
+          netLiquidity={dashboard.account.equity}
+          buyingPower={dashboard.account.buyingPower}
+          dailyPnl={dailyPnl}
+          openRiskR={openRiskR}
+          positionsCount={dashboard.positions?.length || 0}
+          status={ibkrCardStatus}
+        />
+      )}
 
       {/* Section 3: Positions Snapshot */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Open Positions
-        </h2>
-        <PositionsSnapshot
-          positions={
-            dashboard?.positions?.map((pos) => ({
-              symbol: pos.symbol,
-              unrealizedPnl: pos.unrealizedPnl,
-              quantity: pos.quantity,
-              correlationAlert: false, // TODO: Calculate correlations
-            })) || []
-          }
-          status={ibkrCardStatus}
-          agentHint={<AgentHintTag text="correlation watch" />}
-        />
-      </div>
+      <PositionsSnapshot
+        positions={
+          dashboard?.positions?.map((pos) => ({
+            symbol: pos.symbol,
+            unrealizedPnl: pos.unrealizedPnl,
+            quantity: pos.quantity,
+            correlationAlert: false, // TODO: Calculate correlations
+          })) || []
+        }
+        status={ibkrCardStatus}
+      />
 
       {/* Section 4: Market Regime Context */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Market Regime (Agent View)
-        </h2>
-        <MarketRegimeCard
-          trendRegime="RANGE" // TODO: Derive from market data
-          volatilityState="ATR 45th percentile" // TODO: Calculate from ATR
-          session={getCurrentSession()}
-          summary="Stability. Low volatility. Best setups: pullbacks to support."
-          fmpStatus="LIVE"
-          derivedStatus="OK"
-          agentHint={<AgentHintTag text="conditions assessed" />}
-        />
-      </div>
+      <MarketRegimeCard
+        trendRegime="RANGE" // TODO: Derive from market data
+        volatilityState="ATR 45th percentile" // TODO: Calculate from ATR
+        session={getCurrentSession()}
+        summary="Stability. Low volatility. Best setups: pullbacks to support."
+        fmpStatus="LIVE"
+        derivedStatus="OK"
+      />
 
       {/* Section 5: Interactive Watchlist */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Watchlist
-        </h2>
-        {watchlistItems.length > 0 && (
-          <InteractiveWatchlist items={watchlistItems} />
-        )}
-      </div>
+      {watchlistItems.length > 0 && (
+        <InteractiveWatchlist items={watchlistItems} />
+      )}
 
       {/* Section 6: News & Risk Events */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Upcoming Risk Events
-        </h2>
-        {calendarEvents.length > 0 && (
-          <NewsRiskEvents events={calendarEvents} status="LIVE" />
-        )}
-      </div>
+      {calendarEvents.length > 0 && (
+        <NewsRiskEvents events={calendarEvents} status="LIVE" />
+      )}
 
       {/* Section 7: Agent Trade Plan */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Trade Plan
-        </h2>
-        <AgentTradePlanCard
-          hasPlan={!!tradePlan && (tradePlan.orders?.length || 0) > 0}
-          actionableBullets={actionableBullets}
-          status={tradePlan ? "LIVE" : "IDLE"}
-          agentHint={<AgentHintTag text="plan pending" />}
-          onGeneratePlan={async () => {
-            const res = await fetch("/api/agent/trade-plan", { method: "POST" });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.ok && data.plan) {
-                setTradePlan(data.plan);
-              }
+      <AgentTradePlanCard
+        hasPlan={!!tradePlan && (tradePlan.orders?.length || 0) > 0}
+        actionableBullets={actionableBullets}
+        status={tradePlan ? "LIVE" : "IDLE"}
+        onGeneratePlan={async () => {
+          const res = await fetch("/api/agent/trade-plan", { method: "POST" });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.ok && data.plan) {
+              setTradePlan(data.plan);
             }
-          }}
-        />
-      </div>
+          }
+        }}
+      />
 
       {/* System Health Footer */}
       <SystemHealthFooter

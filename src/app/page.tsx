@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import DailyBriefingBanner from "@/components/home/DailyBriefingBanner";
+import HeroSection from "@/components/home/HeroSection";
 import AccountRiskCard from "@/components/home/AccountRiskCard";
 import PositionsSnapshot from "@/components/home/PositionsSnapshot";
 import MarketRegimeCard from "@/components/home/MarketRegimeCard";
@@ -137,6 +137,42 @@ export default function HomePage() {
           `${order.side} ${order.symbol} ${order.orderType === 'LIMIT' && order.entry ? `@ ${order.entry.toFixed(2)}` : 'market'}`
       ) || [];
 
+  // Handle IBKR reconnect
+  function handleReconnectIbkr() {
+    const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL ?? "https://gateway.agentyctrader.com";
+    window.open(GATEWAY_URL, '_blank', 'noopener,noreferrer');
+    // Optionally poll status after opening the reconnect page
+    setTimeout(() => {
+      let pollCount = 0;
+      const maxPolls = 12; // Poll for 1 minute (12 * 5s = 60s)
+      const pollInterval = setInterval(async () => {
+        pollCount++;
+        const res = await fetch('/api/ibkr/status').catch(() => null);
+        if (res) {
+          const data = await res.json().catch(() => null);
+          if (data?.ok) {
+            const bridgeOk = data.bridge?.ok === true;
+            const gatewayAuthenticated = data.gateway?.ok === true && data.gateway?.status?.authenticated === true;
+            // Update state
+            setIbkrStatus({
+              bridgeOk,
+              gatewayAuthenticated,
+            });
+            // Stop polling if authenticated
+            if (bridgeOk && gatewayAuthenticated) {
+              clearInterval(pollInterval);
+              return;
+            }
+          }
+        }
+        // Stop polling after max attempts
+        if (pollCount >= maxPolls) {
+          clearInterval(pollInterval);
+        }
+      }, 5000);
+    }, 3000);
+  }
+
   if (loading) {
     return (
       <main className="px-6 pt-10 pb-32 bg-[#0A0A0A] min-h-screen flex items-center justify-center">
@@ -148,18 +184,40 @@ export default function HomePage() {
     );
   }
 
-  return (
-    <main className="px-6 pt-10 pb-32 bg-[#0A0A0A] min-h-screen flex flex-col gap-9">
-      {/* Section 1: Daily Briefing Banner */}
-      {systemStatus && (
-        <DailyBriefingBanner
-          dateDisplay={systemStatus.dateDisplay}
-          timeDisplay={systemStatus.timeDisplay}
-          systemStatus={systemStatus.systemStatus}
-        />
-      )}
+  // Format date and time for hero section
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dayStr = today.toLocaleDateString('en-US', { weekday: 'long' });
+  const time = today.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-      {/* Section 2: Account & Risk */}
+  return (
+    <main className="bg-[#0A0A0A] min-h-screen flex flex-col">
+      {/* Hero Section - Full visibility on load */}
+      <HeroSection dateStr={dateStr} dayStr={dayStr} time={time} />
+
+      {/* Dashboard Content Section */}
+      <section className="px-6 pb-32 flex flex-col gap-9">
+        {/* IBKR Connection Status Banner - Only shows when disconnected */}
+        {ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
+          <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 space-y-2">
+                <h3 className="text-sm font-bold text-amber-400">IBKR not connected</h3>
+                <p className="text-xs text-amber-300/90 leading-relaxed">
+                  To refresh your live brokerage data, tap Reconnect and complete login in the IBKR app.
+                </p>
+              </div>
+              <button
+                onClick={handleReconnectIbkr}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap"
+              >
+                Reconnect IBKR
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Section 2: Account & Risk */}
       <div>
         <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
           Today's Account & Risk
@@ -257,6 +315,7 @@ export default function HomePage() {
           }}
         />
       </div>
+      </section>
 
       {/* System Health Footer */}
       <SystemHealthFooter

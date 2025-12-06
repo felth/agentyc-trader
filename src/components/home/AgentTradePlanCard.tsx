@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SourceStatusBadge, { type Status } from "@/components/ui/SourceStatusBadge";
+import AgentHintTag from "@/components/ui/AgentHintTag";
 import type { ReactNode } from "react";
 
 type AgentTradePlanCardProps = {

@@ -2,16 +2,16 @@
 
 ## Problem Statement
 
-**What was working:** This morning, the IBKR Gateway reconnect feature was working. Users could click "Reconnect IBKR" in the Agentyc Trader app, and Safari would successfully open `https://gateway.agentyc.app` to show the IBKR Client Portal Gateway login page.
+**What was working:** This morning, the IBKR Gateway reconnect feature was working. Users could click "Reconnect IBKR" in the Agentyc Trader app, and Safari would successfully open `https://gateway.agentyctrader.com` to show the IBKR Client Portal Gateway login page.
 
-**Current issue:** Safari now shows "Safari can't open the page because it can't find the server" when clicking "Reconnect IBKR". The URL `https://gateway.agentyc.app` is no longer accessible.
+**Current issue:** Safari now shows "Safari can't open the page because it can't find the server" when clicking "Reconnect IBKR". The URL `https://gateway.agentyctrader.com` is no longer accessible.
 
 ## Architecture Overview
 
 ```
 Phone Browser (Safari)
     ↓ HTTPS
-gateway.agentyc.app (Nginx reverse proxy on droplet)
+gateway.agentyctrader.com (Nginx reverse proxy on droplet)
     ↓ Proxy HTTPS (with self-signed cert)
 localhost:5000 (IBKR Client Portal Gateway)
     ↓ API calls
@@ -25,7 +25,7 @@ Vercel (Agentyc Trader Next.js app)
 ### Droplet Details
 - **IP Address:** 104.248.42.213
 - **OS:** Ubuntu 24.04
-- **Domain:** gateway.agentyc.app (subdomain of agentyc.app)
+- **Domain:** gateway.agentyctrader.com (subdomain of agentyc.app)
 
 ### Services Running on Droplet
 
@@ -46,7 +46,7 @@ Vercel (Agentyc Trader Next.js app)
    - Purpose: Expose IBKR Gateway via public HTTPS URL
    - Config: `/etc/nginx/sites-available/gateway.conf`
    - SSL: Let's Encrypt certificate via certbot
-   - Proxies: `https://gateway.agentyc.app` → `https://127.0.0.1:5000`
+   - Proxies: `https://gateway.agentyctrader.com` → `https://127.0.0.1:5000`
 
 ### Configuration Files
 
@@ -56,15 +56,15 @@ Vercel (Agentyc Trader Next.js app)
 
 ## Current Problem: Gateway URL Not Accessible
 
-The symptom is that `https://gateway.agentyc.app` cannot be reached from Safari.
+The symptom is that `https://gateway.agentyctrader.com` cannot be reached from Safari.
 
 ## Diagnostic Checklist
 
 ### 1. DNS Resolution
 **Command on Mac:**
 ```bash
-dig gateway.agentyc.app +short
-nslookup gateway.agentyc.app
+dig gateway.agentyctrader.com +short
+nslookup gateway.agentyctrader.com
 ```
 
 **Expected:** Should return `104.248.42.213`
@@ -92,14 +92,14 @@ sudo netstat -tlnp | grep :443
 **Commands:**
 ```bash
 sudo certbot certificates
-ls -la /etc/letsencrypt/live/gateway.agentyc.app/
+ls -la /etc/letsencrypt/live/gateway.agentyctrader.com/
 ```
 
 **Expected:** Certificate should exist and be valid (not expired)
 
 **If expired or missing:**
 - Renew: `sudo certbot renew`
-- Or re-issue: `sudo certbot --nginx -d gateway.agentyc.app`
+- Or re-issue: `sudo certbot --nginx -d gateway.agentyctrader.com`
 
 ### 4. IBKR Gateway Service (on droplet)
 **Commands:**
@@ -152,10 +152,10 @@ sudo ufw reload
 curl -k https://127.0.0.1:5000 | head -20
 
 # Test nginx proxy locally
-curl -H "Host: gateway.agentyc.app" http://127.0.0.1 | head -20
+curl -H "Host: gateway.agentyctrader.com" http://127.0.0.1 | head -20
 
 # Test HTTPS from droplet
-curl -I https://gateway.agentyc.app
+curl -I https://gateway.agentyctrader.com
 ```
 
 **Expected:** All should return valid responses
@@ -178,7 +178,7 @@ Based on "was working this morning, now it's not":
 
 4. **DNS record changed/deleted**
    - Verify DNS provider settings
-   - Re-add A record if needed: `gateway.agentyc.app` → `104.248.42.213`
+   - Re-add A record if needed: `gateway.agentyctrader.com` → `104.248.42.213`
 
 5. **Nginx config file deleted/corrupted**
    - Check: `ls -la /etc/nginx/sites-available/gateway.conf`
@@ -211,7 +211,7 @@ sudo certbot certificates
 curl -k https://127.0.0.1:5000 | head -20
 
 # 5. Test nginx proxy
-curl -I https://gateway.agentyc.app
+curl -I https://gateway.agentyctrader.com
 ```
 
 ## Diagnostic Script
@@ -231,14 +231,14 @@ bash /opt/agentyc-trader/scripts/infra/GATEWAY_QUICK_CHECK.sh
 - Nginx config: `/etc/nginx/sites-available/gateway.conf`
 - Nginx enabled: `/etc/nginx/sites-enabled/gateway.conf`
 - Nginx logs: `/var/log/nginx/error.log`
-- SSL certs: `/etc/letsencrypt/live/gateway.agentyc.app/`
+- SSL certs: `/etc/letsencrypt/live/gateway.agentyctrader.com/`
 - Gateway service logs: `sudo journalctl -u ibkr-gateway.service -n 100`
 - Bridge service logs: `sudo journalctl -u ibkr-bridge.service -n 100`
 
 ## Expected Behavior When Working
 
 1. User clicks "Reconnect IBKR" in Agentyc Trader app
-2. Safari opens `https://gateway.agentyc.app`
+2. Safari opens `https://gateway.agentyctrader.com`
 3. IBKR Client Portal Gateway login page loads
 4. User enters credentials
 5. User completes 2FA via IBKR mobile app
@@ -252,8 +252,8 @@ bash /opt/agentyc-trader/scripts/infra/GATEWAY_QUICK_CHECK.sh
 2. Run diagnostic script: `bash /opt/agentyc-trader/scripts/infra/GATEWAY_QUICK_CHECK.sh`
 3. Check service statuses
 4. Check logs for errors
-5. Verify DNS from Mac: `dig gateway.agentyc.app +short`
-6. Test HTTPS from Mac: `curl -I https://gateway.agentyc.app`
+5. Verify DNS from Mac: `dig gateway.agentyctrader.com +short`
+6. Test HTTPS from Mac: `curl -I https://gateway.agentyctrader.com`
 
 ## Additional Context
 

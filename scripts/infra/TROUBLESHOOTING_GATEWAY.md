@@ -2,7 +2,7 @@
 
 ## Problem: "Gateway can't be found on Safari"
 
-When clicking "Reconnect IBKR", Safari cannot load `https://gateway.agentyc.app`.
+When clicking "Reconnect IBKR", Safari cannot load `https://gateway.agentyctrader.com`.
 
 ## Quick Diagnostic Checklist
 
@@ -10,16 +10,16 @@ When clicking "Reconnect IBKR", Safari cannot load `https://gateway.agentyc.app`
 
 On your Mac, run:
 ```bash
-dig gateway.agentyc.app +short
+dig gateway.agentyctrader.com +short
 # or
-nslookup gateway.agentyc.app
+nslookup gateway.agentyctrader.com
 ```
 
 **Expected:** Should return `104.248.42.213`
 
 **If not:**
 - Go to your DNS provider (where `agentyc.app` is managed)
-- Add an A record: `gateway.agentyc.app` → `104.248.42.213`
+- Add an A record: `gateway.agentyctrader.com` → `104.248.42.213`
 - Wait 5-10 minutes for DNS propagation
 
 ### 2. Check if Nginx is Installed on Droplet
@@ -53,11 +53,11 @@ ls -la /etc/nginx/sites-enabled/gateway.conf
 On the droplet:
 ```bash
 sudo certbot certificates
-ls -la /etc/letsencrypt/live/gateway.agentyc.app/
+ls -la /etc/letsencrypt/live/gateway.agentyctrader.com/
 ```
 
 **If certificate doesn't exist:**
-- Run: `sudo certbot --nginx -d gateway.agentyc.app`
+- Run: `sudo certbot --nginx -d gateway.agentyctrader.com`
 - Follow the prompts to obtain the certificate
 
 ### 5. Check if IBKR Gateway is Running
@@ -111,7 +111,7 @@ On the droplet:
 curl -k https://127.0.0.1:5000 | head -20
 
 # Test nginx proxy
-curl -H "Host: gateway.agentyc.app" http://127.0.0.1 | head -20
+curl -H "Host: gateway.agentyctrader.com" http://127.0.0.1 | head -20
 ```
 
 ## Common Issues and Fixes
@@ -125,7 +125,7 @@ curl -H "Host: gateway.agentyc.app" http://127.0.0.1 | head -20
 ### Issue: SSL certificate error
 **Fix:** 
 1. Ensure DNS is pointing correctly
-2. Run: `sudo certbot --nginx -d gateway.agentyc.app`
+2. Run: `sudo certbot --nginx -d gateway.agentyctrader.com`
 3. Follow prompts to verify domain ownership
 
 ### Issue: "Connection refused" in Safari
@@ -136,7 +136,7 @@ curl -H "Host: gateway.agentyc.app" http://127.0.0.1 | head -20
 
 ### Issue: "Site can't be reached"
 **Fix:**
-- Verify DNS: `dig gateway.agentyc.app`
+- Verify DNS: `dig gateway.agentyctrader.com`
 - Verify nginx is listening: `sudo netstat -tlnp | grep :443`
 - Verify firewall allows traffic
 
@@ -160,7 +160,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 # 5. Get SSL certificate (requires DNS to be set up first)
-sudo certbot --nginx -d gateway.agentyc.app
+sudo certbot --nginx -d gateway.agentyctrader.com
 
 # 6. Verify gateway is accessible
 curl -k https://127.0.0.1:5000
@@ -172,17 +172,17 @@ After setup, test from your Mac:
 
 ```bash
 # Test HTTP redirect
-curl -I http://gateway.agentyc.app
+curl -I http://gateway.agentyctrader.com
 
 # Test HTTPS
-curl -I https://gateway.agentyc.app
+curl -I https://gateway.agentyctrader.com
 
 # Should see HTTP 200 or 302 redirect
 ```
 
 ## Next Steps
 
-Once `https://gateway.agentyc.app` is accessible:
+Once `https://gateway.agentyctrader.com` is accessible:
 1. Verify it shows the IBKR Client Portal Gateway login page
 2. Test login from Safari
 3. Verify the "Reconnect IBKR" button in the app works

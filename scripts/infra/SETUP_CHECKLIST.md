@@ -2,7 +2,7 @@
 
 ## Current Status: ❌ NOT SET UP
 
-To make `https://gateway.agentyc.app` work, you need to complete these steps:
+To make `https://gateway.agentyctrader.com` work, you need to complete these steps:
 
 ## Step 1: Configure DNS (5 minutes)
 
@@ -16,7 +16,7 @@ To make `https://gateway.agentyc.app` work, you need to complete these steps:
 
 **Wait 5-10 minutes** for DNS to propagate, then test:
 ```bash
-dig gateway.agentyc.app +short
+dig gateway.agentyctrader.com +short
 # Should return: 104.248.42.213
 ```
 
@@ -48,7 +48,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 # 5. Get SSL certificate (will ask for email and verify domain)
-sudo certbot --nginx -d gateway.agentyc.app
+sudo certbot --nginx -d gateway.agentyctrader.com
 
 # 6. Verify IBKR Gateway is running
 curl -k https://127.0.0.1:5000 | head -20
@@ -59,15 +59,15 @@ curl -k https://127.0.0.1:5000 | head -20
 After setup, test:
 ```bash
 # Test DNS
-dig gateway.agentyc.app +short
+dig gateway.agentyctrader.com +short
 # Should return: 104.248.42.213
 
 # Test HTTPS
-curl -I https://gateway.agentyc.app
+curl -I https://gateway.agentyctrader.com
 # Should return: HTTP/2 200 or 302
 ```
 
-Then open in Safari: `https://gateway.agentyc.app`
+Then open in Safari: `https://gateway.agentyctrader.com`
 
 You should see the IBKR Client Portal Gateway login page.
 
@@ -75,7 +75,7 @@ You should see the IBKR Client Portal Gateway login page.
 
 1. Open Agentyc Trader app
 2. Click "Reconnect IBKR" button
-3. Should open `https://gateway.agentyc.app` in Safari
+3. Should open `https://gateway.agentyctrader.com` in Safari
 4. Login with IBKR credentials
 5. Complete 2FA
 

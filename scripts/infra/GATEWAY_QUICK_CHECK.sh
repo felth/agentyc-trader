@@ -6,7 +6,7 @@ echo "=== IBKR Gateway Quick Diagnostic ==="
 echo ""
 
 echo "1. Checking DNS resolution..."
-dig gateway.agentyc.app +short
+dig gateway.agentyctrader.com +short
 echo ""
 
 echo "2. Checking if nginx is installed..."
@@ -39,12 +39,12 @@ systemctl is-active --quiet nginx && echo "✅ Nginx is running" || echo "❌ Ng
 echo ""
 
 echo "5. Checking SSL certificate..."
-if [ -d /etc/letsencrypt/live/gateway.agentyc.app ]; then
+if [ -d /etc/letsencrypt/live/gateway.agentyctrader.com ]; then
     echo "✅ SSL certificate exists"
-    ls -la /etc/letsencrypt/live/gateway.agentyc.app/
+    ls -la /etc/letsencrypt/live/gateway.agentyctrader.com/
 else
     echo "❌ SSL certificate missing"
-    echo "   Fix: sudo certbot --nginx -d gateway.agentyc.app"
+    echo "   Fix: sudo certbot --nginx -d gateway.agentyctrader.com"
 fi
 echo ""
 
@@ -78,5 +78,5 @@ echo "  sudo cp /opt/agentyc-trader/scripts/infra/nginx/gateway.conf /etc/nginx/
 echo "  sudo ln -s /etc/nginx/sites-available/gateway.conf /etc/nginx/sites-enabled/gateway.conf"
 echo "  sudo nginx -t"
 echo "  sudo systemctl reload nginx"
-echo "  sudo certbot --nginx -d gateway.agentyc.app"
+echo "  sudo certbot --nginx -d gateway.agentyctrader.com"
 

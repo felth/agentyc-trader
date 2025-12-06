@@ -4,7 +4,7 @@
 
 - nginx installed on the droplet
 - certbot installed for SSL certificate provisioning
-- DNS A record for `gateway.agentyc.app` pointing to `104.248.42.213`
+- DNS A record for `gateway.agentyctrader.com` pointing to `104.248.42.213`
 
 ## Installation Steps
 
@@ -26,12 +26,12 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 # Obtain TLS certificate (certbot will automatically configure nginx)
-sudo certbot --nginx -d gateway.agentyc.app
+sudo certbot --nginx -d gateway.agentyctrader.com
 ```
 
 ## Verification
 
-After setup, `https://gateway.agentyc.app` should show the IBKR Client Portal Gateway login page (proxied through to the droplet's gateway on port 5000).
+After setup, `https://gateway.agentyctrader.com` should show the IBKR Client Portal Gateway login page (proxied through to the droplet's gateway on port 5000).
 
 ## Notes
 

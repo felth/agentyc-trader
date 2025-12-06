@@ -2,9 +2,9 @@
 
 ## Problem
 
-**Background:** The IBKR Gateway reconnect feature was working this morning. Users could click "Reconnect IBKR" in the Agentyc Trader app, and Safari would successfully open `https://gateway.agentyc.app` to show the IBKR Client Portal Gateway login page.
+**Background:** The IBKR Gateway reconnect feature was working this morning. Users could click "Reconnect IBKR" in the Agentyc Trader app, and Safari would successfully open `https://gateway.agentyctrader.com` to show the IBKR Client Portal Gateway login page.
 
-**Current Issue:** Safari now shows "Safari can't open the page because it can't find the server" when clicking "Reconnect IBKR". The URL `https://gateway.agentyc.app` is no longer accessible.
+**Current Issue:** Safari now shows "Safari can't open the page because it can't find the server" when clicking "Reconnect IBKR". The URL `https://gateway.agentyctrader.com` is no longer accessible.
 
 **Since it was working this morning, this is likely a service crash, configuration change, or infrastructure issue on the droplet.**
 
@@ -13,21 +13,21 @@
 The system has these components:
 
 1. **Droplet** (Ubuntu 24.04) at `104.248.42.213`
-   - **Nginx** reverse proxy: Exposes `https://gateway.agentyc.app` publicly
+   - **Nginx** reverse proxy: Exposes `https://gateway.agentyctrader.com` publicly
    - **IBKR Client Portal Gateway**: Runs on `https://127.0.0.1:5000` (self-signed cert)
    - **IBKR Bridge** (FastAPI): Runs on `http://127.0.0.1:8000`
 
-2. **DNS**: `gateway.agentyc.app` → `104.248.42.213`
+2. **DNS**: `gateway.agentyctrader.com` → `104.248.42.213`
 
 3. **Flow**: 
-   - Browser → `https://gateway.agentyc.app` (nginx) → `https://127.0.0.1:5000` (IBKR Gateway)
+   - Browser → `https://gateway.agentyctrader.com` (nginx) → `https://127.0.0.1:5000` (IBKR Gateway)
 
 ## What to Check (Priority Order)
 
 ### 1. DNS Resolution (Check from Mac first)
 ```bash
-dig gateway.agentyc.app +short
-nslookup gateway.agentyc.app
+dig gateway.agentyctrader.com +short
+nslookup gateway.agentyctrader.com
 ```
 **Should return:** `104.248.42.213`
 **If not:** DNS record may have been deleted/changed - check DNS provider
@@ -50,7 +50,7 @@ curl -k https://127.0.0.1:5000 | head -20
 ### 4. SSL Certificate (SSH to droplet)
 ```bash
 sudo certbot certificates
-ls -la /etc/letsencrypt/live/gateway.agentyc.app/
+ls -la /etc/letsencrypt/live/gateway.agentyctrader.com/
 ```
 **If expired:** `sudo certbot renew`
 
@@ -71,7 +71,7 @@ sudo ufw status
 ### 7. Test from Droplet
 ```bash
 curl -k https://127.0.0.1:5000 | head -20  # Direct gateway test
-curl -I https://gateway.agentyc.app          # Through nginx
+curl -I https://gateway.agentyctrader.com          # Through nginx
 ```
 
 ## Most Likely Causes (Since It Was Working)
@@ -118,7 +118,7 @@ sudo systemctl status nginx
 sudo systemctl status ibkr-gateway.service
 
 # Test
-curl -I https://gateway.agentyc.app
+curl -I https://gateway.agentyctrader.com
 ```
 
 ## Key Files on Droplet
@@ -127,12 +127,12 @@ curl -I https://gateway.agentyc.app
 - Gateway service: `/etc/systemd/system/ibkr-gateway.service`
 - Gateway logs: `sudo journalctl -u ibkr-gateway.service -n 100`
 - Nginx logs: `/var/log/nginx/error.log`
-- SSL certs: `/etc/letsencrypt/live/gateway.agentyc.app/`
+- SSL certs: `/etc/letsencrypt/live/gateway.agentyctrader.com/`
 
 ## Expected Behavior When Working
 
 1. User clicks "Reconnect IBKR" button
-2. Safari opens `https://gateway.agentyc.app`
+2. Safari opens `https://gateway.agentyctrader.com`
 3. IBKR login page loads successfully
 4. User can login and complete 2FA
 
@@ -140,7 +140,7 @@ curl -I https://gateway.agentyc.app
 
 When clicking "Reconnect IBKR":
 - Safari shows: "Safari can't open the page because it can't find the server"
-- This means `https://gateway.agentyc.app` is not resolving or not responding
+- This means `https://gateway.agentyctrader.com` is not resolving or not responding
 
 ## Next Steps
 
@@ -148,5 +148,5 @@ When clicking "Reconnect IBKR":
 2. Run diagnostic: `bash /opt/agentyc-trader/scripts/infra/GATEWAY_QUICK_CHECK.sh`
 3. Check service statuses
 4. Restart services if needed
-5. Verify from Mac: `dig gateway.agentyc.app +short` and `curl -I https://gateway.agentyc.app`
+5. Verify from Mac: `dig gateway.agentyctrader.com +short` and `curl -I https://gateway.agentyctrader.com`
 

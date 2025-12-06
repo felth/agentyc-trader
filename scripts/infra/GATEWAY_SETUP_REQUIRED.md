@@ -4,7 +4,7 @@
 
 When clicking "Reconnect IBKR" in Safari, you see: **"Safari can't open the page because it can't find the server"**
 
-This means `https://gateway.agentyc.app` is not accessible yet because nginx and SSL haven't been configured on the droplet.
+This means `https://gateway.agentyctrader.com` is not accessible yet because nginx and SSL haven't been configured on the droplet.
 
 ## Solution: One-Time Setup on Droplet
 
@@ -15,14 +15,14 @@ You need to SSH into your droplet (`104.248.42.213`) and run these setup steps *
 On your **Mac**, check if DNS is pointing correctly:
 
 ```bash
-dig gateway.agentyc.app +short
+dig gateway.agentyctrader.com +short
 ```
 
 **Expected:** Should return `104.248.42.213`
 
 **If not:**
 - Go to your DNS provider (where `agentyc.app` domain is managed)
-- Add an A record: `gateway.agentyc.app` → `104.248.42.213`
+- Add an A record: `gateway.agentyctrader.com` → `104.248.42.213`
 - Wait 5-10 minutes for DNS to propagate
 
 ### Step 2: SSH into Droplet and Run Setup
@@ -58,7 +58,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 # 5. Get SSL certificate (this will ask for your email and verify domain)
-sudo certbot --nginx -d gateway.agentyc.app
+sudo certbot --nginx -d gateway.agentyctrader.com
 # Follow the prompts - certbot will automatically configure nginx
 
 # 6. Verify gateway is running locally
@@ -71,13 +71,13 @@ After setup, test from your Mac:
 
 ```bash
 # Test DNS
-dig gateway.agentyc.app +short
+dig gateway.agentyctrader.com +short
 
 # Test HTTPS
-curl -I https://gateway.agentyc.app
+curl -I https://gateway.agentyctrader.com
 ```
 
-Then open in Safari: `https://gateway.agentyc.app` - you should see the IBKR Client Portal Gateway login page.
+Then open in Safari: `https://gateway.agentyctrader.com` - you should see the IBKR Client Portal Gateway login page.
 
 ## If You Don't Have Repo on Droplet Yet
 
@@ -94,7 +94,7 @@ Paste this content:
 server {
     listen 80;
     listen [::]:80;
-    server_name gateway.agentyc.app;
+    server_name gateway.agentyctrader.com;
 
     location / {
         return 301 https://$host$request_uri;
@@ -104,7 +104,7 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name gateway.agentyc.app;
+    server_name gateway.agentyctrader.com;
 
     # SSL certs will be added by certbot
     # For now, use self-signed or certbot will add these
@@ -124,7 +124,7 @@ Then continue with steps 3-5 above. Certbot will automatically add the SSL certi
 
 ## After Setup
 
-Once `https://gateway.agentyc.app` is accessible:
+Once `https://gateway.agentyctrader.com` is accessible:
 
 1. ✅ Test in Safari - should show IBKR login page
 2. ✅ Click "Reconnect IBKR" in the app - should work now
@@ -137,7 +137,7 @@ Once `https://gateway.agentyc.app` is accessible:
 See full troubleshooting guide: `scripts/infra/TROUBLESHOOTING_GATEWAY.md`
 
 Or check:
-- DNS: `dig gateway.agentyc.app +short`
+- DNS: `dig gateway.agentyctrader.com +short`
 - Nginx: `sudo systemctl status nginx`
 - Gateway: `sudo systemctl status ibkr-gateway.service`
 - SSL: `sudo certbot certificates`

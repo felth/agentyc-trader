@@ -1,11 +1,11 @@
 # Phone-based IBKR Login Setup Guide
 
-This guide covers the complete setup for enabling phone-only IBKR login refresh via `https://gateway.agentyc.app`.
+This guide covers the complete setup for enabling phone-only IBKR login refresh via `https://gateway.agentyctrader.com`.
 
 ## Prerequisites
 
 - Domain `agentyc.app` exists and is managed by you
-- Subdomain `gateway.agentyc.app` DNS A record points to `104.248.42.213`
+- Subdomain `gateway.agentyctrader.com` DNS A record points to `104.248.42.213`
 - Droplet running Ubuntu 24.04
 - IBKR Gateway installed at `/opt/ibkr-gateway/clientportal`
 - IBKR Bridge code at `/opt/ibkr-bridge`
@@ -21,10 +21,10 @@ sudo apt install -y nginx certbot python3-certbot-nginx
 
 ### 1.2 Configure DNS
 
-Ensure `gateway.agentyc.app` DNS A record points to `104.248.42.213`. Verify with:
+Ensure `gateway.agentyctrader.com` DNS A record points to `104.248.42.213`. Verify with:
 
 ```bash
-dig gateway.agentyc.app +short
+dig gateway.agentyctrader.com +short
 # Should return: 104.248.42.213
 ```
 
@@ -45,7 +45,7 @@ sudo systemctl reload nginx
 ### 1.4 Obtain SSL Certificate
 
 ```bash
-sudo certbot --nginx -d gateway.agentyc.app
+sudo certbot --nginx -d gateway.agentyctrader.com
 ```
 
 Certbot will automatically configure nginx with the SSL certificates.
@@ -81,7 +81,7 @@ sudo journalctl -u ibkr-bridge.service -f
 
 ### 1.7 Verify Gateway is Accessible
 
-Visit `https://gateway.agentyc.app` in your browser. You should see the IBKR Client Portal Gateway login page.
+Visit `https://gateway.agentyctrader.com` in your browser. You should see the IBKR Client Portal Gateway login page.
 
 ## Part 2: Daily Usage (from Phone)
 
@@ -95,7 +95,7 @@ Visit `https://gateway.agentyc.app` in your browser. You should see the IBKR Cli
 
 3. **Reconnect IBKR** (when banner is visible)
    - Tap the "Reconnect IBKR" button in the banner
-   - This opens `https://gateway.agentyc.app` in your browser
+   - This opens `https://gateway.agentyctrader.com` in your browser
 
 4. **Login to IBKR**
    - Enter your IBKR credentials on the login page
@@ -120,7 +120,7 @@ bash /opt/agentyc-trader/scripts/infra/GATEWAY_QUICK_CHECK.sh
 **Common Issues:**
 
 1. **DNS Not Configured**
-   - Check: `dig gateway.agentyc.app +short` (should return `104.248.42.213`)
+   - Check: `dig gateway.agentyctrader.com +short` (should return `104.248.42.213`)
    - Fix: Add DNS A record in your DNS provider (where `agentyc.app` is managed)
    - Wait 5-10 minutes for DNS propagation
 
@@ -138,7 +138,7 @@ bash /opt/agentyc-trader/scripts/infra/GATEWAY_QUICK_CHECK.sh
 
 3. **SSL Certificate Missing**
    - Check: `sudo certbot certificates`
-   - Fix: `sudo certbot --nginx -d gateway.agentyc.app`
+   - Fix: `sudo certbot --nginx -d gateway.agentyctrader.com`
    - Note: Requires DNS to be pointing correctly first
 
 4. **Nginx Not Running**
@@ -228,7 +228,7 @@ sudo journalctl -u ibkr-bridge.service -n 100
 ```
 Phone Browser
     ↓ HTTPS
-gateway.agentyc.app (Nginx)
+gateway.agentyctrader.com (Nginx)
     ↓ Proxy HTTPS
 localhost:5000 (IBKR Gateway)
     ↓ API

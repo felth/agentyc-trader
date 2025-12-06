@@ -194,7 +194,8 @@ export default function HomePage() {
   }
 
   function handleReconnectIbkr() {
-    window.open('https://gateway.agentyc.app', '_blank');
+    const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL ?? "https://gateway.agentyctrader.com";
+    window.open(GATEWAY_URL, '_blank', 'noopener,noreferrer');
     // Optionally poll status after opening the reconnect page
     setTimeout(() => {
       let pollCount = 0;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getXauusdCandles, getXauusdLatestOhlc, type Timeframe } from "@/lib/data/xauusd";
+import { getOhlcv, getLatestOhlc, type Timeframe } from "@/lib/data/ohlcv";
 import { fetchMarketOverview } from "@/lib/data/marketOverview";
 
 export const dynamic = "force-dynamic";
@@ -18,15 +18,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const [candles, latestOhlc, marketOverview] = await Promise.all([
-      getXauusdCandles(tf).catch(() => []),
-      getXauusdLatestOhlc(tf).catch(() => null),
+    // Use generic OHLCV helper
+    const [{ candles, provider }, latestOhlc, marketOverview] = await Promise.all([
+      getOhlcv("XAUUSD", tf),
+      getLatestOhlc("XAUUSD", tf).catch(() => null),
       fetchMarketOverview().catch(() => null),
     ]);
 
+    // Convert candles from ISO timestamp format to Unix timestamp for backward compatibility
+    const candlesWithUnixTime = candles.map(c => ({
+      ...c,
+      time: new Date(c.timestamp).getTime(),
+    }));
+
     // If candles empty, create synthetic OHLC from market overview
     let finalOhlc = latestOhlc;
-    let source = "AlphaVantage (live)";
+    let source = `${provider} (live)`;
     
     if (!latestOhlc && marketOverview?.xauusd?.value) {
       const price = marketOverview.xauusd.value;
@@ -42,7 +49,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       timeframe: tf,
-      candles: candles.slice(-100), // Return last 100 candles
+      candles: candlesWithUnixTime.slice(-100), // Return last 100 candles
       latestOhlc: finalOhlc,
       source,
     });

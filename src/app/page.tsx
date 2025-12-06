@@ -25,6 +25,7 @@ import type { TradePlan } from "@/lib/agent/tradeSchema";
 import { TradePlanSummaryCard } from "@/components/dashboard/TradePlanSummaryCard";
 import { AccountSnapshotCard } from "@/components/dashboard/AccountSnapshotCard";
 import { MarketOverviewGrid } from "@/components/dashboard/MarketOverviewGrid";
+import { EconomicCalendarCard } from "@/components/dashboard/EconomicCalendarCard";
 import type { DashboardSnapshot } from "@/lib/data/dashboard";
 
 // Simple Sparkline Chart Component
@@ -93,6 +94,15 @@ export default function HomePage() {
     bridgeOk: boolean;
     gatewayAuthenticated: boolean;
   } | null>(null);
+  
+  // Mock OHLC data for different timeframes (XAUUSD)
+  const [xauusdTimeframe, setXauusdTimeframe] = useState<"M15" | "H1" | "H4" | "D1">("M15");
+  const MOCK_OHLC: Record<"M15" | "H1" | "H4" | "D1", OHLCData> = {
+    M15: { open: 2382.5, high: 2387.2, low: 2381.1, close: 2385.8, spread: 0.25 },
+    H1: { open: 2378.2, high: 2389.0, low: 2375.4, close: 2383.1, spread: 0.30 },
+    H4: { open: 2369.3, high: 2392.4, low: 2360.9, close: 2388.7, spread: 0.35 },
+    D1: { open: 2340.0, high: 2405.0, low: 2335.0, close: 2398.0, spread: 0.40 },
+  };
 
   // Fetch dashboard snapshot and performance insight
   useEffect(() => {
@@ -222,16 +232,13 @@ export default function HomePage() {
 
   const handleTimeframeChange = (timeframe: string) => {
     setSymbolContext({ ...symbolContext, timeframe });
+    if (timeframe === "M15" || timeframe === "H1" || timeframe === "H4" || timeframe === "D1") {
+      setXauusdTimeframe(timeframe);
+    }
   };
 
-  // Mock OHLC data (will come from context later)
-  const ohlc: OHLCData = {
-    open: 2382.5,
-    high: 2387.2,
-    low: 2381.1,
-    close: 2385.8,
-    spread: 0.25,
-  };
+  // Get OHLC data based on current timeframe
+  const ohlc = MOCK_OHLC[xauusdTimeframe];
 
   if (loadingDashboard) {
     return (
@@ -249,9 +256,10 @@ export default function HomePage() {
   const dayStr = today.toLocaleDateString('en-US', { weekday: 'long' });
 
   return (
-    <main className="space-y-6 pt-2 pb-24 max-w-5xl mx-auto px-4">
-      {/* Hero Banner */}
-      <section className="relative h-48 rounded-[2rem] overflow-hidden mb-5 -mx-4">
+    <main className="min-h-screen bg-black text-white">
+      {/* Hero Section - Full visibility on load */}
+      <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-10 lg:pb-12">
+        <div className="relative min-h-[60vh] md:min-h-[70vh] rounded-[2rem] overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/hero-home.jpeg')" }}
@@ -296,10 +304,13 @@ export default function HomePage() {
             <p className="text-xs text-white/60 mt-1">{time}</p>
           </div>
         </div>
+        </div>
       </section>
 
-      {/* IBKR Connection Status Banner */}
-      {ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
+      {/* Dashboard Content Section */}
+      <section className="px-4 sm:px-6 lg:px-8 space-y-6 max-w-5xl mx-auto">
+        {/* IBKR Connection Status Banner */}
+        {ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
         <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 space-y-2">
@@ -433,136 +444,10 @@ export default function HomePage() {
 
         {/* Economic Calendar */}
         {dashboard?.economicCalendar && dashboard.economicCalendar.items.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-base">📊</span>
-              <h2 className="text-base font-bold text-white">Economic Calendar</h2>
-            </div>
-            <span className="text-xs text-white/50 font-medium">
-              {new Date(dashboard.economicCalendar.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </span>
-          </div>
-          
-          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 shadow-[0_8px_24px_rgba(0,0,0,0.4)] overflow-hidden">
-            <div className="divide-y divide-white/10">
-              {dashboard.economicCalendar.items.slice(0, 5).map((event) => {
-                const eventTime = new Date(event.timeUtc);
-                const isUpcoming = eventTime > new Date();
-                const isPast = eventTime < new Date();
-                const timeDisplay = eventTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                const impactColors = {
-                  HIGH: { bg: "from-red-500/20 via-red-500/15 to-orange-500/10", border: "border-red-500/30", dot: "bg-red-500", text: "text-red-300" },
-                  MEDIUM: { bg: "from-yellow-500/20 via-yellow-500/15 to-amber-500/10", border: "border-yellow-500/30", dot: "bg-yellow-500", text: "text-yellow-300" },
-                  LOW: { bg: "from-slate-500/15 via-slate-500/10 to-slate-500/5", border: "border-slate-500/20", dot: "bg-slate-500", text: "text-slate-300" },
-                };
-                const colors = impactColors[event.importance];
-                
-                return (
-                  <div
-                    key={event.id}
-                    className={`relative px-5 py-4 transition-all duration-300 hover:bg-white/[0.03] ${
-                      isPast ? "opacity-60" : ""
-                    }`}
-                  >
-                    {/* Time & Impact Indicator */}
-                    <div className="flex items-start gap-4">
-                      {/* Time Column */}
-                      <div className="flex-shrink-0 w-20">
-                        <p className={`text-sm font-semibold ${isUpcoming ? "text-white" : "text-white/50"}`}>
-                          {timeDisplay}
-                        </p>
-                        <p className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">
-                          {event.region}
-                        </p>
-                      </div>
-                      
-                      {/* Impact Dot */}
-                      <div className="flex-shrink-0 pt-1">
-                        <div className={`w-2 h-2 rounded-full ${colors.dot} ${isUpcoming ? "ring-2 ring-offset-2 ring-offset-black/20" : ""}`} />
-                      </div>
-                      
-                      {/* Event Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className={`text-sm font-semibold leading-tight ${isUpcoming ? "text-white" : "text-white/70"}`}>
-                              {event.title}
-                            </h3>
-                          </div>
-                          
-                          {/* Impact Badge */}
-                          <div className={`flex-shrink-0 px-2.5 py-1 rounded-lg bg-gradient-to-br ${colors.bg} border ${colors.border} backdrop-blur-sm`}>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>
-                              {event.importance}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        {/* Forecast/Previous */}
-                        {(event.forecast || event.previous) && (
-                          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/10">
-                            {event.forecast && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-white/40 uppercase tracking-wider">Forecast</span>
-                                <span className="text-xs font-semibold text-white/70">{event.forecast}</span>
-                              </div>
-                            )}
-                            {event.previous && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-white/40 uppercase tracking-wider">Previous</span>
-                                <span className="text-xs font-semibold text-white/50">{event.previous}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Subtle gradient accent on hover */}
-                    {isUpcoming && (
-                      <div className={`absolute inset-0 bg-gradient-to-r ${colors.bg} opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-lg`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            
-            {/* Footer - Show more indicator */}
-            {dashboard.economicCalendar.items.length > 5 && (
-              <div className="px-5 py-3 border-t border-white/10 bg-white/[0.02]">
-                <p className="text-xs text-white/50 text-center font-medium">
-                  +{dashboard.economicCalendar.items.length - 5} more events today
-                </p>
-              </div>
-            )}
-          </div>
-          </div>
+          <EconomicCalendarCard calendar={dashboard.economicCalendar} />
         )}
       </section>
 
-      {/* Key Metrics - Side by Side */}
-      {dashboard?.volumeDelta && (
-        <section className="grid grid-cols-2 gap-3 mb-6">
-          {/* Volume Delta Quick View */}
-          <div className="relative rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-3 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
-            <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${
-                (dashboard.volumeDelta.volumeDelta ?? 0) >= 0 ? "bg-emerald-400" : "bg-red-400"
-              }`} />
-              <p className="text-[10px] font-bold text-white uppercase tracking-wide">Volume</p>
-            </div>
-            {dashboard.volumeDelta.volumeDelta !== null && (
-              <p className={`text-2xl font-bold leading-tight ${
-                dashboard.volumeDelta.volumeDelta >= 0 ? "text-emerald-400" : "text-red-400"
-              }`}>
-                {dashboard.volumeDelta.volumeDelta >= 0 ? "+" : ""}
-                {Math.abs(dashboard.volumeDelta.volumeDelta).toLocaleString()}
-              </p>
-            )}
-          </div>
-        </section>
-      )}
 
       {/* Focus Symbol & Regime (Detailed) - Apple-style Landscape Cards Stacked */}
       <section className="space-y-6 mb-8">
@@ -571,25 +456,22 @@ export default function HomePage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <select
-                value={symbolContext.symbol}
-                onChange={(e) => handleSymbolChange(e.target.value)}
-                className="text-xl font-semibold text-white bg-white/5 border-0 rounded-2xl px-6 py-3 focus:outline-none focus:ring-2 focus:ring-ultra-accent/30 transition-all appearance-none cursor-pointer"
-              >
-                <option value="XAUUSD">XAUUSD</option>
-                <option value="EURUSD">EURUSD</option>
-                <option value="BTCUSD">BTCUSD</option>
-                <option value="SPX">SPX</option>
-              </select>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-semibold text-white">XAUUSD</span>
+                <span className="text-[10px] text-white/50 uppercase tracking-[0.16em]">Derived · Placeholder</span>
+              </div>
               <div className="flex gap-1.5 items-center">
-                {["M15", "H1", "H4", "D1"].map((tf) => (
+                {(["M15", "H1", "H4", "D1"] as const).map((tf) => (
                   <button
                     key={tf}
-                    onClick={() => handleTimeframeChange(tf)}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                      symbolContext.timeframe === tf
-                        ? "bg-white/20 text-white"
-                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    onClick={() => {
+                      setXauusdTimeframe(tf);
+                      handleTimeframeChange(tf);
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      xauusdTimeframe === tf
+                        ? "bg-white text-black"
+                        : "bg-white/5 text-white/65 hover:bg-white/10"
                     }`}
                   >
                     {tf}
@@ -643,7 +525,6 @@ export default function HomePage() {
             </div>
           )}
         </div>
-
       </section>
 
       {/* Row 3 – Order Flow & Volume */}
@@ -1068,6 +949,10 @@ export default function HomePage() {
             <p className="text-xs text-white/50">Liquidity zones unavailable</p>
           )}
         </div>
+      </section>
+      
+      {/* Bottom spacing */}
+      <div className="pb-24" />
       </section>
     </main>
   );

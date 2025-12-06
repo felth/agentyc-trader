@@ -76,6 +76,7 @@ export type EconomicCalendarItem = {
   importance: "LOW" | "MEDIUM" | "HIGH";
   forecast?: string | null;
   previous?: string | null;
+  actual?: string | null;
 };
 
 export type EconomicCalendarSnapshot = {

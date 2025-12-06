@@ -11,6 +11,8 @@ type AgentTradePlanCardProps = {
   status: Status; // IDLE or LIVE
   onGeneratePlan?: () => void;
   agentHint?: ReactNode;
+  riskSeverity?: "OK" | "ELEVATED" | "DANGER";
+  imminentHighImpact?: boolean;
 };
 
 export default function AgentTradePlanCard({
@@ -19,13 +21,27 @@ export default function AgentTradePlanCard({
   status,
   onGeneratePlan,
   agentHint,
+  riskSeverity = "OK",
+  imminentHighImpact = false,
 }: AgentTradePlanCardProps) {
   const router = useRouter();
+
+  // Dynamic agent hint based on system state
+  const dangerHint =
+    imminentHighImpact
+      ? <AgentHintTag text="news risk — no new trades" />
+      : riskSeverity === "DANGER"
+      ? <AgentHintTag text="risk dangerous — reduce exposure" />
+      : riskSeverity === "ELEVATED"
+      ? <AgentHintTag text="risk elevated — trade lighter" />
+      : hasPlan
+      ? <AgentHintTag text="plan active" />
+      : <AgentHintTag text="plan pending" />;
 
   return (
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7">
       <SourceStatusBadge provider="AGENT" status={status} />
-      {agentHint && <div className="absolute top-2 left-4 z-10">{agentHint}</div>}
+      <div className="absolute top-2 left-4 z-10">{dangerHint}</div>
 
       <h3 className="text-[16px] font-semibold text-white mb-4">
         Agent Trade Plan

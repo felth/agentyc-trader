@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import SourceStatusBadge, { type Status } from "@/components/ui/SourceStatusBadge";
+import { minutesUntil } from "@/lib/timeUtils";
 
 type Event = {
   id: string;
@@ -14,6 +15,7 @@ type Event = {
 type NewsRiskEventsProps = {
   events: Event[];
   status: Status;
+  onImminentHighImpact?: (hasImminent: boolean) => void; // Callback to notify parent
 };
 
 export default function NewsRiskEvents({

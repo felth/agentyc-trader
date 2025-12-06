@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SourceStatusBadge from "@/components/ui/SourceStatusBadge";
+import { getRiskSeverity } from "@/lib/riskUtils";
 
 type AccountRiskCardProps = {
   netLiquidity: number;
@@ -23,15 +24,20 @@ export default function AccountRiskCard({
 }: AccountRiskCardProps) {
   const router = useRouter();
 
-  // Risk levels
-  const riskLevel =
-    openRiskR < 0.5 ? "OK" : openRiskR < 1.0 ? "ELEVATED" : "DANGEROUS";
-  const riskColor =
-    openRiskR < 0.5
-      ? "text-[#00FF7F]"
-      : openRiskR < 1.0
-      ? "text-[#FFBF00]"
-      : "text-[#FF4D4D]";
+  // Risk severity using utility function
+  const severity = getRiskSeverity(openRiskR);
+  const severityColor =
+    severity === "OK"
+      ? "#00FF7F"
+      : severity === "ELEVATED"
+      ? "#FFBF00"
+      : "#FF4D4D";
+  const severityText =
+    severity === "OK"
+      ? "RISK: OK"
+      : severity === "ELEVATED"
+      ? "RISK: ELEVATED"
+      : "RISK: DANGEROUS";
 
   return (
     <Link
@@ -79,13 +85,8 @@ export default function AccountRiskCard({
             <p className="text-[12px] text-white/50 uppercase tracking-wider font-medium mb-1">
               Open Risk
             </p>
-            <div className="flex items-center gap-3">
-              <p className={`text-xl font-semibold ${riskColor}`}>
-                {openRiskR.toFixed(2)}R
-              </p>
-              <span className={`text-[11px] font-semibold ${riskColor}`}>
-                RISK: {riskLevel}
-              </span>
+            <div className="text-[15px] font-semibold" style={{ color: severityColor }}>
+              {severityText} — {openRiskR.toFixed(2)}R
             </div>
           </div>
         </div>

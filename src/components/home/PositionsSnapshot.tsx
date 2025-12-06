@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SourceStatusBadge from "@/components/ui/SourceStatusBadge";
+import AgentHintTag from "@/components/ui/AgentHintTag";
 import type { ReactNode } from "react";
 
 type Position = {
@@ -25,11 +26,19 @@ export default function PositionsSnapshot({
 }: PositionsSnapshotProps) {
   const router = useRouter();
 
+  // Check for correlation alerts
+  const correlationAlertExists = positions?.some((p) => p.correlationAlert === true);
+  
+  // Dynamic hint based on correlation alerts
+  const hint = correlationAlertExists ? (
+    <AgentHintTag text="correlation high" />
+  ) : agentHint;
+
   if (positions.length === 0) {
     return (
       <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7">
         <SourceStatusBadge provider="IBKR" status={status} />
-        {agentHint && <div className="absolute top-2 left-4 z-10">{agentHint}</div>}
+        {hint && <div className="absolute top-2 left-4 z-10">{hint}</div>}
         <p className="text-white/50 text-[14px]">No active trades</p>
       </div>
     );
@@ -41,7 +50,7 @@ export default function PositionsSnapshot({
       className="relative block rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:border-white/25 active:scale-[0.99]"
     >
       <SourceStatusBadge provider="IBKR" status={status} />
-      {agentHint && <div className="absolute top-2 left-4 z-10">{agentHint}</div>}
+      {hint && <div className="absolute top-2 left-4 z-10">{hint}</div>}
       
       <div className="flex flex-wrap gap-3 overflow-x-auto pb-2">
         {positions.map((pos) => (

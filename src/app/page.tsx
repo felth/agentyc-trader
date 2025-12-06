@@ -10,6 +10,7 @@ import NewsRiskEvents from "@/components/home/NewsRiskEvents";
 import AgentTradePlanCard from "@/components/home/AgentTradePlanCard";
 import SystemHealthFooter from "@/components/home/SystemHealthFooter";
 import AgentHintTag from "@/components/ui/AgentHintTag";
+import { getRiskSeverity } from "@/lib/riskUtils";
 import type { DashboardSnapshot } from "@/lib/data/dashboard";
 import type { TradePlan } from "@/lib/agent/tradeSchema";
 
@@ -26,6 +27,7 @@ export default function HomePage() {
     gatewayAuthenticated: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [imminentHighImpact, setImminentHighImpact] = useState(false);
 
   // Fetch all data
   useEffect(() => {
@@ -75,6 +77,7 @@ export default function HomePage() {
     dashboard?.account?.unrealizedPnl || 0
   );
   const openRiskR = dailyLossLimit > 0 ? totalUnrealizedRisk / dailyLossLimit : 0;
+  const riskSeverity = getRiskSeverity(openRiskR);
 
   // Calculate daily PnL (for now use unrealized, later track realized separately)
   const dailyPnl = dashboard?.account?.unrealizedPnl || 0;
@@ -224,7 +227,11 @@ export default function HomePage() {
           Upcoming Risk Events
         </h2>
         {calendarEvents.length > 0 && (
-          <NewsRiskEvents events={calendarEvents} status="LIVE" />
+          <NewsRiskEvents 
+            events={calendarEvents} 
+            status="LIVE"
+            onImminentHighImpact={setImminentHighImpact}
+          />
         )}
       </div>
 
@@ -237,7 +244,8 @@ export default function HomePage() {
           hasPlan={!!tradePlan && (tradePlan.orders?.length || 0) > 0}
           actionableBullets={actionableBullets}
           status={tradePlan ? "LIVE" : "IDLE"}
-          agentHint={<AgentHintTag text="plan pending" />}
+          riskSeverity={riskSeverity}
+          imminentHighImpact={imminentHighImpact}
           onGeneratePlan={async () => {
             const res = await fetch("/api/agent/trade-plan", { method: "POST" });
             if (res.ok) {

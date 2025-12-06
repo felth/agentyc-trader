@@ -1,5 +1,6 @@
 import SymbolHeader from "@/components/symbol/SymbolHeader";
 import ChartPanel from "@/components/symbol/ChartPanel";
+import StructureBlock from "@/components/symbol/StructureBlock";
 
 async function getSymbolData(ticker: string) {
   try {
@@ -35,7 +36,15 @@ export default async function SymbolPage({
       <SymbolHeader {...data} />
       <ChartPanel ticker={ticker} />
 
-      {/* Remaining sections will be added here */}
+      {/* Drop 3 — Agent structure panel */}
+      <StructureBlock
+        trend="RANGE"
+        volatilityPctile={42}
+        spread={data.spread}
+        session={data.session}
+      />
+
+      {/* Remaining sections will follow */}
     </main>
   );
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { DashboardSnapshot } from "@/lib/data/dashboard";
 
-export default function AgentPage() {
+function AgentContent() {
   const searchParams = useSearchParams();
   const view = searchParams.get("view") || "chat";
   const ticker = searchParams.get("ticker") || "";
@@ -240,5 +240,22 @@ export default function AgentPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AgentPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+            <p className="mt-4 text-sm text-white/50">Loading agent context...</p>
+          </div>
+        </div>
+      </main>
+    }>
+      <AgentContent />
+    </Suspense>
   );
 }

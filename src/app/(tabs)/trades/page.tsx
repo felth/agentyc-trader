@@ -1,260 +1,297 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { TabPage } from "../../../components/layout/TabPage";
+import { useSearchParams } from "next/navigation";
 
-type Trade = {
-  id: string;
+type Position = {
   symbol: string;
-  direction: "long" | "short";
-  entry_price: number | null;
-  stop_price: number | null;
-  target_price: number | null;
-  risk_per_trade: number | null;
-  pnl_r: number | null;
-  notes: string | null;
-  opened_at: string | null;
-  closed_at: string | null;
-  status: "open" | "closed";
+  quantity: number;
+  avgPrice: number;
+  marketPrice: number;
+  unrealizedPnl: number;
 };
 
-const filters = ["All", "Open", "Closed", "Week", "Month"];
+type TradeExecution = {
+  id: string;
+  symbol: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  price: number;
+  value: number;
+  realizedPnl?: number;
+  time: string;
+};
 
-export default function TradesTab() {
-  const pathname = usePathname();
-  const now = new Date();
-  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [trades, setTrades] = useState<Trade[]>([]);
+export default function TradesPage() {
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"open" | "history">(
+    (searchParams.get("tab") as "open" | "history") || "open"
+  );
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [trades, setTrades] = useState<TradeExecution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [daysFilter, setDaysFilter] = useState(30);
 
   useEffect(() => {
-    fetch("/api/trades")
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.ok) setTrades(j.trades || []);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    async function fetchData() {
+      try {
+        const [positionsRes, tradesRes] = await Promise.all([
+          fetch("/api/ibkr/positions").then((r) => r.json()),
+          fetch("/api/ibkr/trades").then((r) => r.json()),
+        ]);
+
+        if (positionsRes.ok && Array.isArray(positionsRes.positions)) {
+          setPositions(positionsRes.positions);
+        }
+
+        if (tradesRes.ok && Array.isArray(tradesRes.trades)) {
+          setTrades(tradesRes.trades);
+        }
+      } catch (err) {
+        console.error("Failed to fetch trades data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
   }, []);
 
-  const openTrades = trades.filter((t) => t.status === "open");
-  const closedTrades = trades.filter((t) => t.status === "closed").slice(0, 10);
+  // Filter trades by days
+  const filteredTrades = trades.filter((trade) => {
+    const tradeDate = new Date(trade.time);
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
+    return tradeDate >= cutoffDate;
+  });
+
+  // Calculate totals
+  const totalUnrealizedPnl = positions.reduce((sum, p) => sum + p.unrealizedPnl, 0);
+  const totalRealizedPnl = filteredTrades.reduce((sum, t) => sum + (t.realizedPnl || 0), 0);
 
   if (loading) {
     return (
-      <TabPage>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-3">
-            <div className="w-8 h-8 border-2 border-ultra-accent/30 border-t-ultra-accent rounded-full animate-spin mx-auto" />
-            <p className="text-sm text-slate-400 font-medium">Loading trades...</p>
+      <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+            <p className="mt-4 text-sm text-white/50">Loading trades data...</p>
           </div>
         </div>
-      </TabPage>
+      </main>
     );
   }
 
   return (
-    <TabPage>
-      {/* Header */}
-      <div className="relative h-48 rounded-[2rem] overflow-hidden group mb-5">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: "url('/hero-trades.jpeg')"
-          }}
-        />
-        
-        {/* Dark Overlay - Multiple layers for depth */}
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30" />
-        
-        {/* Subtle accent gradient overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.1),_transparent_70%)]" />
-        <div className="relative h-full flex flex-col justify-between px-6 py-5">
-          {/* Top bar */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-white/90 tracking-tight">{time}</span>
-            <div className="flex items-center gap-3">
-              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95">
-                <span className="text-base">🔍</span>
-              </button>
-              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95 relative">
-                <span className="text-base">🔔</span>
-                <span className="absolute top-1 right-1 w-2 h-2 bg-ultra-accent rounded-full border border-black" />
-              </button>
-              <Link
-                href="/profile"
-                className={[
-                  "w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center hover:bg-white/10 transition-all active:scale-95",
-                  pathname === "/profile"
-                    ? "bg-ultra-accent/20 border-ultra-accent/50"
-                    : "bg-white/5 border-white/10"
-                ].join(" ")}
-                aria-label="Settings"
-              >
-                <span className="text-base">⚙️</span>
-              </Link>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Trades</p>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Your Positions</h1>
-            <p className="text-sm text-white/70">{openTrades.length} open · {closedTrades.length} recent</p>
-          </div>
+    <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-white">Trades</h1>
+          <Link
+            href="/"
+            className="text-sm text-white/60 hover:text-white transition-colors"
+          >
+            ← Back to Home
+          </Link>
         </div>
-      </div>
 
-      {/* Open Trades */}
-      <section className="space-y-3 mb-5">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Open Trades</h2>
-          <span className="text-[10px] text-slate-500 font-medium">{openTrades.length} active</span>
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-white/10">
+          <button
+            onClick={() => setActiveTab("open")}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "open"
+                ? "text-white border-b-2 border-orange-500"
+                : "text-white/50 hover:text-white/80"
+            }`}
+          >
+            Open Positions
+          </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "history"
+                ? "text-white border-b-2 border-orange-500"
+                : "text-white/50 hover:text-white/80"
+            }`}
+          >
+            Trade History
+          </button>
         </div>
-        {openTrades.length === 0 ? (
-          <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-6 py-12 text-center shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">📊</span>
+
+        {/* Open Positions Tab */}
+        {activeTab === "open" && (
+          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-white">Open Positions</h2>
+              <span className="text-[10px] text-white/40 uppercase tracking-wider">
+                Source: Interactive Brokers (live)
+              </span>
             </div>
-            <p className="text-sm text-slate-400 font-medium">No open trades</p>
-            <p className="text-xs text-slate-600 mt-1">Your active positions will appear here</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {openTrades.map((trade) => (
-              <div
-                key={trade.id}
-                className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] active:scale-[0.99]"
-              >
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2.5 mb-2.5">
-                      <h3 className="text-xl font-bold text-white tracking-tight">{trade.symbol}</h3>
-                      <span
-                        className={`text-[10px] px-2.5 py-1 rounded-full font-bold tracking-wide ${
-                          trade.direction === "long"
-                            ? "bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/40 shadow-[0_0_12px_rgba(50,215,75,0.2)]"
-                            : "bg-ultra-negative/20 text-ultra-negative border border-ultra-negative/40 shadow-[0_0_12px_rgba(255,69,58,0.2)]"
-                        }`}
-                      >
-                        {trade.direction.toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-400 leading-relaxed font-medium mb-3">{trade.notes || "—"}</p>
-                    <div className="flex items-center gap-4 pt-3 border-t border-white/5">
-                      <div>
-                        <p className="text-[10px] text-slate-600 uppercase tracking-wide">Entry</p>
-                        <p className="text-xs font-bold text-white mt-0.5">${trade.entry_price?.toFixed(2) || "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-slate-600 uppercase tracking-wide">Risk</p>
-                        <p className="text-xs font-bold text-slate-300 mt-0.5">{trade.risk_per_trade?.toFixed(2) || "—"}R</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-slate-600 uppercase tracking-wide">PnL</p>
-                        <p
-                          className={`text-xs font-bold mt-0.5 ${
-                            (trade.pnl_r || 0) > 0
-                              ? "text-ultra-positive"
-                              : (trade.pnl_r || 0) < 0
-                              ? "text-ultra-negative"
-                              : "text-slate-300"
-                          }`}
-                        >
-                          {(trade.pnl_r || 0) > 0 ? "+" : ""}
-                          {trade.pnl_r?.toFixed(2) || "0.00"}R
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+
+            {positions.length > 0 ? (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="text-left py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Symbol</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Quantity</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Avg Price</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Last Price</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Unrealized P&L</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">% P&L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {positions.map((pos) => {
+                        const pnlPct = ((pos.unrealizedPnl / (pos.avgPrice * pos.quantity)) * 100);
+                        return (
+                          <tr key={pos.symbol} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4">
+                              <Link
+                                href={`/symbol/${pos.symbol}`}
+                                className="font-medium text-white hover:text-orange-500 transition-colors"
+                              >
+                                {pos.symbol}
+                              </Link>
+                            </td>
+                            <td className="py-3 px-4 text-right text-white">{pos.quantity.toFixed(2)}</td>
+                            <td className="py-3 px-4 text-right text-white">${pos.avgPrice.toFixed(2)}</td>
+                            <td className="py-3 px-4 text-right text-white">${pos.marketPrice.toFixed(2)}</td>
+                            <td className={`py-3 px-4 text-right font-medium ${pos.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              {pos.unrealizedPnl >= 0 ? "+" : ""}
+                              ${pos.unrealizedPnl.toFixed(2)}
+                            </td>
+                            <td className={`py-3 px-4 text-right font-medium ${pnlPct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              {pnlPct >= 0 ? "+" : ""}
+                              {pnlPct.toFixed(2)}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-white/20">
+                        <td className="py-3 px-4 font-bold text-white">Total</td>
+                        <td className="py-3 px-4 text-right font-bold text-white">{positions.length}</td>
+                        <td colSpan={2}></td>
+                        <td className={`py-3 px-4 text-right font-bold ${totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {totalUnrealizedPnl >= 0 ? "+" : ""}
+                          ${totalUnrealizedPnl.toFixed(2)}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
-              </div>
-            ))}
+              </>
+            ) : (
+              <p className="text-sm text-white/50">No open positions</p>
+            )}
           </div>
         )}
-      </section>
 
-      {/* Closed Trades */}
-      {closedTrades.length > 0 && (
-        <section className="space-y-3 mb-5">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Recent Closed</h2>
-            <button className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors">See all</button>
-          </div>
-          <div className="space-y-3">
-            {closedTrades.map((trade) => (
-              <div
-                key={trade.id}
-                className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 hover:bg-white/[0.06] hover:border-white/15 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.4)] active:scale-[0.99]"
-              >
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2.5 mb-2">
-                      <h3 className="text-lg font-bold text-white tracking-tight">{trade.symbol}</h3>
-                      <span
-                        className={`text-[10px] px-2.5 py-1 rounded-full font-bold ${
-                          trade.direction === "long"
-                            ? "bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/40"
-                            : "bg-ultra-negative/20 text-ultra-negative border border-ultra-negative/40"
-                        }`}
-                      >
-                        {trade.direction.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 pt-2 border-t border-white/5">
-                      <div>
-                        <p className="text-[10px] text-slate-600 uppercase tracking-wide">Result</p>
-                        <p
-                          className={`text-sm font-bold mt-0.5 ${
-                            (trade.pnl_r || 0) > 0 ? "text-ultra-positive" : "text-ultra-negative"
-                          }`}
-                        >
-                          {(trade.pnl_r || 0) > 0 ? "+" : ""}
-                          {trade.pnl_r?.toFixed(2) || "0.00"}R
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-slate-600 uppercase tracking-wide">Closed</p>
-                        <p className="text-xs font-bold text-slate-300 mt-0.5">
-                          {trade.closed_at
-                            ? new Date(trade.closed_at).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "2-digit",
-                              })
-                            : "—"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        {/* Trade History Tab */}
+        {activeTab === "history" && (
+          <div className="space-y-4">
+            {/* Filters */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white/50">Date range:</span>
+              {[7, 30, 90, 365].map((days) => (
+                <button
+                  key={days}
+                  onClick={() => setDaysFilter(days)}
+                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                    daysFilter === days
+                      ? "bg-orange-500 text-white"
+                      : "bg-white/5 text-white/60 hover:bg-white/10"
+                  }`}
+                >
+                  {days}D
+                </button>
+              ))}
+            </div>
+
+            <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-bold text-white">Trade History</h2>
+                <span className="text-[10px] text-white/40 uppercase tracking-wider">
+                  Source: Interactive Brokers (executions)
+                </span>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
 
-      {/* Filter Pills */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-        {filters.map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setActiveFilter(filter)}
-            className={[
-              "px-4 py-2 rounded-full text-xs font-bold border transition-all active:scale-95 flex-shrink-0",
-              activeFilter === filter
-                ? "bg-ultra-accent text-black border-ultra-accent shadow-[0_0_16px_rgba(245,99,0,0.6)]"
-                : "bg-white/[0.03] backdrop-blur-sm text-slate-300 border-white/10 hover:bg-white/[0.06]",
-            ].join(" ")}
-          >
-            {filter}
-          </button>
-        ))}
+              {filteredTrades.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="text-left py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Date/Time</th>
+                        <th className="text-left py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Symbol</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Side</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Quantity</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Price</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Value</th>
+                        <th className="text-right py-3 px-4 text-xs font-medium text-white/50 uppercase tracking-wider">Realized P&L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTrades
+                        .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+                        .map((trade) => (
+                          <tr key={trade.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 text-sm text-white/80">
+                              {new Date(trade.time).toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4">
+                              <Link
+                                href={`/symbol/${trade.symbol}`}
+                                className="font-medium text-white hover:text-orange-500 transition-colors"
+                              >
+                                {trade.symbol}
+                              </Link>
+                            </td>
+                            <td className={`py-3 px-4 text-right font-medium ${trade.side === "BUY" ? "text-emerald-400" : "text-red-400"}`}>
+                              {trade.side}
+                            </td>
+                            <td className="py-3 px-4 text-right text-white">{trade.quantity.toFixed(2)}</td>
+                            <td className="py-3 px-4 text-right text-white">${trade.price.toFixed(2)}</td>
+                            <td className="py-3 px-4 text-right text-white">${Math.abs(trade.value).toFixed(2)}</td>
+                            <td className={`py-3 px-4 text-right font-medium ${(trade.realizedPnl || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              {trade.realizedPnl !== undefined ? (
+                                <>
+                                  {(trade.realizedPnl >= 0 ? "+" : "")}
+                                  ${trade.realizedPnl.toFixed(2)}
+                                </>
+                              ) : (
+                                <span className="text-white/40">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-white/20">
+                        <td colSpan={6} className="py-3 px-4 font-bold text-white">Total Realized P&L</td>
+                        <td className={`py-3 px-4 text-right font-bold ${totalRealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {totalRealizedPnl >= 0 ? "+" : ""}
+                          ${totalRealizedPnl.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-white/50">
+                  {trades.length === 0 ? "No trade history available" : `No trades in the last ${daysFilter} days`}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-    </TabPage>
+    </main>
   );
 }

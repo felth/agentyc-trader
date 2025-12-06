@@ -1,144 +1,227 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { TabPage } from "../../../components/layout/TabPage";
 
-const vitals = [
-  { label: "Total Trades", value: "5 today", color: "text-white" },
-  { label: "Win Rate", value: "60%", color: "text-ultra-positive" },
-  { label: "Net R", value: "+1.4R", color: "text-ultra-positive" },
-];
+type AccountData = {
+  accountId: string;
+  balance: number;
+  equity: number;
+  unrealizedPnl: number;
+  buyingPower: number;
+};
 
-export default function PerformanceTab() {
-  const pathname = usePathname();
-  const now = new Date();
-  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+type Position = {
+  symbol: string;
+  quantity: number;
+  avgPrice: number;
+  marketPrice: number;
+  unrealizedPnl: number;
+};
+
+type TradeExecution = {
+  id: string;
+  symbol: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  price: number;
+  value: number;
+  realizedPnl?: number;
+  time: string;
+};
+
+export default function PerformancePage() {
+  const [account, setAccount] = useState<AccountData | null>(null);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [trades, setTrades] = useState<TradeExecution[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [accountRes, positionsRes, tradesRes] = await Promise.all([
+          fetch("/api/ibkr/account").then((r) => r.json()),
+          fetch("/api/ibkr/positions").then((r) => r.json()),
+          fetch("/api/ibkr/trades").then((r) => r.json()),
+        ]);
+
+        if (accountRes.ok) {
+          setAccount({
+            accountId: accountRes.accountId,
+            balance: accountRes.balance || 0,
+            equity: accountRes.equity || 0,
+            unrealizedPnl: accountRes.unrealizedPnl || 0,
+            buyingPower: accountRes.buyingPower || 0,
+          });
+        }
+
+        if (positionsRes.ok && Array.isArray(positionsRes.positions)) {
+          setPositions(positionsRes.positions);
+        }
+
+        if (tradesRes.ok && Array.isArray(tradesRes.trades)) {
+          setTrades(tradesRes.trades);
+        }
+      } catch (err) {
+        console.error("Failed to fetch performance data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+            <p className="mt-4 text-sm text-white/50">Loading performance data...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Calculate metrics
+  const totalRealizedPnl = trades.reduce((sum, t) => sum + (t.realizedPnl || 0), 0);
+  const totalUnrealizedPnl = positions.reduce((sum, p) => sum + p.unrealizedPnl, 0);
+  const winRate = trades.length > 0 
+    ? (trades.filter(t => (t.realizedPnl || 0) > 0).length / trades.length) * 100 
+    : null;
+
+  // Top movers
+  const topMovers = [...positions]
+    .sort((a, b) => b.unrealizedPnl - a.unrealizedPnl)
+    .slice(0, 5);
 
   return (
-    <TabPage>
-      {/* Header */}
-      <div className="relative h-48 rounded-[2rem] overflow-hidden group mb-5">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: "url('/hero-performance.jpeg')"
-          }}
-        />
-        
-        {/* Dark Overlay - Multiple layers for depth */}
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30" />
-        
-        {/* Subtle accent gradient overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.1),_transparent_70%)]" />
-        <div className="relative h-full flex flex-col justify-between px-6 py-5">
-          {/* Top bar */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-white/90 tracking-tight">{time}</span>
-            <div className="flex items-center gap-3">
-              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95">
-                <span className="text-base">🔍</span>
-              </button>
-              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95 relative">
-                <span className="text-base">🔔</span>
-                <span className="absolute top-1 right-1 w-2 h-2 bg-ultra-accent rounded-full border border-black" />
-              </button>
-              <Link
-                href="/profile"
-                className={[
-                  "w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center hover:bg-white/10 transition-all active:scale-95",
-                  pathname === "/profile"
-                    ? "bg-ultra-accent/20 border-ultra-accent/50"
-                    : "bg-white/5 border-white/10"
-                ].join(" ")}
-                aria-label="Settings"
-              >
-                <span className="text-base">⚙️</span>
-              </Link>
+    <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Performance</h1>
+            {account && (
+              <p className="text-sm text-white/50 mt-1">
+                {account.accountId} · <span className="text-[10px] text-white/40 uppercase tracking-wider">Source: Interactive Brokers (live)</span>
+              </p>
+            )}
+          </div>
+          <Link
+            href="/"
+            className="text-sm text-white/60 hover:text-white transition-colors"
+          >
+            ← Back to Home
+          </Link>
+        </div>
+
+        {/* Equity Curve - Placeholder */}
+        <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
+          <h2 className="text-base font-bold text-white mb-4">Equity Curve</h2>
+          <div className="h-64 flex items-center justify-center text-sm text-white/50 border border-dashed border-white/10 rounded-lg">
+            Daily equity history unavailable (IBKR endpoint needed).
+            <br />
+            <span className="text-xs">Trade history available for realized PnL tracking.</span>
+          </div>
+        </div>
+
+        {/* PnL Breakdown & Exposure - Two Column */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* PnL Breakdown */}
+          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
+            <h2 className="text-base font-bold text-white mb-4">PnL Breakdown</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Realized PnL</p>
+                <p className={`text-2xl font-bold ${totalRealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {totalRealizedPnl >= 0 ? "+" : ""}
+                  ${totalRealizedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Unrealized PnL</p>
+                <p className={`text-2xl font-bold ${totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {totalUnrealizedPnl >= 0 ? "+" : ""}
+                  ${totalUnrealizedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              {winRate !== null && (
+                <div>
+                  <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Win Rate</p>
+                  <p className="text-2xl font-bold text-white">
+                    {winRate.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-white/40 mt-1">
+                    {trades.filter(t => (t.realizedPnl || 0) > 0).length} winning trades / {trades.length} total
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="space-y-1">
-            <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Performance</p>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Your Stats</h1>
-            <p className="text-sm text-white/70">Track your trading progress</p>
+          {/* Exposure Breakdown */}
+          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
+            <h2 className="text-base font-bold text-white mb-4">Exposure Breakdown</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Positions</p>
+                <p className="text-2xl font-bold text-white">{positions.length}</p>
+              </div>
+              <div>
+                <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Value</p>
+                <p className="text-2xl font-bold text-white">
+                  ${positions.reduce((sum, p) => sum + (p.marketPrice * p.quantity), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              {account && (
+                <div>
+                  <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Buying Power</p>
+                  <p className="text-2xl font-bold text-white">
+                    ${account.buyingPower.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
+        </div>
+
+        {/* Top Movers */}
+        <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
+          <h2 className="text-base font-bold text-white mb-4">Top Movers</h2>
+          {topMovers.length > 0 ? (
+            <div className="space-y-2">
+              {topMovers.map((position) => (
+                <Link
+                  key={position.symbol}
+                  href={`/symbol/${position.symbol}`}
+                  className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  <div>
+                    <p className="font-medium text-white">{position.symbol}</p>
+                    <p className="text-xs text-white/50">
+                      {position.quantity} @ ${position.avgPrice.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-bold ${position.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {position.unrealizedPnl >= 0 ? "+" : ""}
+                      ${position.unrealizedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-xs text-white/50">
+                      {((position.unrealizedPnl / (position.avgPrice * position.quantity)) * 100).toFixed(2)}%
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-white/50">No positions to display</p>
+          )}
         </div>
       </div>
-
-      {/* Performance Insight */}
-      <section className="mb-5">
-        <div className="rounded-2xl bg-gradient-to-br from-[#F56300]/15 via-[#F56300]/5 to-cyan-500/5 backdrop-blur-2xl border border-white/10 px-5 py-5 shadow-[0_8px_32px_rgba(245,99,0,0.15)]">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl">💡</span>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-base font-bold text-white mb-2">Performance Insight</h3>
-              <p className="text-sm text-slate-300 leading-relaxed font-medium">
-                Momentum setups performed 25% better when aligned with the 4H trend. Reduce size on mean-reversion trades during the afternoon session.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Today's Performance */}
-      <section className="space-y-3 mb-5">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Today's Performance</h2>
-        </div>
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 space-y-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">Progress</span>
-              <span className="text-xs font-bold text-ultra-accent">60%</span>
-            </div>
-            <div className="h-3 rounded-full bg-white/5 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-ultra-accent to-ultra-accent/80 shadow-[0_0_12px_rgba(245,99,0,0.5)]"
-                style={{ width: "60%" }}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 pt-3 border-t border-white/5">
-            {vitals.map((vital) => (
-              <div key={vital.label} className="text-center">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-1.5">{vital.label}</p>
-                <p className={`text-lg font-bold tracking-tight ${vital.color}`}>{vital.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Weekly Charts */}
-      <section className="space-y-3 mb-5">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Your Weekly Charts</h2>
-          <button className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors">View all</button>
-        </div>
-        <div className="space-y-3">
-          {["Equity Curve", "Daily R", "Risk Per Day"].map((label) => (
-            <div
-              key={label}
-              className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-6 hover:bg-white/[0.06] hover:border-white/15 transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)] active:scale-[0.99]"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-white tracking-tight">{label}</h3>
-                <button className="text-xs text-ultra-accent font-medium hover:text-ultra-accentHover">View</button>
-              </div>
-              <div className="h-32 rounded-xl bg-black/40 border border-white/5 flex items-center justify-center">
-                <p className="text-xs text-slate-500 font-medium">Chart visualization</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </TabPage>
+    </main>
   );
 }

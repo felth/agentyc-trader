@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import SourceStatusBadge from "@/components/ui/SourceStatusBadge";
 import { detectCandlePattern } from "@/lib/patterns";
 import { getTrendRegime, getVolatilityPercentile } from "@/lib/marketMath";
+import { classifyMomentum } from "@/lib/momentum";
 import type { Candle } from "@/lib/data/ohlcv";
 
 type OHLC = {
@@ -18,6 +19,7 @@ type DerivedData = {
   trend: "UP" | "DOWN" | "RANGE";
   volPct: number;
   pattern: string;
+  momentum: string;
 };
 
 type ChartPanelProps = {
@@ -56,8 +58,9 @@ export default function ChartPanel({ ticker, onDerivedChange }: ChartPanelProps)
         const trend = getTrendRegime(closes);
         const volPct = getVolatilityPercentile(candles);
         const pattern = detectCandlePattern(candles);
+        const momentum = classifyMomentum(candles);
 
-        onDerivedChange({ trend, volPct, pattern });
+        onDerivedChange({ trend, volPct, pattern, momentum });
       }
     } catch {
       setStatus("ERROR");

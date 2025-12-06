@@ -22,6 +22,7 @@ type DerivedData = {
   trend: "UP" | "DOWN" | "RANGE";
   volPct: number;
   pattern: string;
+  momentum: string;
 };
 
 function SymbolContent({ params }: { params: Promise<{ ticker: string }> }) {
@@ -31,6 +32,7 @@ function SymbolContent({ params }: { params: Promise<{ ticker: string }> }) {
     trend: "RANGE",
     volPct: 50,
     pattern: "None",
+    momentum: "Weak",
   });
 
   useEffect(() => {
@@ -94,7 +96,7 @@ function SymbolContent({ params }: { params: Promise<{ ticker: string }> }) {
         symbol={ticker}
         strengthScore={67} // placeholder until wired to logic
         pattern={derived.pattern}
-        momentum="Weak" // temp — next drop
+        momentum={derived.momentum}
       />
 
       {/* CTA: Journal + Order Ticket */}

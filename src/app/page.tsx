@@ -131,7 +131,7 @@ export default function HomePage() {
       ?.slice(0, 3)
       .map(
         (order) =>
-          `${order.side} ${order.symbol} @ ${order.limitPrice?.toFixed(2) || "market"}`
+          `${order.side} ${order.symbol} ${order.orderType === 'LIMIT' && order.entry ? `@ ${order.entry.toFixed(2)}` : 'market'}`
       ) || [];
 
   if (loading) {

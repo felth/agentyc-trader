@@ -1,6 +1,7 @@
 import SymbolHeader from "@/components/symbol/SymbolHeader";
 import ChartPanel from "@/components/symbol/ChartPanel";
 import StructureBlock from "@/components/symbol/StructureBlock";
+import CorrelationBlock from "@/components/symbol/CorrelationBlock";
 
 async function getSymbolData(ticker: string) {
   try {
@@ -44,7 +45,13 @@ export default async function SymbolPage({
         session={data.session}
       />
 
-      {/* Remaining sections will follow */}
+      {/* Drop 4 — Correlation Awareness */}
+      <CorrelationBlock
+        symbol={ticker}
+        correlationScore={0.42} // placeholder until live calc added
+      />
+
+      {/* Remaining sections next */}
     </main>
   );
 }

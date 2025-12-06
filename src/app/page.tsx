@@ -22,7 +22,9 @@ import type {
   MacroCalendarEvent,
 } from "@/types/trading";
 import type { TradePlan } from "@/lib/agent/tradeSchema";
-import { TradePlanCard } from "@/components/TradePlanCard";
+import { TradePlanSummaryCard } from "@/components/dashboard/TradePlanSummaryCard";
+import { AccountSnapshotCard } from "@/components/dashboard/AccountSnapshotCard";
+import { MarketOverviewGrid } from "@/components/dashboard/MarketOverviewGrid";
 import type { DashboardSnapshot } from "@/lib/data/dashboard";
 
 // Simple Sparkline Chart Component
@@ -247,28 +249,8 @@ export default function HomePage() {
   const dayStr = today.toLocaleDateString('en-US', { weekday: 'long' });
 
   return (
-    <main className="space-y-6 pt-2 pb-24 max-w-md mx-auto px-4">
-      {/* IBKR Connection Status Banner */}
-      {ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
-        <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 space-y-2">
-              <h3 className="text-sm font-bold text-amber-400">IBKR not connected</h3>
-              <p className="text-xs text-amber-300/90 leading-relaxed">
-                To refresh your live brokerage data, tap Reconnect and complete login in the IBKR app.
-              </p>
-            </div>
-            <button
-              onClick={handleReconnectIbkr}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap"
-            >
-              Reconnect IBKR
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Background Image with Date - Like health app */}
+    <main className="space-y-6 pt-2 pb-24 max-w-5xl mx-auto px-4">
+      {/* Hero Banner */}
       <section className="relative h-48 rounded-[2rem] overflow-hidden mb-5 -mx-4">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -316,57 +298,50 @@ export default function HomePage() {
         </div>
       </section>
 
-
-      {/* Trading Context - Read-only display */}
-      {dashboard && (
-        <section className="mb-6">
-          <h2 className="text-base font-bold text-white mb-3">Trading Context</h2>
-          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)] space-y-4">
-            {/* Account */}
-            <div>
-              <h3 className="text-sm font-bold text-white mb-2">Account</h3>
-              <pre className="text-xs text-white/70 overflow-x-auto">
-                {JSON.stringify(dashboard.account, null, 2)}
-              </pre>
+      {/* IBKR Connection Status Banner */}
+      {ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
+        <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-2">
+              <h3 className="text-sm font-bold text-amber-400">IBKR not connected</h3>
+              <p className="text-xs text-amber-300/90 leading-relaxed">
+                To refresh your live brokerage data, tap Reconnect and complete login in the IBKR app.
+              </p>
             </div>
-            {/* Buying Power */}
-            <div>
-              <h3 className="text-sm font-bold text-white mb-2">Buying Power</h3>
-              <p className="text-sm text-white/70">{dashboard.account?.buyingPower}</p>
-            </div>
-            {/* Unrealized PnL */}
-            <div>
-              <h3 className="text-sm font-bold text-white mb-2">Unrealized PnL</h3>
-              <p className="text-sm text-white/70">{dashboard.account?.unrealizedPnl}</p>
-            </div>
-            {/* Positions */}
-            <div>
-              <h3 className="text-sm font-bold text-white mb-2">Positions</h3>
-              <pre className="text-xs text-white/70 overflow-x-auto">
-                {JSON.stringify(dashboard.positions, null, 2)}
-              </pre>
-            </div>
-            {/* Orders */}
-            <div>
-              <h3 className="text-sm font-bold text-white mb-2">Orders</h3>
-              <pre className="text-xs text-white/70 overflow-x-auto">
-                {JSON.stringify(dashboard.orders, null, 2)}
-              </pre>
-            </div>
+            <button
+              onClick={handleReconnectIbkr}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap"
+            >
+              Reconnect IBKR
+            </button>
           </div>
-        </section>
+        </div>
       )}
 
-      {/* Trade Plan Section */}
-      <TradePlanCard
+      {/* Account Snapshot */}
+      {dashboard && (
+        <AccountSnapshotCard
+          accountId={dashboard.account.accountId}
+          balance={dashboard.account.balance}
+          equity={dashboard.account.equity}
+          unrealizedPnl={dashboard.account.unrealizedPnl}
+          buyingPower={dashboard.account.buyingPower}
+          positionsCount={dashboard.positions?.length || 0}
+        />
+      )}
+
+      {/* Trade Plan Summary */}
+      <TradePlanSummaryCard
         plan={tradePlan}
         loading={loadingPlan}
-        onGenerate={fetchTradePlan}
+        onGeneratePlan={fetchTradePlan}
       />
 
-      {/* Performance Insight Card - Like health app */}
-      {(loadingInsight || performanceInsight) && (
-        <section className="mb-6">
+      {/* Responsive Grid: Performance Insight + Market Overview (tablet/desktop) */}
+      <section className="grid gap-4 md:grid-cols-2 mb-6">
+        {/* Performance Insight Card */}
+        {(loadingInsight || performanceInsight) && (
+        <div>
           <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <div className="flex items-start gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
@@ -405,53 +380,61 @@ export default function HomePage() {
               <p className="text-sm text-slate-200 leading-relaxed">Performance insight unavailable</p>
             )}
           </div>
-        </section>
-      )}
+        </div>
+        )}
 
-      {/* Today's Activity Section - Like health app */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-white">Today's Activity</h2>
-          <Link href="/trades" className="text-sm text-white/70 font-medium hover:text-white transition-colors">
-            Add New
-          </Link>
-        </div>
-        <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-          {dashboard?.dailyActivity ? (
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-lg">📊</span>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-white/70 leading-relaxed">
-                  {dashboard.dailyActivity.notes}
-                </p>
-                {dashboard.dailyActivity.hasTradesToday && (
-                  <Link href="/trades" className="text-sm text-ultra-accent font-semibold mt-2 inline-block hover:underline">
-                    View trades →
-                  </Link>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-lg">📊</span>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-white/70 leading-relaxed">
-                  Loading activity...
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Market Overview Grid */}
+        {dashboard?.marketOverview && (
+          <MarketOverviewGrid tiles={dashboard.marketOverview.tiles} />
+        )}
       </section>
 
-      {/* Economic Calendar - Apple-inspired design */}
-      {dashboard?.economicCalendar && dashboard.economicCalendar.items.length > 0 && (
-        <section className="mb-6">
+      {/* Responsive Grid: Today's Activity + Economic Calendar (tablet/desktop) */}
+      <section className="grid gap-4 md:grid-cols-2 mb-6">
+        {/* Today's Activity Section */}
+        <div>
           <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-white">Today's Activity</h2>
+            <button className="text-sm text-white/70 font-medium hover:text-white transition-colors">
+              + Add Checklist
+            </button>
+          </div>
+          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+            {dashboard?.dailyActivity ? (
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-lg">📊</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-white/70 leading-relaxed">
+                    {dashboard.dailyActivity.notes}
+                  </p>
+                  {dashboard.dailyActivity.hasTradesToday && (
+                    <Link href="/trades" className="text-sm text-ultra-accent font-semibold mt-2 inline-block hover:underline">
+                      View trades →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-lg">📊</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-white/70 leading-relaxed">
+                    Loading activity...
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Economic Calendar */}
+        {dashboard?.economicCalendar && dashboard.economicCalendar.items.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-base">📊</span>
               <h2 className="text-base font-bold text-white">Economic Calendar</h2>
@@ -554,63 +537,8 @@ export default function HomePage() {
               </div>
             )}
           </div>
-        </section>
-      )}
-
-      {/* Market Overview */}
-      <section className="space-y-4 mb-6">
-        <h2 className="text-base font-bold text-white">Market Overview</h2>
-        <div className="grid grid-cols-3 gap-3">
-          {dashboard?.marketOverview?.tiles ? (
-            dashboard.marketOverview.tiles.map((tile) => (
-              <div
-                key={tile.symbol}
-                className={`relative rounded-xl backdrop-blur-2xl border p-4 space-y-2 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:scale-[1.02] ${
-                  (tile.changePct ?? 0) >= 0
-                    ? "bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-cyan-500/10 border-emerald-500/30"
-                    : "bg-gradient-to-br from-red-500/20 via-orange-500/15 to-amber-500/10 border-red-500/30"
-                }`}
-              >
-                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">{tile.label}</p>
-                <p className="text-lg font-bold text-white tracking-tight">
-                  {tile.value !== null ? tile.value.toLocaleString(undefined, {
-                    minimumFractionDigits: tile.label === "DXY" || tile.label === "VIX" ? 2 : 0,
-                    maximumFractionDigits: tile.label === "XAUUSD" || tile.label === "BTCUSD" ? 2 : 2,
-                  }) : "—"}
-                </p>
-                {tile.changePct !== null && (
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-sm font-bold ${
-                      tile.changePct >= 0 ? "text-emerald-400" : "text-red-400"
-                    }`}>
-                      {tile.changePct >= 0 ? "↑" : "↓"}
-                    </span>
-                    <p
-                      className={`text-sm font-bold ${
-                        tile.changePct >= 0 ? "text-emerald-400" : "text-red-400"
-                      }`}
-                    >
-                      {tile.changePct >= 0 ? "+" : ""}
-                      {tile.changePct.toFixed(2)}%
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            // Loading state
-            Array.from({ length: 6 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="relative rounded-xl backdrop-blur-2xl border border-white/10 p-4 space-y-2 bg-white/5 animate-pulse"
-              >
-                <div className="h-3 w-12 bg-white/10 rounded" />
-                <div className="h-6 w-20 bg-white/10 rounded" />
-                <div className="h-4 w-16 bg-white/10 rounded" />
-              </div>
-            ))
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* Key Metrics - Side by Side */}

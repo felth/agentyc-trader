@@ -1,4 +1,5 @@
 import SymbolHeader from "@/components/symbol/SymbolHeader";
+import ChartPanel from "@/components/symbol/ChartPanel";
 
 async function getSymbolData(ticker: string) {
   try {
@@ -32,8 +33,9 @@ export default async function SymbolPage({
   return (
     <main className="px-6 pt-10 pb-32 bg-black min-h-screen flex flex-col gap-8">
       <SymbolHeader {...data} />
+      <ChartPanel ticker={ticker} />
 
-      {/* Chart + remainder of layout will insert below */}
+      {/* Remaining sections will be added here */}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -23,7 +23,7 @@ type TradeExecution = {
   time: string;
 };
 
-export default function TradesPage() {
+function TradesContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"open" | "history">(
     (searchParams.get("tab") as "open" | "history") || "open"
@@ -293,5 +293,22 @@ export default function TradesPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function TradesPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+            <p className="mt-4 text-sm text-white/50">Loading trades data...</p>
+          </div>
+        </div>
+      </main>
+    }>
+      <TradesContent />
+    </Suspense>
   );
 }

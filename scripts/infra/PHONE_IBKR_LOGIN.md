@@ -108,12 +108,53 @@ Visit `https://gateway.agentyc.app` in your browser. You should see the IBKR Cli
 
 ## Troubleshooting
 
-### Gateway Not Accessible
+### Gateway Not Accessible (Safari Can't Find Gateway)
 
-- **Check DNS**: Verify `gateway.agentyc.app` resolves to `104.248.42.213`
-- **Check Nginx**: `sudo systemctl status nginx`
-- **Check SSL**: `sudo certbot certificates`
-- **Check Firewall**: Ensure ports 80 and 443 are open
+If Safari shows "Safari can't open the page because it can't find the server" when clicking "Reconnect IBKR":
+
+**Quick Diagnostic - Run on Droplet:**
+```bash
+bash /opt/agentyc-trader/scripts/infra/GATEWAY_QUICK_CHECK.sh
+```
+
+**Common Issues:**
+
+1. **DNS Not Configured**
+   - Check: `dig gateway.agentyc.app +short` (should return `104.248.42.213`)
+   - Fix: Add DNS A record in your DNS provider (where `agentyc.app` is managed)
+   - Wait 5-10 minutes for DNS propagation
+
+2. **Nginx Not Installed/Configured**
+   - Check: `which nginx` and `ls /etc/nginx/sites-enabled/gateway.conf`
+   - Fix: Follow steps in `scripts/infra/nginx/README.md`
+   - Quick fix:
+     ```bash
+     sudo apt install -y nginx certbot python3-certbot-nginx
+     sudo cp /opt/agentyc-trader/scripts/infra/nginx/gateway.conf /etc/nginx/sites-available/gateway.conf
+     sudo ln -s /etc/nginx/sites-available/gateway.conf /etc/nginx/sites-enabled/gateway.conf
+     sudo nginx -t
+     sudo systemctl reload nginx
+     ```
+
+3. **SSL Certificate Missing**
+   - Check: `sudo certbot certificates`
+   - Fix: `sudo certbot --nginx -d gateway.agentyc.app`
+   - Note: Requires DNS to be pointing correctly first
+
+4. **Nginx Not Running**
+   - Check: `sudo systemctl status nginx`
+   - Fix: `sudo systemctl start nginx`
+
+5. **IBKR Gateway Not Running**
+   - Check: `sudo systemctl status ibkr-gateway.service`
+   - Check: `curl -k https://127.0.0.1:5000` (should return HTML)
+   - Fix: `sudo systemctl start ibkr-gateway.service`
+
+6. **Firewall Blocking**
+   - Check: `sudo ufw status`
+   - Fix: `sudo ufw allow 80/tcp && sudo ufw allow 443/tcp`
+
+**See full troubleshooting guide:** `scripts/infra/TROUBLESHOOTING_GATEWAY.md`
 
 ### Services Not Running
 

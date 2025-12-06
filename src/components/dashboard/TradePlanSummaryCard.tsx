@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import type { TradePlan } from "@/lib/agent/tradeSchema";
 
 export type TradePlanSummaryProps = {
@@ -77,6 +78,16 @@ export function TradePlanSummaryCard({
                 )}
               </div>
             </div>
+            {plan && (
+              <div className="mt-4 pt-4 border-t border-white/10 flex justify-end">
+                <Link
+                  href="/agent?view=plan"
+                  className="text-xs text-white/60 hover:text-white transition-colors"
+                >
+                  View full plan →
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

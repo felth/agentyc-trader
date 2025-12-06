@@ -418,6 +418,12 @@ export default function HomePage() {
                       </span>
                     </div>
                     <Link
+                      href="/agent?view=insight"
+                      className="text-xs text-white/60 hover:text-white transition-colors"
+                    >
+                      Open Agent →
+                    </Link>
+                    <Link
                       href="/agent"
                       className="text-xs text-ultra-accent font-semibold hover:underline"
                     >
@@ -491,12 +497,13 @@ export default function HomePage() {
       {/* Focus Symbol & Regime (Detailed) - Apple-style Landscape Cards Stacked */}
       <section className="space-y-6 mb-8">
         {/* XAUUSD Card - Landscape */}
-        <div className="relative rounded-3xl bg-gradient-to-br from-ultra-accent/15 via-orange-500/10 to-amber-500/8 backdrop-blur-3xl border border-white/10 p-6 md:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:border-white/20 transition-all duration-500">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-semibold text-white">XAUUSD</span>
+        <Link href="/symbol/XAUUSD" className="block group">
+          <div className="relative rounded-3xl bg-gradient-to-br from-ultra-accent/15 via-orange-500/10 to-amber-500/8 backdrop-blur-3xl border border-white/10 p-6 md:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:border-white/20 transition-all duration-500">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-semibold text-white">XAUUSD</span>
                 <span className="text-[10px] text-white/50 uppercase tracking-[0.16em]">
                   {loadingXauusd ? "Loading..." : xauusdOhlc ? "AlphaVantage (live)" : dashboard?.marketOverview?.tiles?.find(t => t.symbol === "XAUUSD")?.source === "LIVE" ? "FMP (live)" : "Derived"}
                 </span>
@@ -566,7 +573,8 @@ export default function HomePage() {
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </Link>
       </section>
 
       {/* Row 3 – Order Flow & Volume */}

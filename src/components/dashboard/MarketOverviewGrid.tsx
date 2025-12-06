@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import type { PriceTile } from "@/lib/data/dashboard";
 
 export type MarketOverviewGridProps = {
@@ -42,13 +43,10 @@ export function MarketOverviewGrid({ tiles }: MarketOverviewGridProps) {
             const changeSign = tile.changePct !== null && tile.changePct > 0 ? "+" : "";
 
             return (
-              <button
+              <Link
                 key={`${tile.symbol}-${index}`}
-                className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200 text-left"
-                onClick={() => {
-                  // TODO: Navigate to instrument detail page
-                  console.log("Navigate to", tile.symbol);
-                }}
+                href={`/symbol/${tile.symbol}`}
+                className="block p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200 text-left"
               >
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-white/90">{tile.label}</p>
@@ -71,7 +69,7 @@ export function MarketOverviewGrid({ tiles }: MarketOverviewGridProps) {
                     <p className="text-xs text-white/40">—</p>
                   )}
                 </div>
-              </button>
+              </Link>
             );
           })}
         </div>

@@ -24,9 +24,9 @@ async function getSymbolData(ticker: string) {
 export default async function SymbolPage({ 
   params 
 }: { 
-  params: { ticker: string } 
+  params: Promise<{ ticker: string }> 
 }) {
-  const { ticker } = params;
+  const { ticker } = await params;
   const data = await getSymbolData(ticker);
 
   return (

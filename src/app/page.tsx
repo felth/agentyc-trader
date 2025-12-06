@@ -118,11 +118,11 @@ export default function HomePage() {
       title: event.title,
       releaseTime: event.timeUtc,
       impactLevel:
-        event.importance === "HIGH"
+        (event.importance === "HIGH"
           ? "HIGH"
           : event.importance === "MEDIUM"
           ? "MED"
-          : "LOW",
+          : "LOW") as "LOW" | "MED" | "HIGH",
     })) || [];
 
   // Get actionable bullets from trade plan

@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import SourceStatusBadge from "@/components/ui/SourceStatusBadge";
+import { detectCandlePattern } from "@/lib/patterns";
+import { getTrendRegime, getVolatilityPercentile } from "@/lib/marketMath";
+import type { Candle } from "@/lib/data/ohlcv";
 
 type OHLC = {
   t: number; // timestamp ms
@@ -11,7 +14,18 @@ type OHLC = {
   c: number;
 };
 
-export default function ChartPanel({ ticker }: { ticker: string }) {
+type DerivedData = {
+  trend: "UP" | "DOWN" | "RANGE";
+  volPct: number;
+  pattern: string;
+};
+
+type ChartPanelProps = {
+  ticker: string;
+  onDerivedChange?: (values: DerivedData) => void;
+};
+
+export default function ChartPanel({ ticker, onDerivedChange }: ChartPanelProps) {
   const [tf, setTf] = useState<"5m" | "1h" | "1d">("5m");
   const [data, setData] = useState<OHLC[]>([]);
   const [status, setStatus] = useState<"LIVE" | "ERROR" | "DEGRADED">("LIVE");
@@ -26,6 +40,25 @@ export default function ChartPanel({ ticker }: { ticker: string }) {
       const json = await res.json();
       setData(json.data || []);
       setStatus(json.status || "LIVE");
+
+      // Calculate derived values if we have data
+      if (json.data?.length > 0 && onDerivedChange) {
+        // Convert OHLC format to Candle format
+        const candles: Candle[] = json.data.map((c: OHLC) => ({
+          timestamp: new Date(c.t).toISOString(),
+          open: c.o,
+          high: c.h,
+          low: c.l,
+          close: c.c,
+        }));
+
+        const closes = candles.map((c) => c.close);
+        const trend = getTrendRegime(closes);
+        const volPct = getVolatilityPercentile(candles);
+        const pattern = detectCandlePattern(candles);
+
+        onDerivedChange({ trend, volPct, pattern });
+      }
     } catch {
       setStatus("ERROR");
     }

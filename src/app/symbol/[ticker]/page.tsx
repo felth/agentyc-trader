@@ -2,6 +2,8 @@ import SymbolHeader from "@/components/symbol/SymbolHeader";
 import ChartPanel from "@/components/symbol/ChartPanel";
 import StructureBlock from "@/components/symbol/StructureBlock";
 import CorrelationBlock from "@/components/symbol/CorrelationBlock";
+import EvidenceTiles from "@/components/symbol/EvidenceTiles";
+import ActionButtons from "@/components/symbol/ActionButtons";
 
 async function getSymbolData(ticker: string) {
   try {
@@ -51,7 +53,16 @@ export default async function SymbolPage({
         correlationScore={0.42} // placeholder until live calc added
       />
 
-      {/* Remaining sections next */}
+      {/* DROP 5 — Setup Evidence */}
+      <EvidenceTiles
+        symbol={ticker}
+        strengthScore={67}   // placeholder until wired to logic
+        pattern="Inside"
+        momentum="Weak"
+      />
+
+      {/* CTA: Journal + Order Ticket */}
+      <ActionButtons symbol={ticker} />
     </main>
   );
 }

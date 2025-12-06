@@ -19,7 +19,7 @@ function getBridgeKey(): string {
   return key;
 }
 
-async function callBridge<T>(
+export async function callBridge<T>(
   path: string,
   init: RequestInit = {}
 ): Promise<T> {

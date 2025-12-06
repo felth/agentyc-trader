@@ -5,6 +5,7 @@ import SourceStatusBadge from "@/components/ui/SourceStatusBadge";
 import { detectCandlePattern } from "@/lib/patterns";
 import { getTrendRegime, getVolatilityPercentile } from "@/lib/marketMath";
 import { classifyMomentum } from "@/lib/momentum";
+import { computeStrengthScore } from "@/lib/strength";
 import type { Candle } from "@/lib/data/ohlcv";
 
 type OHLC = {
@@ -20,6 +21,7 @@ type DerivedData = {
   volPct: number;
   pattern: string;
   momentum: string;
+  strengthScore: number;
 };
 
 type ChartPanelProps = {
@@ -59,8 +61,9 @@ export default function ChartPanel({ ticker, onDerivedChange }: ChartPanelProps)
         const volPct = getVolatilityPercentile(candles);
         const pattern = detectCandlePattern(candles);
         const momentum = classifyMomentum(candles);
+        const strengthScore = computeStrengthScore(candles);
 
-        onDerivedChange({ trend, volPct, pattern, momentum });
+        onDerivedChange({ trend, volPct, pattern, momentum, strengthScore });
       }
     } catch {
       setStatus("ERROR");

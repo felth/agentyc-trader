@@ -23,6 +23,7 @@ type DerivedData = {
   volPct: number;
   pattern: string;
   momentum: string;
+  strengthScore: number;
 };
 
 function SymbolContent({ params }: { params: Promise<{ ticker: string }> }) {
@@ -33,6 +34,7 @@ function SymbolContent({ params }: { params: Promise<{ ticker: string }> }) {
     volPct: 50,
     pattern: "None",
     momentum: "Weak",
+    strengthScore: 50,
   });
 
   useEffect(() => {
@@ -94,7 +96,7 @@ function SymbolContent({ params }: { params: Promise<{ ticker: string }> }) {
       {/* DROP 5 — Setup Evidence */}
       <EvidenceTiles
         symbol={ticker}
-        strengthScore={67} // placeholder until wired to logic
+        strengthScore={derived.strengthScore}
         pattern={derived.pattern}
         momentum={derived.momentum}
       />

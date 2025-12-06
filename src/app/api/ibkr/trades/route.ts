@@ -29,7 +29,7 @@ export async function GET() {
     }
 
     // Call bridge /trades endpoint (which should return executions/trade history)
-    const tradesRes = await callBridge<{
+    type TradesResponse = {
       ok: boolean;
       trades?: Array<{
         id?: string;
@@ -43,10 +43,20 @@ export async function GET() {
         assetClass?: string;
       }>;
       error?: string;
-    }>("/trades", { method: "GET" }).catch((err) => {
+    };
+
+    let tradesRes: TradesResponse;
+    try {
+      tradesRes = await callBridge<TradesResponse>("/trades", { method: "GET" });
+    } catch (err: any) {
       console.error("[api/ibkr/trades] Bridge call failed:", err);
-      return { ok: false, error: err?.message || "Bridge call failed" };
-    });
+      // Return empty trades array if bridge call fails
+      return NextResponse.json({
+        ok: true,
+        accountId: accountRes.accountId,
+        trades: [],
+      });
+    }
 
     if (!tradesRes.ok || !Array.isArray(tradesRes.trades)) {
       return NextResponse.json({

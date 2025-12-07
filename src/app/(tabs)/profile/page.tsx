@@ -1,12 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { TabPage } from "../../../components/layout/TabPage";
+import { MEMORY_CORPUS_INDEX, MEMORY_PLAYBOOK_INDEX, MEMORY_JOURNAL_INDEX } from "@/lib/constants/memory";
 
-export default function ProfileTab() {
+function ProfileContent() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tab = searchParams.get("tab") || "settings";
   const now = new Date();
   const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -90,7 +93,9 @@ export default function ProfileTab() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-white mb-0.5">Daily Risk Limit</p>
-                <p className="text-xs text-slate-400">Maximum risk per day</p>
+                <p className="text-xs text-slate-400">
+              Maximum risk per day. This is the limit used for Today's Account & Risk and Agency's risk hints.
+            </p>
               </div>
               <span className="text-base font-bold text-ultra-accent">1.0%</span>
             </div>
@@ -135,45 +140,132 @@ export default function ProfileTab() {
         <div className="flex items-center justify-between mb-3 px-1">
           <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Connections</h2>
         </div>
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-          <div className="flex items-center justify-between mb-3">
+        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-white mb-0.5">TradingView</p>
-              <p className="text-xs text-slate-400 font-medium">Connected</p>
+              <p className="text-sm font-bold text-white mb-0.5">Interactive Brokers</p>
+              <p className="text-xs text-slate-400 font-medium">Live account connection</p>
+            </div>
+            <Link
+              href="/"
+              className="text-xs text-ultra-accent font-bold hover:text-ultra-accentHover transition-colors"
+            >
+              Manage connection
+            </Link>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-white mb-0.5">Market Data (FMP)</p>
+              <p className="text-xs text-slate-400 font-medium">Live</p>
             </div>
             <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/40">
               ACTIVE
             </span>
           </div>
-          <button className="text-xs text-ultra-accent font-bold hover:text-ultra-accentHover transition-colors">Manage connections</button>
         </div>
       </section>
 
-      {/* Display Preferences */}
+      {/* Memory */}
       <section className="mb-5">
         <div className="flex items-center justify-between mb-3 px-1">
-          <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Display Preferences</h2>
+          <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Memory</h2>
         </div>
-        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 space-y-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-          {[
-            { label: "Theme", value: "Dark", action: "Change" },
-            { label: "Currency", value: "USD", action: "Edit" },
-            { label: "Time Zone", value: "GMT+0", action: "Adjust" },
-          ].map((item, idx) => (
-            <div key={idx} className={idx < 2 ? "pb-4 border-b border-white/5" : ""}>
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-white mb-0.5">{item.label}</p>
-                  <p className="text-xs text-slate-400 font-medium">{item.value}</p>
-                </div>
-                <button className="text-xs text-ultra-accent font-bold hover:text-ultra-accentHover transition-colors">
-                  {item.action}
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-3">
+          <div>
+            <p className="text-xs text-slate-400 mb-1">Corpus index:</p>
+            <p className="text-sm font-bold text-white">{MEMORY_CORPUS_INDEX}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 mb-1">Playbook index:</p>
+            <p className="text-sm font-bold text-white">{MEMORY_PLAYBOOK_INDEX}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 mb-1">Journal index:</p>
+            <p className="text-sm font-bold text-white">{MEMORY_JOURNAL_INDEX}</p>
+          </div>
+          <p className="text-xs text-slate-400 pt-3 border-t border-white/5">
+            Library shows all uploads. Corpus holds long-term knowledge; Playbook holds distilled rules and checklists.
+          </p>
         </div>
       </section>
+
+      {/* Display Preferences - Only show on settings tab */}
+      {tab === "settings" && (
+        <section className="mb-5">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Display Preferences</h2>
+          </div>
+          <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 space-y-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            {[
+              { label: "Theme", value: "Dark", action: "Change" },
+              { label: "Currency", value: "USD", action: "Edit" },
+              { label: "Time Zone", value: "GMT+0", action: "Adjust" },
+            ].map((item, idx) => (
+              <div key={idx} className={idx < 2 ? "pb-4 border-b border-white/5" : ""}>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-white mb-0.5">{item.label}</p>
+                    <p className="text-xs text-slate-400 font-medium">{item.value}</p>
+                  </div>
+                  <button className="text-xs text-ultra-accent font-bold hover:text-ultra-accentHover transition-colors">
+                    {item.action}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Diagnostics Tab */}
+      {tab === "diagnostics" && (
+        <section className="mb-5">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">System Diagnostics</h2>
+          </div>
+          <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-4">
+            <div>
+              <p className="text-sm font-bold text-white mb-2">System Health</p>
+              <p className="text-xs text-white/50 mb-4">
+                Diagnostic information for IBKR Gateway, Bridge, and DashboardSnapshot status.
+              </p>
+            </div>
+            <div className="space-y-3 pt-3 border-t border-white/5">
+              <div>
+                <p className="text-xs text-slate-400 mb-1">IBKR Bridge</p>
+                <p className="text-sm text-white/50">Check bridge health endpoint</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Gateway Auth Status</p>
+                <p className="text-sm text-white/50">IBKR Client Portal Gateway authentication state</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Last DashboardSnapshot</p>
+                <p className="text-sm text-white/50">Timestamp of last successful snapshot build</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </TabPage>
+  );
+}
+
+export default function ProfileTab() {
+  return (
+    <Suspense
+      fallback={
+        <TabPage>
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+              <p className="mt-4 text-sm text-white/50">Loading settings...</p>
+            </div>
+          </div>
+        </TabPage>
+      }
+    >
+      <ProfileContent />
+    </Suspense>
   );
 }

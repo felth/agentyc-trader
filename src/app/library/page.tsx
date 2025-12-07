@@ -154,13 +154,27 @@ export default function LibraryPage() {
           <div className="space-y-1">
             <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Library</p>
             <h1 className="text-2xl font-bold tracking-tight text-white">Your Documents</h1>
-            <p className="text-sm text-white/70">View everything you've uploaded through the Agent</p>
+            <p className="text-sm text-white/70">View everything Agency has learned from your uploads.</p>
           </div>
         </div>
       </div>
 
-      {/* Search */}
+      {/* Filters */}
       <section className="mb-5">
+        <div className="flex items-center gap-3 mb-4">
+          {["All", "Corpus", "Playbook"].map((filter) => (
+            <button
+              key={filter}
+              className={`px-4 py-2 rounded-full text-xs font-medium transition-colors ${
+                filter === "All"
+                  ? "bg-ultra-accent text-black"
+                  : "bg-white/5 text-white/60 hover:bg-white/10"
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
         <input
           type="text"
           value={searchQuery}
@@ -235,8 +249,13 @@ export default function LibraryPage() {
                               maxHeight: '2.5rem' // Approx 2 lines at leading-snug
                             }}
                           >
-                            {doc.filename}
+                            {parseDocumentName(doc.filename || doc.title || "").title}
                           </h3>
+                          {parseDocumentName(doc.filename || doc.title || "").author && (
+                            <p className="text-xs text-slate-400 mb-1">
+                              by {parseDocumentName(doc.filename || doc.title || "").author}
+                            </p>
+                          )}
                           
                           {/* Metadata row */}
                           <div className="flex items-center gap-2 flex-wrap">

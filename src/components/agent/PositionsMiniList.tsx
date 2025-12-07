@@ -30,10 +30,14 @@ export default function PositionsMiniList({
     <AgentHintTag text="correlation watch" />
   ) : agentHint;
 
+  // Map EMPTY status to OK for SourceStatusBadge
+  const badgeStatus: "LIVE" | "OK" | "IDLE" | "DEGRADED" | "ERROR" = 
+    status === "EMPTY" ? "OK" : status;
+
   if (positions.length === 0) {
     return (
       <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5">
-        <SourceStatusBadge provider="IBKR" status={status} />
+        <SourceStatusBadge provider="IBKR" status={badgeStatus} />
         {hint && <div className="absolute top-2 left-4 z-10">{hint}</div>}
         <h3 className="text-[14px] font-bold text-white mb-2">Positions</h3>
         <p className="text-white/50 text-[13px]">No open positions from IBKR.</p>
@@ -43,7 +47,7 @@ export default function PositionsMiniList({
 
   return (
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5">
-      <SourceStatusBadge provider="IBKR" status={status} />
+      <SourceStatusBadge provider="IBKR" status={badgeStatus} />
       {hint && <div className="absolute top-2 left-4 z-10">{hint}</div>}
       
       <h3 className="text-[14px] font-bold text-white mb-3">Positions</h3>

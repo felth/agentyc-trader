@@ -59,9 +59,10 @@ export default function PerformanceHero({
                 </>
               ) : (
                 <div className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm">
-                  <span className="text-xs text-white/50">
-                    Data pending – equity history endpoint not connected.
-                  </span>
+                  <span className="text-xs text-white/70">This month:</span>
+                  <span className="ml-2 text-sm font-bold text-white/50">+0.0R</span>
+                  <span className="ml-1 text-xs text-white/50">(+$0.00)</span>
+                  <p className="text-[10px] text-white/40 mt-1">Monthly realised PnL requires IBKR trade history.</p>
                 </div>
               )}
 

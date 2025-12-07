@@ -138,7 +138,7 @@ export default function PerformancePage() {
       {/* Content */}
       <section className="px-6 pb-32 flex flex-col gap-8">
         {/* Equity & Drawdown */}
-        <EquityDrawdownCard hasData={false} status={equityStatus} />
+        <EquityDrawdownCard />
 
         {/* PnL & Exposure - Two Column */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -39,7 +39,7 @@ export default function PnLBreakdownCard({
               maximumFractionDigits: 2,
             })}
           </p>
-          <p className="text-xs text-white/40 mt-1">Period: This month</p>
+          <p className="text-xs text-white/40 mt-1">Period: This month (requires trade history)</p>
         </div>
 
         <div>
@@ -55,6 +55,7 @@ export default function PnLBreakdownCard({
               maximumFractionDigits: 2,
             })}
           </p>
+          <p className="text-xs text-white/40 mt-1">Unrealised PnL is based on your current positions only.</p>
         </div>
 
         {hasEquityHistory && (bestDay !== undefined || worstDay !== undefined) ? (

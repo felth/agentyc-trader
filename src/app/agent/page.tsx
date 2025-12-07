@@ -7,6 +7,7 @@ import AgencyChatPanel from "@/components/agent/AgencyChatPanel";
 import AccountSnapshotMini from "@/components/agent/AccountSnapshotMini";
 import PositionsMiniList from "@/components/agent/PositionsMiniList";
 import TodayCalendarMini from "@/components/agent/TodayCalendarMini";
+import SourceStatusBadge from "@/components/ui/SourceStatusBadge";
 import { getRiskSeverity } from "@/lib/riskUtils";
 import type { DashboardSnapshot } from "@/lib/data/dashboard";
 
@@ -20,14 +21,18 @@ function AgentContent() {
     bridgeOk: boolean;
     gatewayAuthenticated: boolean;
   } | null>(null);
+  const [journalCount, setJournalCount] = useState<number>(0);
+  const [playbookCount, setPlaybookCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchContext() {
       try {
-        const [dashboardRes, ibkrRes] = await Promise.all([
+        const [dashboardRes, ibkrRes, journalRes, libraryRes] = await Promise.all([
           fetch("/api/dashboard/home").then((r) => r.json()),
           fetch("/api/ibkr/status").then((r) => r.json()),
+          fetch("/api/journal/entries").then((r) => r.json()).catch(() => ({ ok: false, entries: [] })),
+          fetch("/api/library").then((r) => r.json()).catch(() => ({ ok: false, documents: [] })),
         ]);
 
         if (dashboardRes.ok && dashboardRes.snapshot) {
@@ -42,6 +47,16 @@ function AgentContent() {
               ibkrRes.gateway?.status?.authenticated === true,
           });
         }
+
+        if (journalRes.ok && Array.isArray(journalRes.entries)) {
+          setJournalCount(journalRes.entries.length);
+        }
+
+        if (libraryRes.ok && Array.isArray(libraryRes.documents)) {
+          // Count playbook documents (for now, all documents are counted)
+          // TODO: Filter by actual index metadata when available
+          setPlaybookCount(libraryRes.documents.length);
+        }
       } catch (err) {
         console.error("Failed to fetch agent context:", err);
       } finally {
@@ -54,12 +69,10 @@ function AgentContent() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-black text-white">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
-            <p className="mt-4 text-sm text-white/50">Loading agent context...</p>
-          </div>
+      <main className="bg-[#0A0A0A] min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-sm text-white/50">Loading agency context...</p>
         </div>
       </main>
     );
@@ -73,11 +86,11 @@ function AgentContent() {
       ? "DEGRADED"
       : "DOWN";
 
-  // Calculate data status (simple check - if we have dashboard data, it's LIVE)
+  // Calculate data status
   const dataStatus: "LIVE" | "STALE" = dashboard ? "LIVE" : "STALE";
 
   // Calculate open risk in R multiples
-  const dailyLossLimit = 2000; // Default, should come from trade plan or settings
+  const dailyLossLimit = 2000;
   const openRiskR =
     dashboard?.account?.unrealizedPnl && dailyLossLimit > 0
       ? Math.abs(dashboard.account.unrealizedPnl) / dailyLossLimit
@@ -92,7 +105,7 @@ function AgentContent() {
       symbol: pos.symbol,
       quantity: pos.quantity,
       unrealizedPnl: pos.unrealizedPnl,
-      correlationAlert: false, // TODO: Calculate correlation
+      correlationAlert: false,
     })) || [];
 
   // Prepare calendar events
@@ -110,7 +123,7 @@ function AgentContent() {
     })) || [];
 
   return (
-    <main className="bg-black text-white min-h-screen flex flex-col">
+    <main className="bg-[#0A0A0A] min-h-screen flex flex-col">
       {/* Hero Section */}
       <AgentycHero
         ibkrStatus={ibkrStatusDisplay}
@@ -170,6 +183,22 @@ function AgentContent() {
                     : "ERROR"
                 }
               />
+
+              {/* Memory Status Card */}
+              <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5">
+                <SourceStatusBadge provider="MEMORY" status={journalCount > 0 || playbookCount > 0 ? "OK" : "OFF"} />
+                <h3 className="text-[14px] font-bold text-white mb-3">Memory Status</h3>
+                <div className="space-y-2 text-xs text-white/60">
+                  <div className="flex justify-between">
+                    <span>Journal entries:</span>
+                    <span className="text-white/80 font-medium">{journalCount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Playbook docs:</span>
+                    <span className="text-white/80 font-medium">{playbookCount}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -182,12 +211,10 @@ export default function AgentPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-black text-white">
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
-              <p className="mt-4 text-sm text-white/50">Loading...</p>
-            </div>
+        <main className="bg-[#0A0A0A] min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+            <p className="mt-4 text-sm text-white/50">Loading...</p>
           </div>
         </main>
       }

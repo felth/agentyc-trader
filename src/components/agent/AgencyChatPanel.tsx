@@ -9,7 +9,7 @@ export default function AgencyChatPanel() {
 
       <h2 className="text-[18px] font-bold text-white mb-2">Agency Chat</h2>
       <p className="text-[12px] text-white/50 mb-6">
-        Context loaded: Account • Positions • Today's risk • Latest journal pattern
+        Context loaded: Account • Positions • Today's risk • Latest journal metrics • Playbook rules.
       </p>
 
       {/* Placeholder chat area */}

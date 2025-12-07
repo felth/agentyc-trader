@@ -163,7 +163,7 @@ function AgentContent() {
               <TodayCalendarMini
                 events={calendarEvents}
                 status={
-                  dashboard?.economicCalendar?.source === "FMP"
+                  dashboard?.economicCalendar?.source === "LIVE"
                     ? "LIVE"
                     : dashboard?.economicCalendar?.source === "SIMULATED"
                     ? "DEGRADED"

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TabPage } from "../../components/layout/TabPage";
+import { parseDocumentName } from "@/lib/libraryFormat";
 
 type Document = {
   id: string;

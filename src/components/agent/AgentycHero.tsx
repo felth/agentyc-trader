@@ -1,8 +1,5 @@
 "use client";
 
-import SourceStatusBadge from "@/components/ui/SourceStatusBadge";
-import { getRiskSeverity } from "@/lib/riskUtils";
-
 type AgentycHeroProps = {
   ibkrStatus: "LIVE" | "DEGRADED" | "DOWN";
   dataStatus: "LIVE" | "STALE";

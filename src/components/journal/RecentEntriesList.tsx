@@ -20,7 +20,6 @@ type FilterType = "All" | "Pre-trade" | "Post-trade" | "Review";
 
 export default function RecentEntriesList({ entries }: RecentEntriesListProps) {
   const [filter, setFilter] = useState<FilterType>("All");
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
   const filteredEntries = entries.filter(entry => {
     if (filter === "All") return true;
@@ -76,33 +75,34 @@ export default function RecentEntriesList({ entries }: RecentEntriesListProps) {
 
       {/* Entries list */}
       {filteredEntries.length === 0 ? (
-        <p className="text-sm text-white/50 text-center py-8">
-          {filter === "All" ? "No journal entries yet." : `No entries tagged "${filter}".`}
-        </p>
+        <div className="py-8 text-center">
+          <p className="text-sm text-white/50">
+            {filter === "All" ? "No journal entries yet." : `No entries tagged "${filter}".`}
+          </p>
+        </div>
       ) : (
-        <div className="space-y-3 max-h-[400px] overflow-y-auto">
-          {filteredEntries.map((entry) => (
+        <div className="space-y-3">
+          {filteredEntries.slice(0, 10).map((entry) => (
             <div
               key={entry.id}
-              onClick={() => setSelectedEntry(entry)}
-              className="rounded-xl bg-white/5 border border-white/10 p-3 cursor-pointer hover:bg-white/10 transition-colors"
+              className="rounded-xl bg-white/5 border border-white/10 p-4 hover:bg-white/10 transition-colors"
             >
               <div className="flex items-start gap-3">
-                <span className="text-xl">{getMoodEmoji(entry.mood)}</span>
+                <span className="text-xl flex-shrink-0">{getMoodEmoji(entry.mood)}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-white/50">{formatDate(entry.createdAt)}</span>
                     {entry.symbol && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/70">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/70 flex-shrink-0 ml-2">
                         {entry.symbol}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-white/80 line-clamp-2">
-                    {entry.text.length > 100 ? `${entry.text.slice(0, 100)}...` : entry.text}
+                  <p className="text-sm text-white/80 line-clamp-2 mb-2">
+                    {entry.text}
                   </p>
                   {entry.tags && entry.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {entry.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
@@ -119,53 +119,6 @@ export default function RecentEntriesList({ entries }: RecentEntriesListProps) {
           ))}
         </div>
       )}
-
-      {/* Modal/Drawer for full entry */}
-      {selectedEntry && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedEntry(null)}
-        >
-          <div
-            className="rounded-2xl bg-[#111111] border border-white/20 p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{getMoodEmoji(selectedEntry.mood)}</span>
-                <div>
-                  <p className="text-sm font-bold text-white">{formatDate(selectedEntry.createdAt)}</p>
-                  {selectedEntry.symbol && (
-                    <p className="text-xs text-white/50">{selectedEntry.symbol}</p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedEntry(null)}
-                className="text-white/50 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap mb-4">
-              {selectedEntry.text}
-            </p>
-            {selectedEntry.tags && selectedEntry.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {selectedEntry.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs px-2 py-1 rounded-full bg-white/5 text-white/70"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-

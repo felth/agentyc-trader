@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { TabPage } from "../../components/layout/TabPage";
 import { parseDocumentName } from "@/lib/libraryFormat";
 
 type Document = {
@@ -21,6 +20,8 @@ export default function LibraryPage() {
   const pathname = usePathname();
   const now = new Date();
   const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dayStr = now.toLocaleDateString('en-US', { weekday: 'long' });
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,13 +47,15 @@ export default function LibraryPage() {
 
   const filteredDocs = documents.filter((doc) => {
     const query = searchQuery.toLowerCase();
+    const parsed = parseDocumentName(doc.filename || doc.title || "");
     return (
-      (doc.title || "").toLowerCase().includes(query) ||
+      parsed.title.toLowerCase().includes(query) ||
+      (parsed.author && parsed.author.toLowerCase().includes(query)) ||
       doc.filename.toLowerCase().includes(query)
     );
   });
 
-  // Group documents by date for better organization
+  // Group documents by date
   const groupDocumentsByDate = (docs: Document[]) => {
     const groups: { [key: string]: Document[] } = {
       Today: [],
@@ -81,7 +84,6 @@ export default function LibraryPage() {
       }
     });
 
-    // Return only groups that have documents
     return Object.entries(groups).filter(([_, docs]) => docs.length > 0);
   };
 
@@ -106,63 +108,67 @@ export default function LibraryPage() {
     return "File";
   };
 
+  if (loading) {
+    return (
+      <main className="px-6 pt-10 pb-32 bg-[#0A0A0A] min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-[#00FF7F]/30 border-t-[#00FF7F] rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-sm text-white/50">Loading documents...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <TabPage>
-      {/* Header */}
-      <div className="relative h-48 rounded-[2rem] overflow-hidden group mb-5">
-        {/* Background Image - using hero-journal for now, can be changed */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: "url('/hero-journal.jpeg')"
-          }}
-        />
-        
-        {/* Dark Overlay */}
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/30" />
-        
-        {/* Subtle accent gradient overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,99,0,0.1),_transparent_70%)]" />
-        <div className="relative h-full flex flex-col justify-between px-6 py-5">
-          {/* Top bar */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-white/90 tracking-tight">{time}</span>
-            <div className="flex items-center gap-3">
-              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95">
-                <span className="text-base">🔍</span>
-              </button>
-              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95 relative">
-                <span className="text-base">🔔</span>
-                <span className="absolute top-1 right-1 w-2 h-2 bg-ultra-accent rounded-full border border-black" />
-              </button>
-              <Link
-                href="/profile"
-                className={[
-                  "w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center hover:bg-white/10 transition-all active:scale-95",
-                  pathname === "/profile"
-                    ? "bg-ultra-accent/20 border-ultra-accent/50"
-                    : "bg-white/5 border-white/10"
-                ].join(" ")}
-                aria-label="Settings"
-              >
-                <span className="text-base">⚙️</span>
-              </Link>
+    <main className="bg-[#0A0A0A] min-h-screen flex flex-col">
+      {/* Hero Section */}
+      <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-10 lg:pb-12">
+        <div className="relative min-h-[50vh] md:min-h-[60vh] rounded-[2rem] overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url('/hero-journal.jpeg')" }}
+          />
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          
+          <div className="relative h-full flex flex-col px-6 py-6">
+            {/* Top bar */}
+            <div className="flex items-center justify-between mb-auto">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white/90 tracking-tight">AGENTYC</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
+                  <span className="text-sm">🔍</span>
+                </button>
+                <Link
+                  href="/profile"
+                  className={`w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center hover:bg-white/10 transition-colors ${
+                    pathname === "/profile"
+                      ? "bg-[#F56300]/20 border-[#F56300]/50"
+                      : "bg-white/5 border-white/10"
+                  }`}
+                  aria-label="Settings"
+                >
+                  <span className="text-sm">⚙️</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="mt-auto">
+              <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent mb-2">Library</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-1">Your Documents</h1>
+              <p className="text-sm text-white/70">View everything Agency has learned from your uploads</p>
             </div>
           </div>
-
-          <div className="space-y-1">
-            <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Library</p>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Your Documents</h1>
-            <p className="text-sm text-white/70">View everything Agency has learned from your uploads.</p>
-          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Filters */}
-      <section className="mb-5">
-        <div className="flex items-center gap-3 mb-4">
+      {/* Content Section */}
+      <section className="px-6 pb-32 flex flex-col gap-9 max-w-5xl mx-auto w-full">
+        {/* Filters */}
+        <div className="flex items-center gap-3 flex-wrap">
           {["All", "Corpus", "Playbook"].map((filter) => (
             <button
               key={filter}
@@ -176,120 +182,103 @@ export default function LibraryPage() {
             </button>
           ))}
         </div>
+
+        {/* Search */}
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by filename or title..."
-          className="w-full px-4 py-3 rounded-xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-ultra-accent/80 transition-colors"
+          className="w-full px-4 py-3 rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-ultra-accent/80 transition-colors"
         />
-      </section>
 
-      {/* Documents List */}
-      <section>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center space-y-3">
-              <div className="w-8 h-8 border-2 border-ultra-accent/30 border-t-ultra-accent rounded-full animate-spin mx-auto" />
-              <p className="text-sm text-slate-400 font-medium">Loading documents...</p>
-            </div>
-          </div>
-        ) : filteredDocs.length === 0 ? (
-          <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-8 text-center">
-            <p className="text-sm text-slate-400">
+        {/* Documents List */}
+        {filteredDocs.length === 0 ? (
+          <div className="rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-8 text-center">
+            <p className="text-sm text-white/50">
               {searchQuery ? "No documents match your search" : "No documents yet"}
             </p>
-            <p className="text-xs text-slate-500 mt-2">
-              Upload files through the Agent page to see them here
+            <p className="text-xs text-white/40 mt-2">
+              Upload files through the Agency page to see them here
             </p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {groupedDocs.map(([groupName, groupDocs]) => (
               <div key={groupName} className="space-y-3">
                 {/* Date Group Header */}
-                <div className="flex items-center gap-2 px-1">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xs font-bold text-white/50 uppercase tracking-wider">
                     {groupName}
                   </h2>
-                  <span className="text-xs text-slate-500">({groupDocs.length})</span>
+                  <span className="text-xs text-white/40">({groupDocs.length})</span>
                 </div>
 
-                {/* Single-column list view for better filename visibility */}
+                {/* Document cards */}
                 <div className="space-y-2">
-                  {groupDocs.map((doc) => (
-                    <Link
-                      key={doc.id}
-                      href={`/library/${doc.id}`}
-                      className="block rounded-xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-3.5 hover:bg-white/[0.05] hover:border-white/20 transition-all active:scale-[0.98]"
-                      title={doc.filename} // Tooltip shows full filename on hover
-                    >
-                      <div className="flex items-start gap-3">
-                        {/* File Icon */}
-                        <div className="w-11 h-11 rounded-lg bg-ultra-accent/20 border border-ultra-accent/30 flex items-center justify-center flex-shrink-0">
-                          {doc.mime_type.startsWith("image/") ? (
-                            <span className="text-lg">🖼️</span>
-                          ) : doc.mime_type === "application/pdf" ? (
-                            <span className="text-lg">📄</span>
-                          ) : (
-                            <span className="text-lg">📝</span>
-                          )}
-                        </div>
-                        
-                        {/* Content - full width for filename */}
-                        <div className="flex-1 min-w-0">
-                          {/* Filename - allow wrapping to 2 lines, then truncate with ellipsis */}
-                          <h3 
-                            className="text-sm font-bold text-white mb-1.5 leading-snug break-words"
-                            style={{
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              maxHeight: '2.5rem' // Approx 2 lines at leading-snug
-                            }}
-                          >
-                            {parseDocumentName(doc.filename || doc.title || "").title}
-                          </h3>
-                          {parseDocumentName(doc.filename || doc.title || "").author && (
-                            <p className="text-xs text-slate-400 mb-1">
-                              by {parseDocumentName(doc.filename || doc.title || "").author}
-                            </p>
-                          )}
-                          
-                          {/* Metadata row */}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs text-slate-400">{getFileTypeLabel(doc.mime_type)}</span>
-                            {doc.size_bytes && (
-                              <>
-                                <span className="text-xs text-slate-500">•</span>
-                                <span className="text-xs text-slate-400">
-                                  {(doc.size_bytes / 1024).toFixed(0)} KB
-                                </span>
-                              </>
+                  {groupDocs.map((doc) => {
+                    const parsed = parseDocumentName(doc.filename || doc.title || "");
+                    return (
+                      <Link
+                        key={doc.id}
+                        href={`/library/${doc.id}`}
+                        className="block rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-4 hover:bg-white/[0.12] hover:border-white/25 transition-all active:scale-[0.99]"
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* File Icon */}
+                          <div className="w-11 h-11 rounded-lg bg-ultra-accent/20 border border-ultra-accent/30 flex items-center justify-center flex-shrink-0">
+                            {doc.mime_type.startsWith("image/") ? (
+                              <span className="text-lg">🖼️</span>
+                            ) : doc.mime_type === "application/pdf" ? (
+                              <span className="text-lg">📄</span>
+                            ) : (
+                              <span className="text-lg">📝</span>
                             )}
-                            <span className="text-xs text-slate-500">•</span>
-                            <span className="text-xs text-slate-400">{formatDate(doc.created_at)}</span>
+                          </div>
+                          
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-bold text-white mb-1 line-clamp-2">
+                              {parsed.title}
+                            </h3>
+                            {parsed.author && (
+                              <p className="text-xs text-white/50 mb-2">
+                                by {parsed.author}
+                              </p>
+                            )}
+                            
+                            {/* Metadata */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs text-white/50">{getFileTypeLabel(doc.mime_type)}</span>
+                              {doc.size_bytes && (
+                                <>
+                                  <span className="text-xs text-white/30">•</span>
+                                  <span className="text-xs text-white/50">
+                                    {(doc.size_bytes / 1024).toFixed(0)} KB
+                                  </span>
+                                </>
+                              )}
+                              <span className="text-xs text-white/30">•</span>
+                              <span className="text-xs text-white/50">{formatDate(doc.created_at)}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Status */}
+                          <div className="flex-shrink-0 pt-0.5">
+                            <span className="text-[10px] text-white/40 whitespace-nowrap">
+                              Ready
+                            </span>
                           </div>
                         </div>
-                        
-                        {/* Status badge - right side */}
-                        <div className="flex-shrink-0 pt-0.5">
-                          <span className="text-[10px] text-slate-500 whitespace-nowrap">
-                            Ready
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             ))}
           </div>
         )}
       </section>
-    </TabPage>
+    </main>
   );
 }
-

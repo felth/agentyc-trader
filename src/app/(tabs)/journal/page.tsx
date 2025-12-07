@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { TabPage } from "../../../components/layout/TabPage";
 import TodaysReflectionCard from "@/components/journal/TodaysReflectionCard";
 import { AIReflectionCard } from "@/components/journal/AIReflectionCard";
 import JournalMetricsGrid from "@/components/journal/JournalMetricsGrid";
@@ -16,6 +15,8 @@ export default function JournalTab() {
   const pathname = usePathname();
   const now = new Date();
   const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dayStr = now.toLocaleDateString('en-US', { weekday: 'long' });
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,63 +99,86 @@ export default function JournalTab() {
     }
   }
 
+  if (loading) {
+    return (
+      <main className="px-6 pt-10 pb-32 bg-[#0A0A0A] min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-[#00FF7F]/30 border-t-[#00FF7F] rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-sm text-white/50">Loading journal...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <TabPage>
-      {/* Header */}
-      <div className="relative h-48 rounded-[2rem] overflow-hidden group mb-5">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/hero-journal.jpeg')" }}
-        />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-        <div className="relative h-full flex flex-col justify-between px-6 py-5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-white/90 tracking-tight">{time}</span>
-            <div className="flex items-center gap-3">
-              <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95">
-                <span className="text-base">🔍</span>
-              </button>
-              <Link
-                href="/profile"
-                className={`w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center hover:bg-white/10 transition-all ${
-                  pathname === "/profile"
-                    ? "bg-ultra-accent/20 border-ultra-accent/50"
-                    : "bg-white/5 border-white/10"
-                }`}
-              >
-                <span className="text-base">⚙️</span>
-              </Link>
+    <main className="bg-[#0A0A0A] min-h-screen flex flex-col">
+      {/* Hero Section */}
+      <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-10 lg:pb-12">
+        <div className="relative min-h-[50vh] md:min-h-[60vh] rounded-[2rem] overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url('/hero-journal.jpeg')" }}
+          />
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          
+          <div className="relative h-full flex flex-col px-6 py-6">
+            {/* Top bar */}
+            <div className="flex items-center justify-between mb-auto">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white/90 tracking-tight">AGENTYC</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
+                  <span className="text-sm">🔍</span>
+                </button>
+                <Link
+                  href="/profile"
+                  className={`w-8 h-8 rounded-full backdrop-blur-sm border flex items-center justify-center hover:bg-white/10 transition-colors ${
+                    pathname === "/profile"
+                      ? "bg-[#F56300]/20 border-[#F56300]/50"
+                      : "bg-white/5 border-white/10"
+                  }`}
+                  aria-label="Settings"
+                >
+                  <span className="text-sm">⚙️</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="mt-auto">
+              <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent mb-2">Journal</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-1">Your Reflections</h1>
+              <p className="text-sm text-white/70">{dayStr} · {dateStr}</p>
             </div>
           </div>
-          <div className="space-y-1">
-            <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Journal</p>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Your Reflections</h1>
-            <p className="text-sm text-white/70">Track your trading journey</p>
-          </div>
         </div>
-      </div>
-
-      {/* Section 1: Today's Reflection */}
-      <section className="mb-6">
-        <TodaysReflectionCard onSave={handleSaveReflection} loading={loading} />
       </section>
 
-      {/* Section 2 & 3: Agency Reflection + Patterns Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <AIReflectionCard entries={entries} />
-        <JournalMetricsGrid entries={entries} />
-      </div>
+      {/* Content Section */}
+      <section className="px-6 pb-32 flex flex-col gap-9 max-w-5xl mx-auto w-full">
+        {/* Section 1: Today's Reflection */}
+        <div>
+          <TodaysReflectionCard onSave={handleSaveReflection} loading={loading} />
+        </div>
 
-      {/* Section 4: Recent Entries */}
-      <section className="mb-6">
-        <RecentEntriesList entries={entries} />
-      </section>
+        {/* Section 2 & 3: Agency Reflection + Patterns Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <AIReflectionCard entries={entries} />
+          <JournalMetricsGrid entries={entries} />
+        </div>
 
-      {/* Section 5: Upgrade your Playbook */}
-      <section className="mb-6">
-        <UpgradePlaybookPanel onIngest={handleIngest} />
+        {/* Section 4: Recent Entries */}
+        <div>
+          <RecentEntriesList entries={entries} />
+        </div>
+
+        {/* Section 5: Upgrade your Playbook */}
+        <div>
+          <UpgradePlaybookPanel onIngest={handleIngest} />
+        </div>
       </section>
-    </TabPage>
+    </main>
   );
 }

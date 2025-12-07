@@ -1,6 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import PerformanceHero from "@/components/performance/PerformanceHero";
+import EquityDrawdownCard from "@/components/performance/EquityDrawdownCard";
+import PnLBreakdownCard from "@/components/performance/PnLBreakdownCard";
+import ExposureBreakdownCard from "@/components/performance/ExposureBreakdownCard";
+import BehaviorInsightsCard from "@/components/performance/BehaviorInsightsCard";
+import { getRiskSeverity } from "@/lib/riskUtils";
 import Link from "next/link";
 
 type AccountData = {
@@ -74,12 +80,10 @@ export default function PerformancePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center py-12">
-            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
-            <p className="mt-4 text-sm text-white/50">Loading performance data...</p>
-          </div>
+      <main className="min-h-screen bg-black text-white">
+        <div className="text-center py-12">
+          <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-sm text-white/50">Loading performance data...</p>
         </div>
       </main>
     );
@@ -88,140 +92,114 @@ export default function PerformancePage() {
   // Calculate metrics
   const totalRealizedPnl = trades.reduce((sum, t) => sum + (t.realizedPnl || 0), 0);
   const totalUnrealizedPnl = positions.reduce((sum, p) => sum + p.unrealizedPnl, 0);
-  const winRate = trades.length > 0 
-    ? (trades.filter(t => (t.realizedPnl || 0) > 0).length / trades.length) * 100 
-    : null;
+  
+  // Calculate month PnL (simplified - assumes all trades this month)
+  const monthPnl = totalRealizedPnl;
+  const monthPnlR = account && account.equity > 0 ? monthPnl / (account.equity * 0.01) : 0; // Rough 1R estimate
 
-  // Top movers
-  const topMovers = [...positions]
-    .sort((a, b) => b.unrealizedPnl - a.unrealizedPnl)
-    .slice(0, 5);
+  // Calculate risk severity (based on unrealized PnL as % of equity)
+  const openRiskPercent = account && account.equity > 0 
+    ? Math.abs(totalUnrealizedPnl) / account.equity 
+    : 0;
+  const riskSeverity = getRiskSeverity(openRiskPercent);
+
+  // Calculate total value and exposure breakdown
+  const totalValue = positions.reduce((sum, p) => sum + (p.marketPrice * Math.abs(p.quantity)), 0);
+  
+  // Top symbols by exposure
+  const topSymbols = positions
+    .map((p) => ({
+      symbol: p.symbol,
+      value: p.marketPrice * Math.abs(p.quantity),
+      percentage: totalValue > 0 ? ((p.marketPrice * Math.abs(p.quantity)) / totalValue) * 100 : 0,
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  // Behavior insights (placeholder for now - will be derived from journal entries)
+  const behaviorMetrics: Array<{
+    label: string;
+    value: number | string;
+    type: "POSITIVE" | "NEGATIVE" | "WARNING" | "NEUTRAL";
+  }> = [];
+
+  // Determine status
+  const ibkrStatus: "LIVE" | "DEGRADED" | "ERROR" = account ? "LIVE" : "ERROR";
+  const equityStatus: "LIVE" | "ERROR" | "EMPTY" = "EMPTY"; // No equity history endpoint yet
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Performance</h1>
-            {account && (
-              <p className="text-sm text-white/50 mt-1">
-                {account.accountId} · <span className="text-[10px] text-white/40 uppercase tracking-wider">Source: Interactive Brokers (live)</span>
-              </p>
-            )}
-          </div>
-          <Link
-            href="/"
-            className="text-sm text-white/60 hover:text-white transition-colors"
-          >
-            ← Back to Home
-          </Link>
-        </div>
+    <main className="min-h-screen bg-black text-white flex flex-col">
+      {/* Hero Section */}
+      <PerformanceHero
+        monthPnl={monthPnl}
+        monthPnlR={monthPnlR}
+        riskStatus={riskSeverity}
+      />
 
-        {/* Equity Curve - Placeholder */}
-        <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
-          <h2 className="text-base font-bold text-white mb-4">Equity Curve</h2>
-          <div className="h-64 flex items-center justify-center text-sm text-white/50 border border-dashed border-white/10 rounded-lg">
-            Daily equity history unavailable (IBKR endpoint needed).
-            <br />
-            <span className="text-xs">Trade history available for realized PnL tracking.</span>
-          </div>
-        </div>
+      {/* Content */}
+      <section className="px-6 pb-32 flex flex-col gap-8">
+        {/* Equity & Drawdown */}
+        <EquityDrawdownCard hasData={false} status={equityStatus} />
 
-        {/* PnL Breakdown & Exposure - Two Column */}
+        {/* PnL & Exposure - Two Column */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* PnL Breakdown */}
-          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
-            <h2 className="text-base font-bold text-white mb-4">PnL Breakdown</h2>
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Realized PnL</p>
-                <p className={`text-2xl font-bold ${totalRealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {totalRealizedPnl >= 0 ? "+" : ""}
-                  ${totalRealizedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Unrealized PnL</p>
-                <p className={`text-2xl font-bold ${totalUnrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {totalUnrealizedPnl >= 0 ? "+" : ""}
-                  ${totalUnrealizedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              {winRate !== null && (
-                <div>
-                  <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Win Rate</p>
-                  <p className="text-2xl font-bold text-white">
-                    {winRate.toFixed(1)}%
-                  </p>
-                  <p className="text-xs text-white/40 mt-1">
-                    {trades.filter(t => (t.realizedPnl || 0) > 0).length} winning trades / {trades.length} total
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Exposure Breakdown */}
-          <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
-            <h2 className="text-base font-bold text-white mb-4">Exposure Breakdown</h2>
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Positions</p>
-                <p className="text-2xl font-bold text-white">{positions.length}</p>
-              </div>
-              <div>
-                <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Value</p>
-                <p className="text-2xl font-bold text-white">
-                  ${positions.reduce((sum, p) => sum + (p.marketPrice * p.quantity), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              {account && (
-                <div>
-                  <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Buying Power</p>
-                  <p className="text-2xl font-bold text-white">
-                    ${account.buyingPower.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <PnLBreakdownCard
+            totalRealizedPnl={totalRealizedPnl}
+            unrealizedPnl={totalUnrealizedPnl}
+            hasEquityHistory={false}
+            status={ibkrStatus}
+          />
+          <ExposureBreakdownCard
+            totalPositions={positions.length}
+            totalValue={totalValue}
+            buyingPower={account?.buyingPower || 0}
+            topSymbols={topSymbols}
+            status={ibkrStatus}
+          />
         </div>
+
+        {/* Behavior Insights */}
+        <BehaviorInsightsCard metrics={behaviorMetrics} status={ibkrStatus} />
 
         {/* Top Movers */}
-        <div className="rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
-          <h2 className="text-base font-bold text-white mb-4">Top Movers</h2>
-          {topMovers.length > 0 ? (
+        {positions.length > 0 && (
+          <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
+            <h2 className="text-[18px] font-bold text-white mb-4">Top Movers</h2>
             <div className="space-y-2">
-              {topMovers.map((position) => (
-                <Link
-                  key={position.symbol}
-                  href={`/symbol/${position.symbol}`}
-                  className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                >
-                  <div>
-                    <p className="font-medium text-white">{position.symbol}</p>
-                    <p className="text-xs text-white/50">
-                      {position.quantity} @ ${position.avgPrice.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-bold ${position.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {position.unrealizedPnl >= 0 ? "+" : ""}
-                      ${position.unrealizedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-xs text-white/50">
-                      {((position.unrealizedPnl / (position.avgPrice * position.quantity)) * 100).toFixed(2)}%
-                    </p>
-                  </div>
-                </Link>
-              ))}
+              {positions
+                .sort((a, b) => b.unrealizedPnl - a.unrealizedPnl)
+                .slice(0, 5)
+                .map((position) => (
+                  <Link
+                    key={position.symbol}
+                    href={`/symbol/${position.symbol}`}
+                    className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    <div>
+                      <p className="font-medium text-white">{position.symbol}</p>
+                      <p className="text-xs text-white/50">
+                        {position.quantity} @ ${position.avgPrice.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${
+                        position.unrealizedPnl >= 0 ? "text-[#00FF7F]" : "text-[#FF4D4D]"
+                      }`}>
+                        {position.unrealizedPnl >= 0 ? "+" : ""}
+                        ${position.unrealizedPnl.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                      <p className="text-xs text-white/50">
+                        {((position.unrealizedPnl / (position.avgPrice * Math.abs(position.quantity))) * 100).toFixed(2)}%
+                      </p>
+                    </div>
+                  </Link>
+                ))}
             </div>
-          ) : (
-            <p className="text-sm text-white/50">No positions to display</p>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

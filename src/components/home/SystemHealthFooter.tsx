@@ -34,7 +34,7 @@ export default function SystemHealthFooter({
 
   return (
     <Link
-      href="/status"
+      href="/settings?tab=diagnostics"
       className="fixed bottom-0 left-0 right-0 h-12 bg-[#0A0A0A]/95 backdrop-blur-xl border-t border-white/10 px-6 flex items-center justify-between cursor-pointer hover:bg-[#0A0A0A] transition-colors"
     >
       <div className="flex items-center gap-6">

@@ -256,7 +256,7 @@ export default function HomePage() {
       {/* Section 4: Market Regime Context */}
       <div>
         <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Market Regime (Agent View)
+          Market Regime (Agency View)
         </h2>
         <MarketRegimeCard
           trendRegime="RANGE" // TODO: Derive from market data
@@ -293,7 +293,7 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Section 7: Agent Trade Plan */}
+      {/* Section 7: Agency Trade Plan */}
       <div>
         <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
           Trade Plan

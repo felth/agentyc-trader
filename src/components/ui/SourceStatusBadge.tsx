@@ -1,7 +1,7 @@
 "use client";
 
-type Status = "LIVE" | "OK" | "IDLE" | "DEGRADED" | "ERROR";
-type Provider = "IBKR" | "FMP" | "DERIVED" | "AGENT" | "AGENTYC" | "COINGECKO";
+type Status = "LIVE" | "OK" | "IDLE" | "DEGRADED" | "ERROR" | "OFF" | "TODO";
+type Provider = "IBKR" | "FMP" | "DERIVED" | "AGENT" | "AGENCY" | "AGENTYC" | "COINGECKO" | "MEMORY" | "JOURNAL";
 
 const statusColors: Record<Status, string> = {
   LIVE: "#00FF7F",
@@ -9,6 +9,8 @@ const statusColors: Record<Status, string> = {
   IDLE: "#7FE1FF",
   DEGRADED: "#FFBF00",
   ERROR: "#FF4D4D",
+  OFF: "#9EA6AE",
+  TODO: "#9EA6AE",
 };
 
 export default function SourceStatusBadge({

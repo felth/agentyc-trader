@@ -188,7 +188,7 @@ export default function JournalTab() {
             </div>
             <div>
               <h2 className="text-base font-bold text-white tracking-tight">New Journal Entry</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Your agent learns from your reflections</p>
+              <p className="text-xs text-slate-400 mt-0.5">Agency learns from your reflections</p>
             </div>
           </div>
 
@@ -240,7 +240,7 @@ export default function JournalTab() {
           </button>
 
           {saveStatus === "success" && (
-            <p className="text-xs text-ultra-positive">✓ Saved to journal. Your agent can now learn from this.</p>
+            <p className="text-xs text-ultra-positive">✓ Saved to journal. Agency can now learn from this.</p>
           )}
 
           {saveStatus === "error" && saveError && (
@@ -326,8 +326,13 @@ export default function JournalTab() {
               key={pattern.label}
               className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-4 py-3 hover:bg-white/[0.06] transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
             >
-              <p className="text-xs text-slate-400 font-medium mb-1.5">{pattern.label}</p>
-              <p className="text-sm font-bold text-white tracking-tight mb-1">{pattern.value}</p>
+            <p className="text-xs text-slate-400 font-medium mb-1.5">{pattern.label}</p>
+            <p className="text-sm font-bold text-white tracking-tight mb-1">
+              {pattern.label === "Revenge trades" || pattern.label === "Skipped plan" || 
+               pattern.label === "Morning prep" || pattern.label === "Screenshots logged"
+                ? "Data coming soon."
+                : pattern.value}
+            </p>
               <span
                 className={`text-[10px] px-2 py-0.5 rounded-full font-bold inline-block ${
                   pattern.status === "positive"

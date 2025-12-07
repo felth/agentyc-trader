@@ -33,7 +33,7 @@ export default function AccountSnapshotMini({
       href="/performance"
       className="relative block rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:border-white/25 active:scale-[0.99]"
     >
-      <SourceStatusBadge provider="INTERACTIVE BROKERS" status={status} />
+      <SourceStatusBadge provider="IBKR" status={status} />
       {(agentHint || hint) && (
         <div className="absolute top-2 left-4 z-10">{agentHint || hint}</div>
       )}

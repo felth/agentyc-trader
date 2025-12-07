@@ -25,28 +25,23 @@ type Tab = {
 
 
 const TABS: Tab[] = [
-
   { label: "Home", href: "/", icon: "🏠" },
-
-  { label: "Agent", href: "/agent", icon: "🤖" },
-
+  { label: "Agentyc", href: "/agent", icon: "🤖" },
   { label: "Trades", href: "/trades", icon: "💼" },
-
   { label: "Performance", href: "/performance", icon: "📈" },
-
   { label: "Journal", href: "/journal", icon: "📓" },
-
   { label: "Library", href: "/library", icon: "📚" }
-
 ];
 
 
 
 export function BottomNav() {
-
   const pathname = usePathname();
 
-
+  // Hide bottom nav on symbol detail pages
+  if (pathname?.startsWith("/symbol/")) {
+    return null;
+  }
 
   return (
 

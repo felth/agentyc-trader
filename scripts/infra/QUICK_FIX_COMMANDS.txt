@@ -1,0 +1,28 @@
+# QUICK FIX - Copy and paste these commands into your droplet
+
+# 1. First, check if .env.production exists and has the right content
+cd /opt/agentyc-trader
+cat .env.production
+
+# 2. Stop existing Next.js
+pkill -f "next start" || true
+sleep 2
+
+# 3. Pull latest code (with fixed startup script)
+git pull origin main
+
+# 4. Start using the fixed startup script
+nohup bash scripts/infra/start-nextjs.sh > /var/log/agentyc-next.log 2>&1 &
+
+# 5. Wait a few seconds
+sleep 5
+
+# 6. Check logs to see if it started correctly
+tail -n 30 /var/log/agentyc-next.log
+
+# 7. Test the endpoint
+curl -s http://127.0.0.1:3000/api/ibkr/status | python3 -m json.tool
+
+# 8. If still failing, check what error Next.js is throwing
+tail -f /var/log/agentyc-next.log
+

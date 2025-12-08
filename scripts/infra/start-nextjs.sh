@@ -6,30 +6,32 @@ set -e
 
 cd /opt/agentyc-trader
 
-# Load environment variables from .env.production
-if [ -f .env.production ]; then
-    echo "Loading .env.production..."
-    export $(cat .env.production | grep -v '^#' | grep -v '^$' | xargs)
-    echo "✓ Environment variables loaded"
-else
-    echo "⚠️  Warning: .env.production not found"
+# Check if .env.production exists
+if [ ! -f .env.production ]; then
+    echo "✗ Error: .env.production not found"
+    exit 1
 fi
+
+# Load environment variables from .env.production and export them
+# Filter out comments and empty lines, then export each line
+set -a  # Automatically export all variables
+source <(cat .env.production | grep -v '^#' | grep -v '^$' | sed 's/^/export /')
+set +a  # Turn off automatic export
 
 # Verify required env vars are set
 if [ -z "$IBKR_BRIDGE_URL" ]; then
-    echo "✗ Error: IBKR_BRIDGE_URL is not set"
+    echo "✗ Error: IBKR_BRIDGE_URL is not set in .env.production"
     exit 1
 fi
 
 if [ -z "$IBKR_BRIDGE_KEY" ]; then
-    echo "✗ Error: IBKR_BRIDGE_KEY is not set"
+    echo "✗ Error: IBKR_BRIDGE_KEY is not set in .env.production"
     exit 1
 fi
 
-echo "Starting Next.js app..."
-echo "IBKR_BRIDGE_URL=$IBKR_BRIDGE_URL"
-echo "IBKR_BRIDGE_KEY=$IBKR_BRIDGE_KEY"
+echo "✓ Environment variables loaded from .env.production"
+echo "  IBKR_BRIDGE_URL=$IBKR_BRIDGE_URL"
 
 # Start Next.js with environment variables
-npm run start
+exec npm run start
 

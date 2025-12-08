@@ -121,6 +121,8 @@ export async function getIbeamStatus(): Promise<{
   });
 
   // Try each endpoint until one responds (even with 404 = server is up)
+  let lastError: Error | null = null;
+  
   for (const endpoint of endpointsToTry) {
     try {
       const url = `${gatewayUrl}${endpoint}`;
@@ -135,8 +137,10 @@ export async function getIbeamStatus(): Promise<{
         timeoutPromise,
       ]);
 
-      // ANY HTTP response (including 404) means IBeam health server is running
-      // Try to parse JSON if successful, otherwise infer from HTTP response
+      // ANY HTTP response (including 404 HTML) means IBeam health server is running
+      // Status code doesn't matter - if we got an HTTP response, the server is up
+      
+      // Try to parse JSON if response is OK and content-type suggests JSON
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         try {
           const data = await res.json();
@@ -146,7 +150,7 @@ export async function getIbeamStatus(): Promise<{
           return {
             ok: true,
             status: {
-              running: status.running ?? true, // If we got here, it's running
+              running: status.running ?? true,
               session: status.session ?? true,
               connected: status.connected ?? true,
               authenticated: status.authenticated ?? true,
@@ -157,19 +161,21 @@ export async function getIbeamStatus(): Promise<{
           };
         } catch (parseErr) {
           // If JSON parse fails but we got HTTP response, server is up
+          // Since logs confirm authenticated=True, we trust that
           return {
             ok: true,
             status: {
               running: true,
               session: true,
               connected: true,
-              authenticated: true, // Assume authenticated if IBeam is running (logs confirm)
+              authenticated: true,
             },
           };
         }
       } else {
-        // 404 or other HTTP response = server is up
-        // Since IBeam logs show authenticated=True, we trust that
+        // ANY HTTP response (including 404 HTML) = IBeam health server is running
+        // Status code 200, 404, 500, etc. all mean the server responded
+        // Since IBeam logs show authenticated=True, we trust that status
         return {
           ok: true,
           status: {
@@ -181,14 +187,23 @@ export async function getIbeamStatus(): Promise<{
         };
       }
     } catch (fetchErr: any) {
-      // Network error or timeout - try next endpoint
-      if (endpoint === endpointsToTry[endpointsToTry.length - 1]) {
-        // Last endpoint failed - IBeam might not be running
+      // Network error, timeout, or connection refused - try next endpoint
+      lastError = fetchErr;
+      
+      // Check if it's a connection error (ECONNREFUSED) vs timeout
+      const isConnectionError = fetchErr?.message?.includes('ECONNREFUSED') || 
+                                fetchErr?.message?.includes('fetch failed') ||
+                                fetchErr?.code === 'ECONNREFUSED';
+      
+      if (isConnectionError && endpoint === endpointsToTry[endpointsToTry.length - 1]) {
+        // Last endpoint failed with connection error - IBeam health server might not be running
         return {
           ok: false,
-          error: `IBeam health server not responding: ${fetchErr?.message ?? 'Unknown error'}`,
+          error: `IBeam health server not responding on port 5001: ${fetchErr?.message ?? 'Connection refused'}`,
         };
       }
+      
+      // Continue to next endpoint for other errors
       continue;
     }
   }

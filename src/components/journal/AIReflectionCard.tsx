@@ -49,9 +49,11 @@ export function AIReflectionCard({ entries }: AIReflectionCardProps) {
 
   return (
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
-      <SourceStatusBadge provider="AGENCY" status={insight ? "OK" : "OFF"} />
+      <SourceStatusBadge provider="AGENTYC" status={insight ? "OK" : "OFF"} />
       
-      <h3 className="text-[16px] font-bold text-white mb-2">Agency Reflection</h3>
+      <div className="pr-20 mb-2">
+        <h3 className="text-[16px] font-bold text-white">Agency Reflection</h3>
+      </div>
       <p className="text-xs text-white/50 mb-4">
         Behaviour patterns from your last entries.
       </p>

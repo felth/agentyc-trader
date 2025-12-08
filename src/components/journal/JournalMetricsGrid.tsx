@@ -42,7 +42,9 @@ export default function JournalMetricsGrid({ entries }: JournalMetricsGridProps)
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
       <SourceStatusBadge provider="JOURNAL" status="OK" />
       
-      <h3 className="text-[16px] font-bold text-white mb-4">Patterns & Metrics</h3>
+      <div className="pr-20 mb-4">
+        <h3 className="text-[16px] font-bold text-white">Patterns & Metrics</h3>
+      </div>
       
       <div className="grid grid-cols-2 gap-3">
         {metrics.map((metric) => (

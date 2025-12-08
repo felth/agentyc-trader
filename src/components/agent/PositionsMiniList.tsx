@@ -39,7 +39,9 @@ export default function PositionsMiniList({
       <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5">
         <SourceStatusBadge provider="IBKR" status={badgeStatus} />
         {hint && <div className="absolute top-2 left-4 z-10">{hint}</div>}
-        <h3 className="text-[14px] font-bold text-white mb-2">Positions</h3>
+        <div className="pr-20 mb-2">
+          <h3 className="text-[14px] font-bold text-white">Positions</h3>
+        </div>
         <p className="text-white/50 text-[13px]">No open positions from IBKR.</p>
       </div>
     );
@@ -50,7 +52,9 @@ export default function PositionsMiniList({
       <SourceStatusBadge provider="IBKR" status={badgeStatus} />
       {hint && <div className="absolute top-2 left-4 z-10">{hint}</div>}
       
-      <h3 className="text-[14px] font-bold text-white mb-3">Positions</h3>
+      <div className="pr-20 mb-3">
+        <h3 className="text-[14px] font-bold text-white">Positions</h3>
+      </div>
       <div className="space-y-2">
         {positions.slice(0, 5).map((pos) => (
           <Link

@@ -187,7 +187,9 @@ function AgentContent() {
               {/* Memory Status Card */}
               <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5">
                 <SourceStatusBadge provider="MEMORY" status={journalCount > 0 || playbookCount > 0 ? "OK" : "OFF"} />
-                <h3 className="text-[14px] font-bold text-white mb-3">Memory Status</h3>
+                <div className="pr-20 mb-3">
+                  <h3 className="text-[14px] font-bold text-white">Memory Status</h3>
+                </div>
                 <div className="space-y-2 text-xs text-white/60">
                   <div className="flex justify-between">
                     <span>Journal entries:</span>

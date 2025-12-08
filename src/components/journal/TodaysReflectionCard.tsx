@@ -69,26 +69,28 @@ export default function TodaysReflectionCard({
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
       <SourceStatusBadge provider="JOURNAL" status="OK" />
       
-      <h3 className="text-[16px] font-bold text-white mb-4">Today's Reflection</h3>
+      <div className="pr-20 mb-4">
+        <h3 className="text-[16px] font-bold text-white">Today's Reflection</h3>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Mood Selector */}
         <div>
           <label className="text-xs text-white/50 mb-2 block">How are you feeling?</label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
             {moods.map((m) => (
               <button
                 key={m.value}
                 type="button"
                 onClick={() => setMood(m.value === mood ? null : m.value)}
-                className={`flex-1 rounded-xl border px-3 py-2.5 transition-all ${
+                className={`flex-shrink-0 rounded-xl border px-3 py-2.5 transition-all min-w-[70px] ${
                   mood === m.value
                     ? "bg-ultra-accent/20 border-ultra-accent/50"
                     : "bg-white/5 border-white/10 hover:bg-white/10"
                 }`}
               >
                 <div className="text-center">
-                  <span className="text-2xl block mb-1">{m.emoji}</span>
+                  <span className="text-xl block mb-1">{m.emoji}</span>
                   <p className="text-[10px] text-white/70 font-medium">{m.label}</p>
                 </div>
               </button>

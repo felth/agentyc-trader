@@ -54,7 +54,9 @@ export default function RecentEntriesList({ entries }: RecentEntriesListProps) {
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
       <SourceStatusBadge provider="JOURNAL" status="OK" />
       
-      <h3 className="text-[16px] font-bold text-white mb-4">Recent Entries</h3>
+      <div className="pr-20 mb-4">
+        <h3 className="text-[16px] font-bold text-white">Recent Entries</h3>
+      </div>
 
       {/* Filters */}
       <div className="flex gap-2 mb-4 flex-wrap">

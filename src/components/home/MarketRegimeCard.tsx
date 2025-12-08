@@ -39,16 +39,17 @@ export default function MarketRegimeCard({
       className="relative block rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:border-white/25 active:scale-[0.99]"
     >
       {agentHint && <div className="absolute top-2 left-4 z-10">{agentHint}</div>}
-      <div className="absolute top-4 right-4 flex flex-col gap-1 items-end">
-        <span className="text-[12px] uppercase font-semibold tracking-wide" style={{ color: fmpStatus === "LIVE" ? "#00FF7F" : fmpStatus === "DEGRADED" ? "#FFBF00" : "#FF4D4D" }}>
+      {/* Status badges - positioned below hint to avoid overlap */}
+      <div className="absolute top-10 right-4 flex flex-col gap-1 items-end">
+        <span className="text-[11px] uppercase font-semibold tracking-wide" style={{ color: fmpStatus === "LIVE" ? "#00FF7F" : fmpStatus === "DEGRADED" ? "#FFBF00" : "#FF4D4D" }}>
           FMP • {fmpStatus}
         </span>
-        <span className="text-[12px] uppercase font-semibold tracking-wide" style={{ color: derivedStatus === "OK" ? "#7FE1FF" : derivedStatus === "DEGRADED" ? "#FFBF00" : "#FF4D4D" }}>
+        <span className="text-[11px] uppercase font-semibold tracking-wide" style={{ color: derivedStatus === "OK" ? "#7FE1FF" : derivedStatus === "DEGRADED" ? "#FFBF00" : "#FF4D4D" }}>
           DERIVED • {derivedStatus}
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6 pt-2">
         {/* Left Metrics */}
         <div className="space-y-4">
           <div>

@@ -7,7 +7,7 @@ export default function AgentHintTag({
 }) {
   return (
     <div className="text-[11px] uppercase font-semibold tracking-wide px-2 py-[2px] rounded-md bg-[#1A1A1A] text-[#7FE1FF] inline-block">
-      AGENCY • {text}
+      AGENTYC • {text}
     </div>
   );
 }

@@ -32,7 +32,9 @@ export default function TodayCalendarMini({
     return (
       <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-5">
         <SourceStatusBadge provider="FMP" status={status} />
-        <h3 className="text-[14px] font-bold text-white mb-2">Today's Calendar</h3>
+        <div className="pr-20 mb-2">
+          <h3 className="text-[14px] font-bold text-white">Today's Calendar</h3>
+        </div>
         <p className="text-white/50 text-[13px]">No upcoming events</p>
       </div>
     );
@@ -50,7 +52,9 @@ export default function TodayCalendarMini({
         </div>
       )}
 
-      <h3 className="text-[14px] font-bold text-white mb-3">Today's Calendar</h3>
+      <div className="pr-20 mb-3">
+        <h3 className="text-[14px] font-bold text-white">Today's Calendar</h3>
+      </div>
       <div className="space-y-2">
         {displayEvents.map((event) => {
           const minsUntil = calcMinutesUntil(event.timeUtc);

@@ -41,12 +41,14 @@ export default function AgentTradePlanCard({
 
   return (
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7">
-      <SourceStatusBadge provider="AGENCY" status={status} />
+      <SourceStatusBadge provider="AGENTYC" status={status} />
       <div className="absolute top-2 left-4 z-10">{dangerHint}</div>
 
-      <h3 className="text-[16px] font-semibold text-white mb-4">
-        Agency Trade Plan
-      </h3>
+      <div className="pr-20 mb-4">
+        <h3 className="text-[16px] font-semibold text-white">
+          Agency Trade Plan
+        </h3>
+      </div>
 
       {!hasPlan ? (
         <div className="space-y-4">

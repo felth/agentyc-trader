@@ -72,7 +72,9 @@ export default function InteractiveWatchlist({
         <SourceStatusBadge provider="FMP" status="LIVE" />
       </div>
 
-      <h3 className="text-[16px] font-semibold text-white mb-4">Watchlist</h3>
+          <div className="pr-20 mb-4">
+            <h3 className="text-[16px] font-semibold text-white">Watchlist</h3>
+          </div>
 
       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
         {items.map((item) => {

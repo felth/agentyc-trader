@@ -38,7 +38,9 @@ export default function AccountSnapshotMini({
         <div className="absolute top-2 left-4 z-10">{agentHint || hint}</div>
       )}
 
-      <h3 className="text-[14px] font-bold text-white mb-3">Account Snapshot</h3>
+      <div className="pr-20 mb-3">
+        <h3 className="text-[14px] font-bold text-white">Account Snapshot</h3>
+      </div>
       <div className="space-y-2 text-[13px]">
         <div className="flex justify-between">
           <span className="text-white/50">Net Liquidity</span>

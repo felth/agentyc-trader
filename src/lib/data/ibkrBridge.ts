@@ -98,22 +98,26 @@ export type IBeamStatus = {
  * 1. IBeam health server responding (any HTTP response = running)
  * 2. Gateway being accessible (means IBeam started it)
  * 
- * Common IBeam health endpoints to try:
- * - /ibeam/
- * - /ibeam/health
- * - /ibeam/live
- * - /ibeam/ready
+ * When running server-side on the droplet, fetch directly from localhost:5001
+ * When running client-side or on Vercel, use the public URL through nginx
  */
 export async function getIbeamStatus(): Promise<{
   ok: boolean;
   status?: IBeamStatus;
   error?: string;
 }> {
-  // Use IBKR_GATEWAY_URL or default to ibkr.agentyctrader.com
-  const gatewayUrl = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL || process.env.IBKR_GATEWAY_URL || 'https://ibkr.agentyctrader.com';
+  // Detect if we're running server-side (on droplet) vs client-side/Vercel
+  // Server-side: fetch directly from localhost:5001
+  // Client-side/Vercel: use public URL through nginx
+  const isServerSide = typeof window === 'undefined';
+  const baseUrl = isServerSide 
+    ? 'http://127.0.0.1:5001'  // Direct to IBeam health server on droplet
+    : (process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL || 'https://ibkr.agentyctrader.com');
   
   // Try multiple possible IBeam health endpoints
-  const endpointsToTry = ['/ibeam/', '/ibeam/health', '/ibeam/live', '/ibeam/ready', '/ibeam/status'];
+  const endpointsToTry = isServerSide
+    ? ['/', '/health', '/live', '/ready', '/status']  // Direct paths when on server
+    : ['/ibeam/', '/ibeam/health', '/ibeam/live', '/ibeam/ready', '/ibeam/status'];  // Through nginx when client-side
   
   // Add timeout wrapper (5 seconds)
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -125,7 +129,7 @@ export async function getIbeamStatus(): Promise<{
   
   for (const endpoint of endpointsToTry) {
     try {
-      const url = `${gatewayUrl}${endpoint}`;
+      const url = `${baseUrl}${endpoint}`;
       const res = await Promise.race([
         fetch(url, {
           method: 'GET',
@@ -133,6 +137,7 @@ export async function getIbeamStatus(): Promise<{
           headers: {
             'Accept': 'application/json',
           },
+          // When fetching from localhost, don't verify SSL (IBeam uses HTTP, not HTTPS)
         }),
         timeoutPromise,
       ]);

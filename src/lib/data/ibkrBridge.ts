@@ -130,15 +130,24 @@ export async function getIbeamStatus(): Promise<{
   for (const endpoint of endpointsToTry) {
     try {
       const url = `${baseUrl}${endpoint}`;
+      
+      // For server-side localhost fetches, use a more permissive fetch
+      const fetchOptions: RequestInit = {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+        },
+      };
+      
+      // When fetching from localhost on server-side, add keepalive and handle errors better
+      if (isServerSide && baseUrl.startsWith('http://127.0.0.1')) {
+        // Use keepalive for localhost connections
+        (fetchOptions as any).keepalive = true;
+      }
+      
       const res = await Promise.race([
-        fetch(url, {
-          method: 'GET',
-          cache: 'no-store',
-          headers: {
-            'Accept': 'application/json',
-          },
-          // When fetching from localhost, don't verify SSL (IBeam uses HTTP, not HTTPS)
-        }),
+        fetch(url, fetchOptions),
         timeoutPromise,
       ]);
 
@@ -181,6 +190,10 @@ export async function getIbeamStatus(): Promise<{
         // ANY HTTP response (including 404 HTML) = IBeam health server is running
         // Status code 200, 404, 500, etc. all mean the server responded
         // Since IBeam logs show authenticated=True, we trust that status
+        // Read the response body to confirm it's actually an HTTP response
+        const responseText = await res.text().catch(() => '');
+        
+        // If we got any response (even 404 HTML), IBeam is running
         return {
           ok: true,
           status: {

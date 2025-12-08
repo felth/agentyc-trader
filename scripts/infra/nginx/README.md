@@ -1,14 +1,17 @@
 # Nginx Configuration for IBKR Gateway
 
-## Prerequisites
+This directory contains nginx configuration files for reverse proxying the IBKR Client Portal Gateway.
 
-- nginx installed on the droplet
-- certbot installed for SSL certificate provisioning
-- DNS A record for `gateway.agentyctrader.com` pointing to `104.248.42.213`
+## Configuration Files
 
-## Installation Steps
+- `gateway.conf` - Legacy configuration for `gateway.agentyctrader.com` (deprecated)
+- `ibkr.conf` - **Active** configuration for `ibkr.agentyctrader.com`
 
-Run these commands on the droplet:
+## Active Setup: ibkr.agentyctrader.com
+
+See [IBKR_SETUP.md](./IBKR_SETUP.md) for detailed setup instructions.
+
+Quick setup:
 
 ```bash
 # Install nginx and certbot
@@ -16,8 +19,8 @@ sudo apt update
 sudo apt install -y nginx certbot python3-certbot-nginx
 
 # Copy the nginx configuration
-sudo cp /opt/agentyc-trader/scripts/infra/nginx/gateway.conf /etc/nginx/sites-available/gateway.conf
-sudo ln -s /etc/nginx/sites-available/gateway.conf /etc/nginx/sites-enabled/gateway.conf
+sudo cp /opt/agentyc-trader/scripts/infra/nginx/ibkr.conf /etc/nginx/sites-available/ibkr.conf
+sudo ln -s /etc/nginx/sites-available/ibkr.conf /etc/nginx/sites-enabled/ibkr.conf
 
 # Test nginx configuration
 sudo nginx -t
@@ -26,16 +29,17 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 # Obtain TLS certificate (certbot will automatically configure nginx)
-sudo certbot --nginx -d gateway.agentyctrader.com
+sudo certbot --nginx -d ibkr.agentyctrader.com
 ```
 
 ## Verification
 
-After setup, `https://gateway.agentyctrader.com` should show the IBKR Client Portal Gateway login page (proxied through to the droplet's gateway on port 5000).
+After setup, `https://ibkr.agentyctrader.com` should show the IBKR Client Portal Gateway login page (proxied through to the droplet's gateway on port 5000).
 
 ## Notes
 
 - The gateway uses a self-signed certificate, so `proxy_ssl_verify off` is set
 - All HTTP traffic is automatically redirected to HTTPS
 - Basic security headers are included
+- WebSocket support is included for Gateway features
 

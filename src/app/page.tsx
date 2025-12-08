@@ -139,7 +139,7 @@ export default function HomePage() {
 
   // Handle IBKR reconnect
   function handleReconnectIbkr() {
-    const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL ?? "https://gateway.agentyctrader.com";
+    const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL ?? "https://ibkr.agentyctrader.com";
     window.open(GATEWAY_URL, '_blank', 'noopener,noreferrer');
     // Optionally poll status after opening the reconnect page
     setTimeout(() => {

@@ -146,13 +146,61 @@ sudo systemctl reload nginx
    - You should see the IBKR Client Portal Gateway login page
    - The URL should show a valid SSL certificate
 
+## Verification Steps
+
+After completing the setup, verify everything is working:
+
+### 1. Test Nginx Configuration
+
+```bash
+sudo nginx -t
+```
+
+Should output: `nginx: configuration file /etc/nginx/nginx.conf test is successful`
+
+### 2. Reload Nginx
+
+```bash
+sudo systemctl reload nginx
+```
+
+### 3. Test Direct Gateway Connection (from droplet)
+
+First, verify the Gateway itself is responding:
+
+```bash
+curl -vk https://127.0.0.1:5000/v1/api/iserver/auth/status
+```
+
+Expected: Should return authentication status from the Gateway (may show unauthenticated, which is fine).
+
+### 4. Test Reverse Proxy (from droplet)
+
+Test the public domain through nginx:
+
+```bash
+curl -vk https://ibkr.agentyctrader.com/v1/api/iserver/auth/status
+```
+
+Expected: Same response as step 3, but coming through the reverse proxy.
+
+### 5. Test from Browser
+
+Open `https://ibkr.agentyctrader.com` in a web browser. You should see:
+- Valid SSL certificate (lock icon)
+- IBKR Client Portal Gateway login page
+- No certificate warnings
+
 ## Verification Checklist
 
 - [ ] DNS A record for `ibkr.agentyctrader.com` points to `104.248.42.213`
 - [ ] Nginx is installed and running
-- [ ] `ibkr.conf` is in `/etc/nginx/sites-available/` and symlinked in `sites-enabled/`
+- [ ] `ibkr.agentyctrader.com.conf` is in `/etc/nginx/sites-available/` and symlinked in `sites-enabled/`
 - [ ] SSL certificate obtained via certbot
-- [ ] `https://ibkr.agentyctrader.com` loads the IBKR Gateway login page
+- [ ] `nginx -t` passes without errors
+- [ ] Direct gateway curl works: `curl -vk https://127.0.0.1:5000/v1/api/iserver/auth/status`
+- [ ] Proxy curl works: `curl -vk https://ibkr.agentyctrader.com/v1/api/iserver/auth/status`
+- [ ] `https://ibkr.agentyctrader.com` loads the IBKR Gateway login page in browser
 - [ ] IBKR Gateway service is running on `127.0.0.1:5000`
 
 ## Automatic Certificate Renewal

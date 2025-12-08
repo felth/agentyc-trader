@@ -47,13 +47,18 @@ function TradesContent() {
           setTrades(tradesRes.trades);
         }
 
-        if (statusRes.ok) {
-          const bridgeOk = statusRes.bridge?.ok === true;
-          const gatewayOk = statusRes.gateway?.ok === true && statusRes.gateway?.status?.authenticated === true;
-          setIbkrStatus(
-            bridgeOk && gatewayOk ? "LIVE" : bridgeOk || gatewayOk ? "DEGRADED" : "ERROR"
-          );
-        }
+            if (statusRes.ok) {
+              const bridgeOk = statusRes.bridge?.ok === true;
+              // Use IBeam status if available, fall back to gateway for backward compatibility
+              const ibeamStatus = statusRes.ibeam || statusRes.gateway;
+              const gatewayOk = ibeamStatus?.ok === true &&
+                ibeamStatus?.status?.authenticated === true &&
+                ibeamStatus?.status?.connected === true &&
+                ibeamStatus?.status?.running === true;
+              setIbkrStatus(
+                bridgeOk && gatewayOk ? "LIVE" : bridgeOk || gatewayOk ? "DEGRADED" : "ERROR"
+              );
+            }
       } catch (err) {
         console.error("Failed to fetch trades data:", err);
         setIbkrStatus("ERROR");

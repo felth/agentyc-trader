@@ -39,14 +39,19 @@ function AgentContent() {
           setDashboard(dashboardRes.snapshot);
         }
 
-        if (ibkrRes.ok) {
-          setIbkrStatus({
-            bridgeOk: ibkrRes.bridge?.ok === true,
-            gatewayAuthenticated:
-              ibkrRes.gateway?.ok === true &&
-              ibkrRes.gateway?.status?.authenticated === true,
-          });
-        }
+            if (ibkrRes.ok) {
+              // Use IBeam status if available, fall back to gateway for backward compatibility
+              const ibeamStatus = ibkrRes.ibeam || ibkrRes.gateway;
+              const isAuthenticated = ibeamStatus?.ok === true &&
+                ibeamStatus?.status?.authenticated === true &&
+                ibeamStatus?.status?.connected === true &&
+                ibeamStatus?.status?.running === true;
+              
+              setIbkrStatus({
+                bridgeOk: ibkrRes.bridge?.ok === true,
+                gatewayAuthenticated: isAuthenticated,
+              });
+            }
 
         if (journalRes.ok && Array.isArray(journalRes.entries)) {
           setJournalCount(journalRes.entries.length);

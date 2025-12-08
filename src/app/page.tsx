@@ -53,11 +53,16 @@ export default function HomePage() {
         }
 
         if (ibkrRes.ok) {
+          // Use IBeam status if available, fall back to gateway for backward compatibility
+          const ibeamStatus = ibkrRes.ibeam || ibkrRes.gateway;
+          const isAuthenticated = ibeamStatus?.ok === true &&
+            ibeamStatus?.status?.authenticated === true &&
+            ibeamStatus?.status?.connected === true &&
+            ibeamStatus?.status?.running === true;
+          
           setIbkrStatus({
             bridgeOk: ibkrRes.bridge?.ok === true,
-            gatewayAuthenticated:
-              ibkrRes.gateway?.ok === true &&
-              ibkrRes.gateway?.status?.authenticated === true,
+            gatewayAuthenticated: isAuthenticated,
           });
         }
       } catch (err) {
@@ -151,13 +156,18 @@ export default function HomePage() {
         if (res) {
           const data = await res.json().catch(() => null);
           if (data?.ok) {
-            const bridgeOk = data.bridge?.ok === true;
-            const gatewayAuthenticated = data.gateway?.ok === true && data.gateway?.status?.authenticated === true;
-            // Update state
-            setIbkrStatus({
-              bridgeOk,
-              gatewayAuthenticated,
-            });
+              const bridgeOk = data.bridge?.ok === true;
+              // Use IBeam status if available, fall back to gateway for backward compatibility
+              const ibeamStatus = data.ibeam || data.gateway;
+              const gatewayAuthenticated = ibeamStatus?.ok === true &&
+                ibeamStatus?.status?.authenticated === true &&
+                ibeamStatus?.status?.connected === true &&
+                ibeamStatus?.status?.running === true;
+              // Update state
+              setIbkrStatus({
+                bridgeOk,
+                gatewayAuthenticated,
+              });
             // Stop polling if authenticated
             if (bridgeOk && gatewayAuthenticated) {
               clearInterval(pollInterval);

@@ -81,6 +81,84 @@ export async function getIbkrGatewayAuthStatus() {
   );
 }
 
+// IBeam status response type
+export type IBeamStatus = {
+  running: boolean;
+  session: boolean;
+  connected: boolean;
+  authenticated: boolean;
+  competing?: boolean;
+  server_name?: string | null;
+  server_version?: string | null;
+};
+
+/**
+ * Get IBeam status from the exposed /ibeam/status endpoint
+ * This is the canonical way to check IBKR authentication status when using IBeam
+ */
+export async function getIbeamStatus(): Promise<{
+  ok: boolean;
+  status?: IBeamStatus;
+  error?: string;
+}> {
+  // Use IBKR_GATEWAY_URL or default to ibkr.agentyctrader.com
+  const gatewayUrl = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL || process.env.IBKR_GATEWAY_URL || 'https://ibkr.agentyctrader.com';
+  const url = `${gatewayUrl}/ibeam/status`;
+  
+  // Add timeout wrapper (5 seconds)
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('IBeam status timeout after 5 seconds')), 5000);
+  });
+
+  try {
+    const res = await Promise.race([
+      fetch(url, {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+        },
+      }),
+      timeoutPromise,
+    ]);
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      // Don't throw Access Denied errors - map them to status false
+      if (res.status === 404 && text.includes('Access Denied')) {
+        return {
+          ok: false,
+          error: 'IBeam status unavailable',
+        };
+      }
+      throw new Error(`IBeam status error ${res.status}: ${text}`);
+    }
+
+    const data = await res.json();
+    
+    // IBeam returns the status directly, or wrapped in a status field
+    const status: IBeamStatus = data.status || data;
+    
+    return {
+      ok: true,
+      status: {
+        running: status.running ?? false,
+        session: status.session ?? false,
+        connected: status.connected ?? false,
+        authenticated: status.authenticated ?? false,
+        competing: status.competing,
+        server_name: status.server_name,
+        server_version: status.server_version,
+      },
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      error: err?.message ?? 'Failed to fetch IBeam status',
+    };
+  }
+}
+
 // IMPORTANT: use POST with JSON body, not GET with ?symbol=
 export async function getIbkrPrice(symbol: string) {
   return callBridge<{ ok: boolean; symbol: string; price: number }>(

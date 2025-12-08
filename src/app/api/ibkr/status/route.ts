@@ -1,26 +1,46 @@
 import { NextResponse } from 'next/server';
-import { getIbkrHealth, getIbkrGatewayAuthStatus } from '@/lib/data/ibkrBridge';
+import { getIbkrHealth, getIbeamStatus } from '@/lib/data/ibkrBridge';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    const [health, gateway] = await Promise.all([
+    const [health, ibeam] = await Promise.all([
       getIbkrHealth().catch((err) => ({
         ok: false,
         error: err?.message ?? 'Health check failed',
       })),
-      getIbkrGatewayAuthStatus().catch((err) => ({
+      getIbeamStatus().catch((err) => ({
         ok: false,
-        error: err?.message ?? 'Gateway auth status failed',
+        error: err?.message ?? 'IBeam status failed',
       })),
     ]);
+
+    // Map IBeam status to UI-friendly format
+    const ibeamStatus = ibeam.ok && ibeam.status
+      ? {
+          ok: true,
+          status: {
+            authenticated: ibeam.status.authenticated,
+            connected: ibeam.status.connected,
+            running: ibeam.status.running,
+            session: ibeam.status.session,
+            competing: ibeam.status.competing,
+            server_name: ibeam.status.server_name,
+            server_version: ibeam.status.server_version,
+          },
+        }
+      : {
+          ok: false,
+          error: ibeam.error ?? 'IBeam status unavailable',
+        };
 
     return NextResponse.json({
       ok: true,
       bridge: health,
-      gateway,
+      gateway: ibeamStatus, // Keep "gateway" key for backward compatibility
+      ibeam: ibeamStatus,   // Also expose as "ibeam" for clarity
     });
   } catch (e: any) {
     return NextResponse.json(

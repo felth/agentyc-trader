@@ -309,6 +309,7 @@ export default function HomePage() {
           Trade Plan
         </h2>
         <AgentTradePlanCard
+          defaultSymbol="SPX"
           hasPlan={!!tradePlan && (tradePlan.orders?.length || 0) > 0}
           actionableBullets={actionableBullets}
           status={tradePlan ? "LIVE" : "IDLE"}

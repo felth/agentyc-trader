@@ -8,6 +8,7 @@ import StructureBlock from "@/components/symbol/StructureBlock";
 import CorrelationBlock from "@/components/symbol/CorrelationBlock";
 import EvidenceTiles from "@/components/symbol/EvidenceTiles";
 import ActionButtons from "@/components/symbol/ActionButtons";
+import AgentStatusBadge from "@/components/ui/AgentStatusBadge";
 
 type SymbolData = {
   symbol: string;
@@ -73,7 +74,10 @@ function SymbolContent({ params }: { params: Promise<{ ticker: string }> }) {
 
   return (
     <main className="px-6 pt-10 pb-32 bg-black min-h-screen flex flex-col gap-8">
-      <SymbolHeader {...symbolData} />
+      <div className="flex items-center justify-between">
+        <SymbolHeader {...symbolData} />
+        <AgentStatusBadge />
+      </div>
       <ChartPanel
         ticker={ticker}
         onDerivedChange={(vals) => setDerived((prev) => ({ ...prev, ...vals }))}

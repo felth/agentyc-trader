@@ -36,7 +36,7 @@ export default function AgentSettingsPage() {
 
   async function fetchConfig() {
     try {
-      const res = await fetch('/api/agent/mode');
+      const res = await fetch('/api/agent/config');
       const data = await res.json();
       if (data.ok && data.config) {
         setConfig(data.config);
@@ -51,17 +51,15 @@ export default function AgentSettingsPage() {
   async function saveConfig() {
     setSaving(true);
     try {
-      const res = await fetch('/api/agent/mode', {
+      const res = await fetch('/api/agent/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'off', // Don't change mode, just update config
-          ...config,
-        }),
+        body: JSON.stringify(config),
       });
       const data = await res.json();
       if (data.ok) {
-        alert('Settings saved');
+        alert('Settings saved successfully');
+        await fetchConfig(); // Reload to confirm
       } else {
         alert(`Failed to save: ${data.error}`);
       }

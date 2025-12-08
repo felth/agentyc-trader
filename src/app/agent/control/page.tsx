@@ -1,16 +1,15 @@
 // src/app/agent/control/page.tsx
-// Agent Control Panel - Mode selector, kill switch, brain status, system health
+// Agent Control Panel - Fully wired with real backend
 
 /**
- * Phase 2: Agent Control Panel UI
- * TODO Phase 3: Wire up actual brain status updates
- * TODO Phase 4: Add real-time updates
+ * Phase 5: Fully wired Agent Control Panel
  */
 
 "use client";
 
 import React, { useEffect, useState } from 'react';
 import SourceStatusBadge from '@/components/ui/SourceStatusBadge';
+import Link from 'next/link';
 
 interface AgentStatus {
   mode: 'off' | 'learn' | 'paper' | 'live_assisted';
@@ -127,116 +126,168 @@ export default function AgentControlPage() {
     }
   };
 
+  const allBrainsGreen = status.brains.market.state === 'green' &&
+                         status.brains.risk.state === 'green' &&
+                         status.brains.psychology.state === 'green';
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Agent Control</h1>
-        <p className="text-white/60">Multi-Brain Trading Agent Control Panel</p>
-      </div>
-
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
-        {/* Mode Selector */}
-        <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
-          <h2 className="text-xl font-semibold mb-4">Trading Mode</h2>
-          <div className="flex gap-4 flex-wrap">
-            {(['off', 'learn', 'paper', 'live_assisted'] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => changeMode(mode)}
-                disabled={modeChanging || status.mode === mode}
-                className={`px-6 py-3 rounded-lg font-medium transition ${
-                  status.mode === mode
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white/5 text-white/70 hover:bg-white/10'
-                } disabled:opacity-50`}
-              >
-                {mode === 'live_assisted' ? 'LIVE ASSISTED' : mode.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <p className="mt-4 text-sm text-white/60">
-            Current mode: <span className="font-semibold">{status.mode === 'live_assisted' ? 'LIVE ASSISTED' : status.mode.toUpperCase()}</span>
-            {status.mode === 'off' && ' - Agent disabled, no proposals or executions'}
-            {status.mode === 'learn' && ' - Advisory only, no execution'}
-            {status.mode === 'paper' && ' - Simulated execution'}
-            {status.mode === 'live_assisted' && ' - Real execution with explicit approval'}
-          </p>
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Agent Control Panel</h1>
+          <p className="text-white/60">Multi-Brain Trading Agent Control & Monitoring</p>
         </div>
 
-        {/* Kill Switch */}
-        <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
-          <h2 className="text-xl font-semibold mb-4">Kill Switch</h2>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={toggleKillSwitch}
-              disabled={killSwitchToggling}
-              className={`px-8 py-4 rounded-lg font-bold text-lg transition ${
-                status.killSwitch.enabled
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-red-600 hover:bg-red-700 text-white'
-              } disabled:opacity-50`}
-            >
-              {status.killSwitch.enabled ? 'TRADING ENABLED' : 'TRADING DISABLED'}
-            </button>
-            <p className="text-sm text-white/60">
-              {status.killSwitch.enabled
-                ? 'Agent can execute trades in LIVE mode'
-                : 'ALL executions are blocked'}
+        <div className="space-y-6">
+          {/* Mode Selector */}
+          <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
+            <h2 className="text-xl font-semibold mb-4">Trading Mode</h2>
+            <div className="flex gap-4 flex-wrap">
+              {(['off', 'learn', 'paper', 'live_assisted'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => changeMode(mode)}
+                  disabled={modeChanging || status.mode === mode}
+                  className={`px-6 py-3 rounded-lg font-medium transition ${
+                    status.mode === mode
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white/5 text-white/70 hover:bg-white/10'
+                  } disabled:opacity-50`}
+                >
+                  {mode === 'live_assisted' ? 'LIVE ASSISTED' : mode.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <p className="mt-4 text-sm text-white/60">
+              Current mode: <span className="font-semibold">{status.mode === 'live_assisted' ? 'LIVE ASSISTED' : status.mode.toUpperCase()}</span>
+              {status.mode === 'off' && ' - Agent disabled, no proposals or executions'}
+              {status.mode === 'learn' && ' - Analysis only, no execution'}
+              {status.mode === 'paper' && ' - Simulated execution'}
+              {status.mode === 'live_assisted' && ' - Real execution with explicit approval'}
             </p>
           </div>
-        </div>
 
-        {/* Brain Status */}
-        <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
-          <h2 className="text-xl font-semibold mb-4">Brain Status</h2>
-          <div className="grid grid-cols-3 gap-4">
-            {(['market', 'risk', 'psychology'] as const).map((brain) => {
-              const brainState = status.brains[brain];
-              return (
-                <div key={brain} className="bg-[#0A0A0A] rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-3 h-3 rounded-full ${getStateColor(brainState.state)}`} />
-                    <span className="font-semibold capitalize">{brain}</span>
-                  </div>
-                  <p className="text-sm text-white/60">
-                    State: <span className="font-semibold uppercase">{brainState.state}</span>
-                  </p>
-                  {brainState.lastUpdate && (
-                    <p className="text-xs text-white/40 mt-1">
-                      Updated: {new Date(brainState.lastUpdate).toLocaleTimeString()}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+          {/* Kill Switch */}
+          <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
+            <h2 className="text-xl font-semibold mb-4">Kill Switch</h2>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={toggleKillSwitch}
+                disabled={killSwitchToggling}
+                className={`px-8 py-4 rounded-lg font-bold text-lg transition ${
+                  status.killSwitch.enabled
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-red-600 hover:bg-red-700 text-white'
+                } disabled:opacity-50`}
+              >
+                {status.killSwitch.enabled ? 'TRADING ENABLED' : 'TRADING DISABLED'}
+              </button>
+              <p className="text-sm text-white/60">
+                {status.killSwitch.enabled
+                  ? 'Agent can execute trades in PAPER and LIVE_ASSISTED modes'
+                  : 'ALL executions are blocked (kill switch active)'}
+              </p>
+            </div>
+            {!status.killSwitch.enabled && (status.mode === 'paper' || status.mode === 'live_assisted') && (
+              <div className="mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+                <p className="text-sm text-red-400 font-semibold">⚠️ KILL SWITCH ON – All execution blocked</p>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* System Health */}
-        <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
-          <h2 className="text-xl font-semibold mb-4">System Health</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-white/80">Data Integrity</span>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${getStateColor(status.safety.dataIntegrity)}`} />
-                <span className="text-sm uppercase">{status.safety.dataIntegrity}</span>
+          {/* Brain Status */}
+          <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Brain Status</h2>
+              {allBrainsGreen && (
+                <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm font-semibold rounded-lg">
+                  ALL GREEN
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {(['market', 'risk', 'psychology'] as const).map((brain) => {
+                const brainState = status.brains[brain];
+                return (
+                  <div key={brain} className="bg-[#0A0A0A] rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${getStateColor(brainState.state)}`} />
+                      <span className="font-semibold capitalize">{brain} Brain</span>
+                    </div>
+                    <p className="text-sm text-white/60">
+                      State: <span className="font-semibold uppercase">{brainState.state}</span>
+                    </p>
+                    {brainState.lastUpdate && (
+                      <p className="text-xs text-white/40 mt-1">
+                        Updated: {new Date(brainState.lastUpdate).toLocaleTimeString()}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {!allBrainsGreen && (
+              <p className="mt-4 text-sm text-amber-400">
+                ⚠️ Not all brains are GREEN – trades may be blocked or require caution
+              </p>
+            )}
+          </div>
+
+          {/* System Health */}
+          <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
+            <h2 className="text-xl font-semibold mb-4">System Health</h2>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-white/80">Data Integrity</span>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${getStateColor(status.safety.dataIntegrity)}`} />
+                  <span className="text-sm uppercase">{status.safety.dataIntegrity}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/80">IBKR Connection</span>
+                <SourceStatusBadge
+                  provider="IBKR"
+                  status={status.safety.ibkrConnected && status.safety.ibkrAuthenticated ? 'LIVE' : 'ERROR'}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/80">Bridge</span>
+                <span className={`text-sm uppercase ${
+                  status.health.bridge === 'ok' ? 'text-green-400' :
+                  status.health.bridge === 'degraded' ? 'text-yellow-400' : 'text-red-400'
+                }`}>
+                  {status.health.bridge}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/80">IBeam</span>
+                <span className={`text-sm uppercase ${
+                  status.health.ibeam === 'ok' ? 'text-green-400' :
+                  status.health.ibeam === 'degraded' ? 'text-yellow-400' : 'text-red-400'
+                }`}>
+                  {status.health.ibeam}
+                </span>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-white/80">IBKR Connection</span>
-              <SourceStatusBadge
-                provider="IBKR"
-                status={status.safety.ibkrConnected && status.safety.ibkrAuthenticated ? 'LIVE' : 'ERROR'}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-white/80">Bridge</span>
-              <span className="text-sm uppercase">{status.health.bridge}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-white/80">IBeam</span>
-              <span className="text-sm uppercase">{status.health.ibeam}</span>
+          </div>
+
+          {/* Quick Links */}
+          <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
+            <h2 className="text-xl font-semibold mb-4">Quick Links</h2>
+            <div className="flex gap-4 flex-wrap">
+              <Link
+                href="/agent/decisions"
+                className="px-6 py-3 bg-white/5 hover:bg-white/10 rounded-lg font-medium transition"
+              >
+                View Audit Log
+              </Link>
+              <Link
+                href="/agent/settings"
+                className="px-6 py-3 bg-white/5 hover:bg-white/10 rounded-lg font-medium transition"
+              >
+                Risk Settings
+              </Link>
             </div>
           </div>
         </div>
@@ -244,4 +295,3 @@ export default function AgentControlPage() {
     </div>
   );
 }
-

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import OpenPositionsTable from "@/components/trades/OpenPositionsTable";
 import OrdersPlaceholder from "@/components/trades/OrdersPlaceholder";
 import HistoryPlaceholder from "@/components/trades/HistoryPlaceholder";
+import AgentStatusBadge from "@/components/ui/AgentStatusBadge";
 import type { DashboardSnapshot } from "@/lib/data/dashboard";
 
 type TradeExecution = {
@@ -91,8 +92,9 @@ function TradesContent() {
       <div className="px-4 sm:px-6 lg:px-8 pb-32 flex-1">
         <div className="max-w-6xl mx-auto space-y-6 pt-6">
           {/* Header */}
-          <div>
+          <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-white">Trades</h1>
+            <AgentStatusBadge />
           </div>
 
           {/* Tabs */}

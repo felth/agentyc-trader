@@ -20,7 +20,7 @@ export interface DecisionsResponse {
   ok: boolean;
   decisions: Array<{
     id: string;
-    timestamp: Date;
+    timestamp: Date | string;
     symbol?: string;
     direction?: 'BUY' | 'SELL';
     confidence?: number;
@@ -29,6 +29,8 @@ export interface DecisionsResponse {
     reason?: string;
     result?: any;
     mode: 'off' | 'learn' | 'paper' | 'live_assisted';
+    proposal?: any;
+    brains?: any;
   }>;
   error?: string;
 }
@@ -39,6 +41,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const since = searchParams.get('since');
     const userAction = searchParams.get('user_action') as 'approved' | 'rejected' | 'modified' | 'pending' | null;
+    const mode = searchParams.get('mode') as 'off' | 'learn' | 'paper' | 'live_assisted' | null;
     
     let query = supabase
       .from('agent_decisions')
@@ -53,6 +56,10 @@ export async function GET(req: NextRequest) {
     if (userAction) {
       query = query.eq('user_action', userAction);
     }
+
+    if (mode) {
+      query = query.eq('mode', mode);
+    }
     
     const { data, error } = await query;
     
@@ -64,15 +71,17 @@ export async function GET(req: NextRequest) {
       ok: true,
       decisions: (data || []).map(d => ({
         id: d.id,
-        timestamp: new Date(d.timestamp),
+        timestamp: new Date(d.timestamp || d.created_at || Date.now()),
         symbol: d.symbol,
         direction: d.direction,
         confidence: d.confidence ? Number(d.confidence) : undefined,
         safety: d.safety,
-        userAction: d.user_action,
+        userAction: (d.user_action || 'pending') as 'approved' | 'rejected' | 'modified' | 'pending',
         reason: d.user_reason,
         result: d.result,
-        mode: d.mode,
+        mode: (d.mode || 'off') as 'off' | 'learn' | 'paper' | 'live_assisted',
+        proposal: d.proposal,
+        brains: d.brains,
       })),
     } as DecisionsResponse);
   } catch (err: any) {

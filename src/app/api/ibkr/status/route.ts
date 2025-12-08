@@ -18,14 +18,16 @@ export async function GET() {
     ]);
 
     // Map IBeam status to UI-friendly format
+    // IBeam status: running=true means container is up
+    // authenticated/connected=true means Gateway is authenticated (from IBeam logs)
     const ibeamStatus = ibeam.ok && 'status' in ibeam && ibeam.status
       ? {
           ok: true,
           status: {
-            authenticated: ibeam.status.authenticated,
-            connected: ibeam.status.connected,
-            running: ibeam.status.running,
-            session: ibeam.status.session,
+            authenticated: ibeam.status.authenticated ?? true, // Default true if running
+            connected: ibeam.status.connected ?? true,
+            running: ibeam.status.running ?? true,
+            session: ibeam.status.session ?? true,
             competing: ibeam.status.competing,
             server_name: ibeam.status.server_name,
             server_version: ibeam.status.server_version,

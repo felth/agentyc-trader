@@ -18,13 +18,14 @@ export const runtime = 'nodejs';
 
 export interface AgentModeResponse {
   ok: boolean;
-  mode: 'learn' | 'paper' | 'live';
+  mode: 'off' | 'learn' | 'paper' | 'live_assisted';
   config?: {
     max_risk_per_trade: number;
     daily_loss_limit: number;
     allowed_symbols: string[];
     psychology_mode: 'aggressive' | 'normal' | 'cautious';
     agent_trading_enabled: boolean;
+    allow_overnight: boolean;
   };
   error?: string;
 }
@@ -40,31 +41,33 @@ export async function GET() {
       // Return default config if none exists
       return NextResponse.json({
         ok: true,
-        mode: 'learn',
+        mode: 'off',
         config: {
           max_risk_per_trade: 500,
           daily_loss_limit: 2000,
           allowed_symbols: [],
           psychology_mode: 'normal',
           agent_trading_enabled: false,
+          allow_overnight: false,
         },
       } as AgentModeResponse);
     }
     
     return NextResponse.json({
       ok: true,
-      mode: data.mode as 'learn' | 'paper' | 'live',
+      mode: data.mode as 'off' | 'learn' | 'paper' | 'live_assisted',
       config: {
         max_risk_per_trade: Number(data.max_risk_per_trade) || 500,
         daily_loss_limit: Number(data.daily_loss_limit) || 2000,
         allowed_symbols: data.allowed_symbols || [],
         psychology_mode: data.psychology_mode || 'normal',
         agent_trading_enabled: data.agent_trading_enabled ?? false,
+        allow_overnight: data.allow_overnight ?? false,
       },
     } as AgentModeResponse);
   } catch (err: any) {
     return NextResponse.json(
-      { ok: false, mode: 'learn', error: err?.message ?? 'Unknown error' } as AgentModeResponse,
+      { ok: false, mode: 'off', error: err?.message ?? 'Unknown error' } as AgentModeResponse,
       { status: 500 }
     );
   }
@@ -72,13 +75,13 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as { mode: 'learn' | 'paper' | 'live' };
+    const body = (await req.json()) as { mode: 'off' | 'learn' | 'paper' | 'live_assisted' };
     
-    if (!body.mode || !['learn', 'paper', 'live'].includes(body.mode)) {
+    if (!body.mode || !['off', 'learn', 'paper', 'live_assisted'].includes(body.mode)) {
       return NextResponse.json({
         ok: false,
-        mode: 'learn',
-        error: 'Invalid mode. Must be: learn, paper, or live',
+        mode: 'off',
+        error: 'Invalid mode. Must be: off, learn, paper, or live_assisted',
       } as AgentModeResponse, { status: 400 });
     }
     
@@ -101,18 +104,19 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({
       ok: true,
-      mode: data.mode as 'learn' | 'paper' | 'live',
+      mode: data.mode as 'off' | 'learn' | 'paper' | 'live_assisted',
       config: {
         max_risk_per_trade: Number(data.max_risk_per_trade) || 500,
         daily_loss_limit: Number(data.daily_loss_limit) || 2000,
         allowed_symbols: data.allowed_symbols || [],
         psychology_mode: data.psychology_mode || 'normal',
         agent_trading_enabled: data.agent_trading_enabled ?? false,
+        allow_overnight: data.allow_overnight ?? false,
       },
     } as AgentModeResponse);
   } catch (err: any) {
     return NextResponse.json(
-      { ok: false, mode: 'learn', error: err?.message ?? 'Unknown error' } as AgentModeResponse,
+      { ok: false, mode: 'off', error: err?.message ?? 'Unknown error' } as AgentModeResponse,
       { status: 500 }
     );
   }

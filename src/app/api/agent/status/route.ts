@@ -21,7 +21,7 @@ export const runtime = 'nodejs';
 
 export interface AgentStatusResponse {
   ok: boolean;
-  mode: 'learn' | 'paper' | 'live';
+  mode: 'off' | 'learn' | 'paper' | 'live_assisted';
   killSwitch: {
     enabled: boolean;
   };
@@ -61,7 +61,7 @@ export async function GET() {
       .select('mode, agent_trading_enabled')
       .single();
     
-    const mode = (config?.mode || 'learn') as 'learn' | 'paper' | 'live';
+    const mode = (config?.mode || 'off') as 'off' | 'learn' | 'paper' | 'live_assisted';
     const killSwitchEnabled = config?.agent_trading_enabled ?? false;
     
     // Check kill switch
@@ -122,7 +122,7 @@ export async function GET() {
     } as AgentStatusResponse);
   } catch (err: any) {
     return NextResponse.json(
-      { ok: false, mode: 'learn', error: err?.message ?? 'Unknown error' } as Partial<AgentStatusResponse>,
+      { ok: false, mode: 'off', error: err?.message ?? 'Unknown error' } as Partial<AgentStatusResponse>,
       { status: 500 }
     );
   }

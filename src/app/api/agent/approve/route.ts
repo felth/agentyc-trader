@@ -38,7 +38,7 @@ export interface ApproveTradeRequest {
 export interface ApproveTradeResponse {
   ok: boolean;
   executed: boolean;
-  mode: 'learn' | 'paper' | 'live';
+  mode: 'off' | 'learn' | 'paper' | 'live_assisted';
   result?: {
     filled: boolean;
     fillPrice?: number;
@@ -58,12 +58,22 @@ export async function POST(req: NextRequest) {
       .select('mode, agent_trading_enabled')
       .single();
     
-    const mode = (config?.mode || 'learn') as 'learn' | 'paper' | 'live';
+    const mode = (config?.mode || 'off') as 'off' | 'learn' | 'paper' | 'live_assisted';
     const tradingEnabled = config?.agent_trading_enabled ?? false;
     
-    // Safety check: Kill switch
+    // Mode-based execution rules
+    if (mode === 'off') {
+      return NextResponse.json({
+        ok: false,
+        executed: false,
+        mode,
+        error: 'Agent is OFF - no proposals or executions allowed',
+      } as ApproveTradeResponse, { status: 403 });
+    }
+    
+    // Safety check: Kill switch (applies to PAPER and LIVE_ASSISTED)
     const killSwitchEnabled = await isTradingEnabled();
-    if (!killSwitchEnabled && mode === 'live') {
+    if (!killSwitchEnabled && (mode === 'paper' || mode === 'live_assisted')) {
       return NextResponse.json({
         ok: false,
         executed: false,
@@ -83,9 +93,9 @@ export async function POST(req: NextRequest) {
       entryPrice: body.proposal.entry,
     };
     
-    // Run safety checks
+    // Run safety checks (for PAPER and LIVE_ASSISTED)
     const safetyResult = await preOrderSafetyCheck(proposal);
-    if (!safetyResult.canTrade && mode === 'live') {
+    if (!safetyResult.canTrade && (mode === 'paper' || mode === 'live_assisted')) {
       return NextResponse.json({
         ok: false,
         executed: false,
@@ -104,6 +114,7 @@ export async function POST(req: NextRequest) {
         simulated: false,
       };
     } else if (mode === 'paper') {
+      // PAPER mode: Simulated execution
       // TODO Phase 4: Implement paper trading execution
       // For now, simulate a fill
       result = {
@@ -112,7 +123,8 @@ export async function POST(req: NextRequest) {
         fillQuantity: body.proposal.size,
         simulated: true,
       };
-    } else if (mode === 'live') {
+    } else if (mode === 'live_assisted') {
+      // LIVE_ASSISTED mode: Real execution via IBKR
       // TODO Phase 5: Implement live trading execution
       // Must call IBKR bridge to place order
       // For now, reject
@@ -120,7 +132,7 @@ export async function POST(req: NextRequest) {
         ok: false,
         executed: false,
         mode,
-        error: 'Live trading execution not yet implemented - Phase 5',
+        error: 'Live assisted trading execution not yet implemented - Phase 5',
       } as ApproveTradeResponse, { status: 501 });
     }
     
@@ -148,7 +160,7 @@ export async function POST(req: NextRequest) {
     } as ApproveTradeResponse);
   } catch (err: any) {
     return NextResponse.json(
-      { ok: false, executed: false, mode: 'learn', error: err?.message ?? 'Unknown error' } as ApproveTradeResponse,
+      { ok: false, executed: false, mode: 'off', error: err?.message ?? 'Unknown error' } as ApproveTradeResponse,
       { status: 500 }
     );
   }

@@ -28,7 +28,7 @@ export interface DecisionsResponse {
     userAction: 'approved' | 'rejected' | 'modified' | 'pending';
     reason?: string;
     result?: any;
-    mode: 'learn' | 'paper' | 'live';
+    mode: 'off' | 'learn' | 'paper' | 'live_assisted';
   }>;
   error?: string;
 }

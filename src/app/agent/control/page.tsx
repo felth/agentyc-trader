@@ -13,7 +13,7 @@ import React, { useEffect, useState } from 'react';
 import SourceStatusBadge from '@/components/ui/SourceStatusBadge';
 
 interface AgentStatus {
-  mode: 'learn' | 'paper' | 'live';
+  mode: 'off' | 'learn' | 'paper' | 'live_assisted';
   killSwitch: { enabled: boolean };
   brains: {
     market: { state: 'green' | 'amber' | 'red'; lastUpdate?: Date };
@@ -59,7 +59,7 @@ export default function AgentControlPage() {
     }
   }
 
-  async function changeMode(mode: 'learn' | 'paper' | 'live') {
+  async function changeMode(mode: 'off' | 'learn' | 'paper' | 'live_assisted') {
     setModeChanging(true);
     try {
       const res = await fetch('/api/agent/mode', {
@@ -138,8 +138,8 @@ export default function AgentControlPage() {
         {/* Mode Selector */}
         <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10">
           <h2 className="text-xl font-semibold mb-4">Trading Mode</h2>
-          <div className="flex gap-4">
-            {(['learn', 'paper', 'live'] as const).map((mode) => (
+          <div className="flex gap-4 flex-wrap">
+            {(['off', 'learn', 'paper', 'live_assisted'] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => changeMode(mode)}
@@ -150,15 +150,16 @@ export default function AgentControlPage() {
                     : 'bg-white/5 text-white/70 hover:bg-white/10'
                 } disabled:opacity-50`}
               >
-                {mode.toUpperCase()}
+                {mode === 'live_assisted' ? 'LIVE ASSISTED' : mode.toUpperCase()}
               </button>
             ))}
           </div>
           <p className="mt-4 text-sm text-white/60">
-            Current mode: <span className="font-semibold">{status.mode.toUpperCase()}</span>
+            Current mode: <span className="font-semibold">{status.mode === 'live_assisted' ? 'LIVE ASSISTED' : status.mode.toUpperCase()}</span>
+            {status.mode === 'off' && ' - Agent disabled, no proposals or executions'}
             {status.mode === 'learn' && ' - Advisory only, no execution'}
             {status.mode === 'paper' && ' - Simulated execution'}
-            {status.mode === 'live' && ' - Real execution with approval'}
+            {status.mode === 'live_assisted' && ' - Real execution with explicit approval'}
           </p>
         </div>
 

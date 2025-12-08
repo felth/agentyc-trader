@@ -4,20 +4,21 @@
 -- Agent configuration table
 CREATE TABLE IF NOT EXISTS agent_config (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  mode TEXT NOT NULL DEFAULT 'learn' CHECK (mode IN ('learn', 'paper', 'live')),
+  mode TEXT NOT NULL DEFAULT 'off' CHECK (mode IN ('off', 'learn', 'paper', 'live_assisted')),
   max_risk_per_trade NUMERIC DEFAULT 500,
   daily_loss_limit NUMERIC DEFAULT 2000,
   allowed_symbols TEXT[] DEFAULT ARRAY[]::TEXT[],
   psychology_mode TEXT DEFAULT 'normal' CHECK (psychology_mode IN ('aggressive', 'normal', 'cautious')),
   agent_trading_enabled BOOLEAN DEFAULT false,
+  allow_overnight BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(id) -- Only one config row
 );
 
 -- Insert default config if none exists
-INSERT INTO agent_config (id, mode, agent_trading_enabled)
-VALUES ('00000000-0000-0000-0000-000000000001', 'learn', false)
+INSERT INTO agent_config (id, mode, agent_trading_enabled, allow_overnight)
+VALUES ('00000000-0000-0000-0000-000000000001', 'off', false, false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Agent decisions audit log
@@ -34,7 +35,7 @@ CREATE TABLE IF NOT EXISTS agent_decisions (
   user_reason TEXT,
   proposal JSONB, -- Full trade proposal (entry, stop, target, size, etc.)
   result JSONB, -- Execution result (filled, fill_price, pnl, etc.)
-  mode TEXT CHECK (mode IN ('learn', 'paper', 'live')),
+  mode TEXT CHECK (mode IN ('off', 'learn', 'paper', 'live_assisted')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

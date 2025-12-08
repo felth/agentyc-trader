@@ -20,24 +20,29 @@ sudo apt update
 sudo apt install -y nginx certbot python3-certbot-nginx
 ```
 
-### 2. Copy Nginx Configuration
+### 2. Create Initial Nginx Configuration (HTTP only, for Certbot)
 
-Copy the nginx configuration file to the droplet:
+Create the initial HTTP configuration that Certbot will enhance:
 
 ```bash
-# From your local machine (if you have the repo cloned on droplet):
-sudo cp /opt/agentyc-trader/scripts/infra/nginx/ibkr.conf /etc/nginx/sites-available/ibkr.conf
+sudo tee /etc/nginx/sites-available/ibkr.agentyctrader.com.conf >/dev/null << 'EOF'
+server {
+    listen 80;
+    server_name ibkr.agentyctrader.com;
 
-# Or create it manually on the droplet:
-sudo nano /etc/nginx/sites-available/ibkr.conf
-# Paste the contents of scripts/infra/nginx/ibkr.conf
+    # Redirect all HTTP to HTTPS once cert is in place
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+EOF
 ```
 
 ### 3. Enable the Site
 
 ```bash
 # Create symlink to enable the site
-sudo ln -s /etc/nginx/sites-available/ibkr.conf /etc/nginx/sites-enabled/ibkr.conf
+sudo ln -sf /etc/nginx/sites-available/ibkr.agentyctrader.com.conf /etc/nginx/sites-enabled/ibkr.agentyctrader.com.conf
 
 # Remove default site if present
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -57,15 +62,72 @@ sudo systemctl reload nginx
 Use certbot to automatically obtain and configure the SSL certificate:
 
 ```bash
-sudo certbot --nginx -d ibkr.agentyctrader.com
+sudo certbot --nginx -d ibkr.agentyctrader.com --redirect --non-interactive --agree-tos -m liamfeltham@hotmail.com
 ```
 
 Certbot will:
-- Prompt for email (optional, for renewal notices)
-- Ask to agree to terms of service
 - Obtain the certificate from Let's Encrypt
-- Automatically update the nginx config with certificate paths
+- Automatically add SSL configuration to your nginx config
 - Set up automatic renewal
+- Configure HTTP→HTTPS redirect
+
+### 5. Update Nginx Configuration for Reverse Proxy
+
+After Certbot adds the SSL configuration, you need to add the reverse proxy settings. Update the HTTPS server block in `/etc/nginx/sites-available/ibkr.agentyctrader.com.conf`:
+
+```bash
+sudo nano /etc/nginx/sites-available/ibkr.agentyctrader.com.conf
+```
+
+Replace the `location /` block in the HTTPS server section with:
+
+```nginx
+# Proxy everything to the local IBKR gateway on 127.0.0.1:5000
+location / {
+    proxy_pass https://127.0.0.1:5000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+
+    # WebSocket / SSE support (IBKR UI may use them)
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+
+    # Gateway uses self-signed certificate, so we skip verification
+    proxy_ssl_verify off;
+
+    # Avoid buffering issues
+    proxy_buffering off;
+}
+
+# Map for Upgrade header (add this at the top level, outside server blocks)
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+```
+
+**Note:** Add the `map` block before the `server` blocks in the file.
+
+Alternatively, you can use the complete configuration from the repo (includes the map directive):
+
+```bash
+# Copy the complete config (with map directive)
+sudo cp /opt/agentyc-trader/scripts/infra/nginx/IBKR_COMPLETE_CONFIG.conf /etc/nginx/sites-available/ibkr.agentyctrader.com.conf
+```
+
+**Important:** After Certbot modifies the config, you'll need to:
+1. Add the `map $http_upgrade $connection_upgrade` block at the top of the file (before server blocks)
+2. Update the `location /` block with the proxy settings shown above
+
+Then test and reload:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
 
 ### 5. Verify Setup
 

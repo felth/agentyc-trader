@@ -195,16 +195,19 @@ export async function getIbeamStatus(): Promise<{
       // Network error, timeout, or connection refused - try next endpoint
       lastError = fetchErr;
       
-      // Check if it's a connection error (ECONNREFUSED) vs timeout
-      const isConnectionError = fetchErr?.message?.includes('ECONNREFUSED') || 
-                                fetchErr?.message?.includes('fetch failed') ||
-                                fetchErr?.code === 'ECONNREFUSED';
-      
-      if (isConnectionError && endpoint === endpointsToTry[endpointsToTry.length - 1]) {
-        // Last endpoint failed with connection error - IBeam health server might not be running
+      // If this is the last endpoint, return error
+      if (endpoint === endpointsToTry[endpointsToTry.length - 1]) {
+        // Check if it's a connection error (ECONNREFUSED) vs timeout
+        const isConnectionError = fetchErr?.message?.includes('ECONNREFUSED') || 
+                                  fetchErr?.message?.includes('fetch failed') ||
+                                  fetchErr?.message?.includes('ECONNREFUSED') ||
+                                  fetchErr?.code === 'ECONNREFUSED';
+        
         return {
           ok: false,
-          error: `IBeam health server not responding on port 5001: ${fetchErr?.message ?? 'Connection refused'}`,
+          error: isConnectionError
+            ? `IBeam health server not responding on port 5001: ${fetchErr?.message ?? 'Connection refused'}`
+            : `IBeam health server not responding: ${fetchErr?.message ?? 'All endpoints failed'}`,
         };
       }
       

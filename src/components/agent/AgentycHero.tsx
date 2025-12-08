@@ -73,7 +73,7 @@ export default function AgentycHero({
               Agentyc Copilot
             </h1>
             <p className="text-base md:text-lg text-white/70 font-medium max-w-2xl">
-              Agency reads your account, risk, and market state before answering.
+              Agentyc reads your account, risk, and market state before answering.
             </p>
           </div>
         </div>

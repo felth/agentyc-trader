@@ -144,7 +144,7 @@ export default function TodaysReflectionCard({
             className="w-4 h-4 rounded border-white/20 bg-black/40 text-ultra-accent focus:ring-ultra-accent"
           />
           <label htmlFor="sendToPlaybook" className="text-xs text-white/70">
-            Send key lessons to Playbook (Agency uses this in decisions)
+            Send key lessons to Playbook (Agentyc uses this in decisions)
           </label>
         </div>
 

@@ -58,7 +58,7 @@ export default function UpgradePlaybookPanel({
         <h3 className="text-[16px] font-bold text-white">Upgrade your Playbook</h3>
       </div>
       <p className="text-xs text-white/50 mb-4">
-        Send snippets or small files into Agency's memory.
+        Send snippets or small files into Agentyc's memory.
       </p>
 
       {/* Tabs */}

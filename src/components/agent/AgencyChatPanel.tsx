@@ -7,7 +7,7 @@ export default function AgencyChatPanel() {
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
       <SourceStatusBadge provider="AGENTYC" status="OK" />
 
-      <h2 className="text-[18px] font-bold text-white mb-2">Agency Chat</h2>
+      <h2 className="text-[18px] font-bold text-white mb-2">Agentyc Chat</h2>
       <p className="text-[12px] text-white/50 mb-6">
         Context loaded: Account • Positions • Today's risk • Latest journal metrics • Playbook rules.
       </p>
@@ -17,7 +17,7 @@ export default function AgencyChatPanel() {
         <div className="text-center max-w-md px-4">
           <p className="mb-2">Chat interface coming soon.</p>
           <p className="text-xs text-white/40">
-            Agency will always see the same data shown on Home + Symbol + Trades.
+            Agentyc will always see the same data shown on Home + Symbol + Trades.
           </p>
         </div>
       </div>

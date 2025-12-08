@@ -43,7 +43,7 @@ export default function BehaviorInsightsCard({
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
       <SourceStatusBadge provider="DERIVED" status={status} />
       <div className="absolute top-2 left-4 z-10">
-        <AgentHintTag text="Agency: reduce risk size during revenge-prone sessions" />
+        <AgentHintTag text="Agentyc: reduce risk size during revenge-prone sessions" />
       </div>
 
       <h2 className="text-[18px] font-bold text-white mb-6">Behaviour Insights</h2>

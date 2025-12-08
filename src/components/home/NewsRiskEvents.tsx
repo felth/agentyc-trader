@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import SourceStatusBadge, { type Status } from "@/components/ui/SourceStatusBadge";
+import AgentHintTag from "@/components/ui/AgentHintTag";
 import { minutesUntil as calcMinutesUntil } from "@/lib/timeUtils";
 
 type Event = {
@@ -54,8 +55,13 @@ export default function NewsRiskEvents({
       className="relative block rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:border-white/25 active:scale-[0.99]"
     >
       <SourceStatusBadge provider="FMP" status={status} />
+      {imminentHighImpact && (
+        <div className="absolute top-2 left-4 z-10">
+          <AgentHintTag text="news risk — no new trades" />
+        </div>
+      )}
 
-      <div className="pr-20 mb-4">
+      <div className={`pr-20 mb-4 ${imminentHighImpact ? 'pt-6' : ''}`}>
         <h3 className="text-[16px] font-semibold text-white">
           News & Risk Events
         </h3>

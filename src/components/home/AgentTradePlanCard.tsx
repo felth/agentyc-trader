@@ -46,7 +46,7 @@ export default function AgentTradePlanCard({
 
       <div className="pr-20 mb-4">
         <h3 className="text-[16px] font-semibold text-white">
-          Agency Trade Plan
+          Agentyc Trade Plan
         </h3>
       </div>
 

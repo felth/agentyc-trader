@@ -52,7 +52,7 @@ export default function TodayCalendarMini({
         </div>
       )}
 
-      <div className="pr-20 mb-3">
+      <div className={`pr-20 mb-3 ${imminentHighImpact ? 'pt-6' : ''}`}>
         <h3 className="text-[14px] font-bold text-white">Today's Calendar</h3>
       </div>
       <div className="space-y-2">

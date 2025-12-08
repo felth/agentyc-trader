@@ -39,7 +39,7 @@ function generateInsights(entries: JournalEntry[]): string | null {
     insights.push("📊 Behaviour patterns are being tracked from your journal entries.");
   }
 
-  insights.push("Agency uses these insights to inform trading decisions and risk management.");
+  insights.push("Agentyc uses these insights to inform trading decisions and risk management.");
 
   return insights.join(" ");
 }
@@ -52,7 +52,7 @@ export function AIReflectionCard({ entries }: AIReflectionCardProps) {
       <SourceStatusBadge provider="AGENTYC" status={insight ? "OK" : "OFF"} />
       
       <div className="pr-20 mb-2">
-        <h3 className="text-[16px] font-bold text-white">Agency Reflection</h3>
+        <h3 className="text-[16px] font-bold text-white">Agentyc Reflection</h3>
       </div>
       <p className="text-xs text-white/50 mb-4">
         Behaviour patterns from your last entries.
@@ -69,7 +69,7 @@ export function AIReflectionCard({ entries }: AIReflectionCardProps) {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-white/50">
-            Agency will summarise your recent journal entries once you start journaling.
+            Agentyc will summarise your recent journal entries once you start journaling.
           </p>
           <span className="inline-block text-xs px-2 py-1 rounded-full bg-white/5 text-white/60">
             No entries yet

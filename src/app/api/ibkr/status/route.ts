@@ -18,7 +18,7 @@ export async function GET() {
     ]);
 
     // Map IBeam status to UI-friendly format
-    const ibeamStatus = ibeam.ok && ibeam.status
+    const ibeamStatus = ibeam.ok && 'status' in ibeam && ibeam.status
       ? {
           ok: true,
           status: {
@@ -33,7 +33,7 @@ export async function GET() {
         }
       : {
           ok: false,
-          error: ibeam.error ?? 'IBeam status unavailable',
+          error: 'error' in ibeam ? ibeam.error : 'IBeam status unavailable',
         };
 
     return NextResponse.json({

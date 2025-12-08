@@ -10,6 +10,7 @@ import NewsRiskEvents from "@/components/home/NewsRiskEvents";
 import AgentTradePlanCard from "@/components/home/AgentTradePlanCard";
 import SystemHealthFooter from "@/components/home/SystemHealthFooter";
 import AgentHintTag from "@/components/ui/AgentHintTag";
+import AgentStatusBadge from "@/components/ui/AgentStatusBadge";
 import { getRiskSeverity } from "@/lib/riskUtils";
 import type { DashboardSnapshot } from "@/lib/data/dashboard";
 import type { TradePlan } from "@/lib/agent/tradeSchema";
@@ -203,7 +204,12 @@ export default function HomePage() {
   return (
     <main className="bg-[#0A0A0A] min-h-screen flex flex-col">
       {/* Hero Section - Full visibility on load */}
-      <HeroSection dateStr={dateStr} dayStr={dayStr} time={time} />
+      <div className="relative">
+        <HeroSection dateStr={dateStr} dayStr={dayStr} time={time} />
+        <div className="absolute top-4 right-6 z-10">
+          <AgentStatusBadge />
+        </div>
+      </div>
 
       {/* Dashboard Content Section */}
       <section className="px-6 pb-32 flex flex-col gap-9">

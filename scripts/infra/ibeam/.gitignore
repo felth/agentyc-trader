@@ -1,0 +1,7 @@
+# Ignore actual .env file with credentials
+.env
+
+# IBeam outputs and logs
+outputs/
+ibeam_data/
+

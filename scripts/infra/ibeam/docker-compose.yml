@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  ibeam:
+    image: voyz/ibeam:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"           # Gateway + IBeam on 5000, as before
+    volumes:
+      # Mount existing Client Portal Gateway into container
+      - /opt/ibkr-gateway/clientportal:/srv/clientportal.gw
+      # Optional: outputs/logs
+      - /opt/ibeam/outputs:/srv/outputs
+    healthcheck:
+      test: ["CMD", "curl", "-k", "https://localhost:5000/v1/api/iserver/auth/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s

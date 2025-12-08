@@ -24,7 +24,7 @@ export interface AgentDecision {
   proposedOrder: TradeProposal;
   brainsOutput: CoordinatorOutput['brains'];
   coordinatorOutput: CoordinatorOutput;
-  userAction: 'approved' | 'rejected' | 'modified';
+  userAction: 'approved' | 'rejected' | 'modified' | 'pending';
   userNotes?: string;
   confidence: number;
   outcome?: {

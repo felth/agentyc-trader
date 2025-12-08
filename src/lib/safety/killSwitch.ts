@@ -1,13 +1,9 @@
 // src/lib/safety/killSwitch.ts
-// Emergency Kill Switch - Prevents any new orders from Agent
+// Kill Switch - Global trading enable/disable
 
 /**
- * Phase 1: Type definitions and skeleton
- * TODO Phase 2: Implement kill switch logic with database
- * TODO Phase 3: Integrate with order routes
- * TODO Phase 4: Add UI toggle
- * TODO Phase 5: Add cancel all orders functionality
- * TODO Phase 6: Testing
+ * Phase 3: Full kill switch implementation
+ * Backed by agent_config table
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -18,56 +14,73 @@ const supabase = createClient(
 );
 
 /**
- * Checks if agent trading is currently enabled
- * 
- * Phase 1: Safe placeholder - always returns false (trading disabled)
- * TODO Phase 2: Query agent_config table for agent_trading_enabled
- * - Default to false if not set
- * - Return boolean
+ * Checks if trading is enabled (kill switch is OFF)
+ * Returns true if trading is allowed, false if kill switch is active
  */
 export async function isTradingEnabled(): Promise<boolean> {
-  // Phase 1: Safe placeholder - trading always disabled
-  return false;
+  try {
+    const { data, error } = await supabase
+      .from('agent_config')
+      .select('agent_trading_enabled')
+      .single();
+
+    if (error || !data) {
+      // Default to disabled if no config found
+      return false;
+    }
+
+    return data.agent_trading_enabled ?? false;
+  } catch (err) {
+    console.error('[killSwitch] Error checking kill switch:', err);
+    // Fail safe: default to disabled
+    return false;
+  }
 }
 
 /**
- * Enables agent trading
- * 
- * Phase 1: Safe placeholder - no-op (prevents accidental execution)
- * TODO Phase 2: Update agent_config table
- * - Set agent_trading_enabled = true
- * - Log the change
+ * Sets the kill switch state
+ */
+export async function setKillSwitch(enabled: boolean): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('agent_config')
+      .upsert({
+        id: '00000000-0000-0000-0000-000000000001',
+        agent_trading_enabled: enabled,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'id',
+      });
+
+    if (error) {
+      throw error;
+    }
+  } catch (err) {
+    console.error('[killSwitch] Error setting kill switch:', err);
+    throw err;
+  }
+}
+
+/**
+ * Enables trading (turns kill switch OFF)
  */
 export async function enableTrading(): Promise<void> {
-  // Phase 1: Safe placeholder - no side effects
-  throw new Error('enableTrading() not yet implemented - Phase 2');
+  await setKillSwitch(true);
 }
 
 /**
- * Disables agent trading (kill switch)
- * 
- * Phase 1: Safe placeholder - no-op (prevents accidental execution)
- * TODO Phase 2: Update agent_config table
- * - Set agent_trading_enabled = false
- * - Log the change
- * - Optionally cancel all open agent-tagged orders
+ * Disables trading (turns kill switch ON)
  */
 export async function disableTrading(): Promise<void> {
-  // Phase 1: Safe placeholder - no side effects
-  throw new Error('disableTrading() not yet implemented - Phase 2');
+  await setKillSwitch(false);
 }
 
 /**
- * Cancels all open orders tagged as agent orders
- * 
- * Phase 1: Safe placeholder - no-op (prevents accidental execution)
- * TODO Phase 5: Implement order cancellation
- * - Query open orders
- * - Filter for agent-tagged orders
- * - Cancel each via IBKR API
+ * Cancels all agent orders (placeholder for Phase 4)
  */
 export async function cancelAllAgentOrders(): Promise<void> {
-  // Phase 1: Safe placeholder - no side effects, no trading execution
-  throw new Error('cancelAllAgentOrders() not yet implemented - Phase 5');
+  // TODO Phase 4: Implement order cancellation
+  // - Query IBKR for open orders
+  // - Cancel all orders placed by agent
+  console.warn('[killSwitch] cancelAllAgentOrders() not yet implemented');
 }
-

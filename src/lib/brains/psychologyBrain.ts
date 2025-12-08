@@ -1,83 +1,137 @@
 // src/lib/brains/psychologyBrain.ts
-// Psychology Brain - User state, tilt detection, FOMO, fear, over-confidence
+// Psychology Brain - Behavioral analysis, tilt detection, fatigue monitoring
 
 /**
- * Phase 1: Type definitions and skeleton
- * TODO Phase 2: Implement psychology analysis logic
- * TODO Phase 3: Integrate with journal entries
- * TODO Phase 4: Add tilt detection algorithms
- * TODO Phase 5: Add fatigue and time-of-day analysis
- * TODO Phase 6: Testing and calibration
+ * Phase 3: Full psychology brain implementation
+ * Monitors user behavior, detects tilt, fatigue, and adjusts recommendations
  */
 
 import type { WorldState, PsychologyBrainOutput } from './types';
+import type { AgentContext } from '@/lib/memory/agentMemory';
 
 /**
- * Analyzes user psychology and returns psychology brain output
- * 
- * Inputs: User journal, override history, revenge trades, time-of-day, fatigue markers
- * Role: Detect tilt, FOMO, fear, over-confidence; recommend pause or size-down
- * Outputs: "Mentally OK?", recommended cool-down, journaling prompts
+ * Analyzes psychology and behavioral patterns
  */
 export async function analyzePsychology(
-  worldState: WorldState
+  worldState: WorldState,
+  agentContext: AgentContext
 ): Promise<PsychologyBrainOutput> {
-  // TODO Phase 2: Implement psychology analysis
-  // - Analyze journal entries for mood patterns
-  // - Detect tilt (revenge trading, emotional overrides)
-  // - Detect FOMO (rushing into trades after missing moves)
-  // - Detect fear (avoiding good setups)
-  // - Detect over-confidence (ignoring risk after wins)
-  // - Assess fatigue (session length, recent losses)
-  // - Consider time-of-day effects
-  // - Generate mental state assessment
-  // - Recommend action (proceed/pause/size_down/cool_down)
-  // - Generate journaling prompts if needed
-  // - Generate confidence score
-  // - Provide human-readable reasoning
-  
-  throw new Error('analyzePsychology() not yet implemented - Phase 2');
-}
+  const psychology = agentContext.psychologySignals;
+  const recentTrades = agentContext.recentTrades;
+  const agentDecisions = agentContext.agentDecisions;
+  const config = agentContext.config;
 
-/**
- * Helper: Detect tilt from journal entries and trade history
- */
-function detectTilt(worldState: WorldState): {
-  isTilted: boolean;
-  reason: string;
-} {
-  // TODO Phase 2: Implement tilt detection
-  // - Check for revenge trades (trading immediately after loss)
-  // - Check for emotional language in journal
-  // - Check for override patterns (ignoring agent warnings)
-  return { isTilted: false, reason: '' };
-}
+  // Detect mental state
+  let mentalState: 'clear' | 'tilt' | 'fomo' | 'fear' | 'overconfident' | 'fatigued' = 'clear';
+  let recommendedAction: 'proceed' | 'pause' | 'size_down' | 'cool_down' = 'proceed';
+  let coolDownMinutes: number | undefined;
+  const riskFactors: string[] = [];
+  let sizeMultiplier = 1.0;
 
-/**
- * Helper: Detect FOMO patterns
- */
-function detectFOMO(worldState: WorldState): {
-  hasFOMO: boolean;
-  reason: string;
-} {
-  // TODO Phase 2: Implement FOMO detection
-  // - Check for trades entered after missing moves
-  // - Check for chasing price
-  return { hasFOMO: false, reason: '' };
-}
+  // Check for loss streak (tilt indicator)
+  if (psychology.recent_loss_streak >= 3) {
+    mentalState = 'tilt';
+    recommendedAction = 'cool_down';
+    coolDownMinutes = 60; // 1 hour cooldown
+    riskFactors.push(`Loss streak: ${psychology.recent_loss_streak} consecutive losses`);
+    sizeMultiplier = 0.5; // Reduce size by 50%
+  }
 
-/**
- * Helper: Assess fatigue level
- */
-function assessFatigue(worldState: WorldState): {
-  isFatigued: boolean;
-  level: 'low' | 'medium' | 'high';
-  reason: string;
-} {
-  // TODO Phase 2: Implement fatigue assessment
-  // - Check session length
-  // - Check recent loss count
-  // - Check time of day
-  return { isFatigued: false, level: 'low', reason: '' };
-}
+  // Check for win streak (overconfidence indicator)
+  if (psychology.recent_win_streak >= 5) {
+    mentalState = 'overconfident';
+    recommendedAction = 'size_down';
+    riskFactors.push(`Win streak: ${psychology.recent_win_streak} consecutive wins - risk of overconfidence`);
+    sizeMultiplier = 0.75; // Reduce size by 25%
+  }
 
+  // Check for fatigue
+  if (psychology.fatigue_score && psychology.fatigue_score > 0.7) {
+    mentalState = 'fatigued';
+    recommendedAction = 'pause';
+    riskFactors.push('High fatigue score detected');
+    sizeMultiplier = 0.5;
+  }
+
+  // Check for rapid trading (FOMO indicator)
+  const recentDecisionCount = agentDecisions.filter((d) => {
+    const decisionTime = new Date(d.created_at);
+    const hoursAgo = (Date.now() - decisionTime.getTime()) / (1000 * 60 * 60);
+    return hoursAgo < 24; // Last 24 hours
+  }).length;
+
+  if (recentDecisionCount > 10) {
+    mentalState = 'fomo';
+    recommendedAction = 'pause';
+    riskFactors.push(`High trading frequency: ${recentDecisionCount} decisions in last 24 hours`);
+    sizeMultiplier = 0.5;
+  }
+
+  // Check for fear (many rejections)
+  const recentRejections = agentDecisions.filter((d) => {
+    const decisionTime = new Date(d.created_at);
+    const hoursAgo = (Date.now() - decisionTime.getTime()) / (1000 * 60 * 60);
+    return hoursAgo < 24 && d.decision_type === 'REJECT';
+  }).length;
+
+  if (recentRejections > 5) {
+    mentalState = 'fear';
+    recommendedAction = 'size_down';
+    riskFactors.push(`Many recent rejections: ${recentRejections} - may indicate fear or uncertainty`);
+    sizeMultiplier = 0.75;
+  }
+
+  // Check psychology mode from config
+  if (config.psychology_mode === 'CONSERVATIVE') {
+    sizeMultiplier *= 0.8; // Further reduce size in conservative mode
+  } else if (config.psychology_mode === 'AGGRESSIVE') {
+    if (mentalState === 'clear') {
+      sizeMultiplier *= 1.1; // Slight increase in aggressive mode if clear
+    }
+  }
+
+  // Check overnight bias
+  if (!config.allow_overnight && psychology.overnight_bias === 'SEEKS') {
+    riskFactors.push('Overnight positions not allowed but user tends to hold overnight');
+    recommendedAction = 'size_down';
+  }
+
+  // Determine brain state
+  let state: 'green' | 'amber' | 'red' = 'green';
+  if (mentalState === 'tilt' || mentalState === 'fatigued' || mentalState === 'fomo') {
+    state = 'red';
+  } else if (mentalState === 'overconfident' || mentalState === 'fear') {
+    state = 'amber';
+  }
+
+  // Generate journaling prompts if needed
+  const journalingPrompts: string[] = [];
+  if (mentalState === 'tilt') {
+    journalingPrompts.push('What emotions are you feeling after the recent losses?');
+    journalingPrompts.push('What can you learn from this losing streak?');
+  }
+  if (mentalState === 'overconfident') {
+    journalingPrompts.push('Are you taking on more risk than usual due to recent wins?');
+    journalingPrompts.push('What would you do differently if you were starting fresh?');
+  }
+  if (mentalState === 'fomo') {
+    journalingPrompts.push('Why are you trading so frequently?');
+    journalingPrompts.push('What opportunities are you afraid of missing?');
+  }
+
+  const confidence = state === 'green' ? 0.8 : state === 'amber' ? 0.5 : 0.3;
+
+  return {
+    state,
+    confidence,
+    reasoning: `Psychology analysis: ${mentalState}. ${riskFactors.length > 0 ? 'Risk factors: ' + riskFactors.join('; ') : 'No major risk factors detected.'} Recommended action: ${recommendedAction}. Size multiplier: ${(sizeMultiplier * 100).toFixed(0)}%.`,
+    timestamp: new Date(),
+    data: {
+      mentalState,
+      recommendedAction,
+      coolDownMinutes,
+      journalingPrompts,
+      riskFactors,
+    },
+  };
+}

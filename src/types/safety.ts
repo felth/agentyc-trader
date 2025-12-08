@@ -1,16 +1,5 @@
 // src/types/safety.ts
-// Safety system types
+// Safety-related type exports
 
-export type {
-  DataIntegrityStatus,
-} from '@/lib/safety/dataIntegrity';
-
-export type {
-  TradeProposal,
-  SafetyCheckResult,
-} from '@/lib/safety/safetyChecks';
-
-export type {
-  AgentDecision,
-} from '@/lib/safety/auditLogger';
-
+export type { TradeProposal, SafetyResult } from '@/lib/safety/safetyChecks';
+export type { AgentMode } from '@/lib/agent/agentMode';

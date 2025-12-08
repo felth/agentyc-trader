@@ -1,38 +1,34 @@
 // src/app/api/agent/approve/route.ts
-// Trade Approval Endpoint - Executes trade based on mode (LEARN/PAPER/LIVE)
+// Trade Approval Endpoint - Executes trade based on mode
 
 /**
- * Phase 2: Trade approval endpoint with mode-based execution
- * TODO Phase 4: Implement paper trading execution
- * TODO Phase 5: Implement live trading execution
+ * Phase 3: Full approval endpoint with mode-based execution
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { isTradingEnabled } from '@/lib/safety/killSwitch';
-import { isPaperMode } from '@/lib/validation/paperTrading';
-import { logDecision } from '@/lib/safety/auditLogger';
-import { preOrderSafetyCheck } from '@/lib/safety/safetyChecks';
+import { executePaperTrade } from '@/lib/validation/paperTrading';
+import { logApprovedTrade, logRejectedTrade } from '@/lib/safety/auditLogger';
+import { checkProposal } from '@/lib/safety/safetyChecks';
+import { placeIbkrOrder } from '@/lib/data/ibkrBridge';
+import { canApproveInMode, canExecuteInMode, getExecutionType } from '@/lib/agent/agentMode';
 import { createClient } from '@supabase/supabase-js';
+import { buildWorldState } from '@/lib/brains/worldState';
+import { getAgentContext } from '@/lib/memory/agentMemory';
+import type { TradeProposal } from '@/lib/safety/safetyChecks';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
-
 export interface ApproveTradeRequest {
-  proposalId?: string; // Reference to proposal from /propose-trade
-  proposal: {
-    symbol: string;
-    direction: 'BUY' | 'SELL';
-    entry: number;
-    stop: number;
-    target: number;
-    size: number;
-  };
-  userReason?: string;
+  proposalId: string;
+  proposal?: TradeProposal; // Optional override
+  userComment?: string;
 }
 
 export interface ApproveTradeResponse {
@@ -44,6 +40,7 @@ export interface ApproveTradeResponse {
     fillPrice?: number;
     fillQuantity?: number;
     simulated?: boolean;
+    orderId?: string;
   };
   error?: string;
 }
@@ -52,6 +49,15 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as ApproveTradeRequest;
     
+    if (!body.proposalId) {
+      return NextResponse.json({
+        ok: false,
+        executed: false,
+        mode: 'off',
+        error: 'proposalId is required',
+      } as ApproveTradeResponse, { status: 400 });
+    }
+
     // Get current mode
     const { data: config } = await supabase
       .from('agent_config')
@@ -59,19 +65,59 @@ export async function POST(req: NextRequest) {
       .single();
     
     const mode = (config?.mode || 'off') as 'off' | 'learn' | 'paper' | 'live_assisted';
-    const tradingEnabled = config?.agent_trading_enabled ?? false;
     
-    // Mode-based execution rules
-    if (mode === 'off') {
+    // Check if mode allows approval
+    if (!canApproveInMode(mode)) {
       return NextResponse.json({
         ok: false,
         executed: false,
         mode,
-        error: 'Agent is OFF - no proposals or executions allowed',
+        error: `Agent is in ${mode.toUpperCase()} mode - approvals not allowed`,
       } as ApproveTradeResponse, { status: 403 });
     }
-    
-    // Safety check: Kill switch (applies to PAPER and LIVE_ASSISTED)
+
+    // Load proposal from database
+    const { data: decision } = await supabase
+      .from('agent_decisions')
+      .select('*')
+      .eq('id', body.proposalId)
+      .single();
+
+    if (!decision || !decision.proposal) {
+      return NextResponse.json({
+        ok: false,
+        executed: false,
+        mode,
+        error: 'Proposal not found',
+      } as ApproveTradeResponse, { status: 404 });
+    }
+
+    const proposal = (body.proposal || decision.proposal) as TradeProposal;
+
+    // Re-run safety checks
+    const agentContext = await getAgentContext({
+      ticker: proposal.ticker,
+      timeframe: proposal.timeframe,
+      mode,
+    });
+
+    const worldState = await buildWorldState({
+      ticker: proposal.ticker,
+      timeframe: proposal.timeframe as any,
+      agentContext,
+    });
+
+    const safetyResult = await checkProposal(proposal, worldState, agentContext);
+    if (!safetyResult.allowed && (mode === 'paper' || mode === 'live_assisted')) {
+      return NextResponse.json({
+        ok: false,
+        executed: false,
+        mode,
+        error: `Safety checks failed: ${safetyResult.reasons.join(', ')}`,
+      } as ApproveTradeResponse, { status: 403 });
+    }
+
+    // Check kill switch for PAPER and LIVE_ASSISTED
     const killSwitchEnabled = await isTradingEnabled();
     if (!killSwitchEnabled && (mode === 'paper' || mode === 'live_assisted')) {
       return NextResponse.json({
@@ -81,77 +127,67 @@ export async function POST(req: NextRequest) {
         error: 'Kill switch is ON - trading disabled',
       } as ApproveTradeResponse, { status: 403 });
     }
-    
-    // Build trade proposal for safety checks
-    const proposal = {
-      symbol: body.proposal.symbol,
-      side: body.proposal.direction,
-      quantity: body.proposal.size,
-      orderType: 'LIMIT' as const,
-      limitPrice: body.proposal.entry,
-      stopPrice: body.proposal.stop,
-      entryPrice: body.proposal.entry,
-    };
-    
-    // Run safety checks (for PAPER and LIVE_ASSISTED)
-    const safetyResult = await preOrderSafetyCheck(proposal);
-    if (!safetyResult.canTrade && (mode === 'paper' || mode === 'live_assisted')) {
-      return NextResponse.json({
-        ok: false,
-        executed: false,
-        mode,
-        error: `Safety checks failed: ${safetyResult.errors.map(e => e.reason).join(', ')}`,
-      } as ApproveTradeResponse, { status: 403 });
-    }
-    
+
     // Mode-based execution
     let result: ApproveTradeResponse['result'] = undefined;
     
     if (mode === 'learn') {
-      // LEARN mode: No execution, just logging
+      // LEARN mode: No execution
       result = {
         filled: false,
         simulated: false,
       };
     } else if (mode === 'paper') {
       // PAPER mode: Simulated execution
-      // TODO Phase 4: Implement paper trading execution
-      // For now, simulate a fill
+      const paperResult = await executePaperTrade(proposal);
       result = {
-        filled: true,
-        fillPrice: body.proposal.entry,
-        fillQuantity: body.proposal.size,
+        filled: paperResult.filled,
+        fillPrice: paperResult.fillPrice,
+        fillQuantity: paperResult.fillQuantity,
         simulated: true,
       };
     } else if (mode === 'live_assisted') {
-      // LIVE_ASSISTED mode: Real execution via IBKR
-      // TODO Phase 5: Implement live trading execution
-      // Must call IBKR bridge to place order
-      // For now, reject
-      return NextResponse.json({
-        ok: false,
-        executed: false,
-        mode,
-        error: 'Live assisted trading execution not yet implemented - Phase 5',
-      } as ApproveTradeResponse, { status: 501 });
+      // LIVE_ASSISTED mode: Real IBKR execution
+      try {
+        const orderResult = await placeIbkrOrder({
+          symbol: proposal.ticker,
+          side: proposal.side === 'LONG' ? 'BUY' : 'SELL',
+          type: proposal.entry.type === 'MARKET' ? 'MKT' : 'LMT',
+          qty: proposal.size.units,
+          limit_price: proposal.entry.type === 'LIMIT' ? proposal.entry.price : null,
+          time_in_force: 'DAY',
+        });
+
+        result = {
+          filled: orderResult.status === 'Filled' || orderResult.status === 'Submitted',
+          fillPrice: proposal.entry.price || undefined,
+          fillQuantity: proposal.size.units,
+          simulated: false,
+          orderId: orderResult.order_id,
+        };
+      } catch (err: any) {
+        await logApprovedTrade(body.proposalId, proposal, {
+          executed: false,
+          error: err?.message || 'Order placement failed',
+        });
+        return NextResponse.json({
+          ok: false,
+          executed: false,
+          mode,
+          error: `Order placement failed: ${err?.message}`,
+        } as ApproveTradeResponse, { status: 500 });
+      }
     }
-    
-    // Log decision
-    await logDecision({
-      contextSnapshot: {} as any, // TODO: Get from proposal
-      proposedOrder: proposal,
-      brainsOutput: {} as any, // TODO: Get from proposal
-      coordinatorOutput: {} as any, // TODO: Get from proposal
-      userAction: 'approved',
-      userNotes: body.userReason,
-      confidence: 0, // TODO: Get from proposal
-      outcome: result?.filled ? {
-        filled: true,
-        fillPrice: result.fillPrice,
-        fillQuantity: result.fillQuantity,
-      } : undefined,
-    }).catch(() => {}); // Ignore errors in Phase 2
-    
+
+    // Log approval
+    await logApprovedTrade(body.proposalId, proposal, {
+      executed: result?.filled ?? false,
+      filled: result?.filled,
+      fillPrice: result?.fillPrice,
+      fillQuantity: result?.fillQuantity,
+      simulated: result?.simulated,
+    });
+
     return NextResponse.json({
       ok: true,
       executed: result?.filled ?? false,
@@ -159,10 +195,10 @@ export async function POST(req: NextRequest) {
       result,
     } as ApproveTradeResponse);
   } catch (err: any) {
+    console.error('[approve] Error:', err);
     return NextResponse.json(
       { ok: false, executed: false, mode: 'off', error: err?.message ?? 'Unknown error' } as ApproveTradeResponse,
       { status: 500 }
     );
   }
 }
-

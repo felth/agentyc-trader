@@ -1,13 +1,8 @@
 // src/lib/validation/paperTrading.ts
-// Paper Trading Mode - Simulated order execution
+// Paper Trading - Simulated execution engine
 
 /**
- * Phase 1: Type definitions and skeleton
- * TODO Phase 2: Implement paper trading mode check
- * TODO Phase 3: Implement simulated order execution
- * TODO Phase 4: Add paper trading metrics tracking
- * TODO Phase 5: Add comparison with live trading
- * TODO Phase 6: Testing
+ * Phase 3: Full paper trading implementation
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -18,43 +13,114 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export interface SimulatedResult {
+/**
+ * Executes a paper trade (simulated)
+ */
+export async function executePaperTrade(
+  proposal: TradeProposal
+): Promise<{
   filled: boolean;
   fillPrice: number;
   fillQuantity: number;
-  fillTime: Date;
-  simulated: true;
+  simulated: boolean;
+  tradeId?: string;
+}> {
+  try {
+    // Simulate fill at entry price (or slightly worse for realism)
+    const fillPrice = proposal.entry.price || proposal.entry.zone?.min || 0;
+    const fillQuantity = proposal.size.units;
+
+    // Add slight slippage simulation (0.1% for market orders, 0% for limit)
+    const slippage = proposal.entry.type === 'MARKET' ? 0.001 : 0;
+    const adjustedFillPrice = proposal.side === 'LONG'
+      ? fillPrice * (1 + slippage)
+      : fillPrice * (1 - slippage);
+
+    // Insert paper trade into trades table
+    const { data: tradeData, error: tradeError } = await supabase
+      .from('trades')
+      .insert({
+        symbol: proposal.ticker,
+        direction: proposal.side === 'LONG' ? 'BUY' : 'SELL',
+        quantity: fillQuantity,
+        entry_price: adjustedFillPrice,
+        status: 'open',
+        is_paper: true,
+        opened_at: new Date().toISOString(),
+        source: 'AGENT',
+        mode: proposal.mode,
+      })
+      .select('id')
+      .single();
+
+    if (tradeError) {
+      throw tradeError;
+    }
+
+    return {
+      filled: true,
+      fillPrice: adjustedFillPrice,
+      fillQuantity,
+      simulated: true,
+      tradeId: tradeData.id,
+    };
+  } catch (err) {
+    console.error('[paperTrading] Error executing paper trade:', err);
+    throw err;
+  }
 }
 
 /**
- * Checks if system is in paper trading mode
- * 
- * Phase 1: Safe placeholder - always returns true (paper mode)
- * TODO Phase 2: Query agent_config table for mode
- * - Return true if mode = 'paper'
- * - Return false if mode = 'live'
- * - Default to 'paper' for safety
+ * Closes a paper trade (simulated)
  */
-export async function isPaperMode(): Promise<boolean> {
-  // Phase 1: Safe placeholder - always paper mode (no real trading)
-  return true;
-}
+export async function closePaperTrade(
+  tradeId: string,
+  exitPrice: number
+): Promise<{
+  closed: boolean;
+  pnl: number;
+}> {
+  try {
+    // Get the trade
+    const { data: trade, error: fetchError } = await supabase
+      .from('trades')
+      .select('*')
+      .eq('id', tradeId)
+      .single();
 
-/**
- * Simulates an order execution (paper trading)
- * 
- * Phase 1: Safe placeholder - no-op (prevents accidental execution)
- * TODO Phase 3: Implement order simulation
- * - Get current market price for symbol
- * - Apply slippage simulation
- * - Check if order would fill (for limit/stop orders)
- * - Return simulated fill result
- * - Log to paper trading log
- */
-export async function simulateOrder(
-  proposal: TradeProposal
-): Promise<SimulatedResult> {
-  // Phase 1: Safe placeholder - no side effects, no trading execution
-  throw new Error('simulateOrder() not yet implemented - Phase 3');
-}
+    if (fetchError || !trade) {
+      throw new Error('Trade not found');
+    }
 
+    // Calculate PnL
+    const entryPrice = trade.entry_price || 0;
+    const quantity = trade.quantity || 0;
+    const pnl = trade.direction === 'BUY'
+      ? (exitPrice - entryPrice) * quantity
+      : (entryPrice - exitPrice) * quantity;
+
+    // Update trade
+    const { error: updateError } = await supabase
+      .from('trades')
+      .update({
+        exit_price: exitPrice,
+        status: 'closed',
+        closed_at: new Date().toISOString(),
+        pnl: pnl,
+        realized_pnl: pnl,
+      })
+      .eq('id', tradeId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return {
+      closed: true,
+      pnl,
+    };
+  } catch (err) {
+    console.error('[paperTrading] Error closing paper trade:', err);
+    throw err;
+  }
+}

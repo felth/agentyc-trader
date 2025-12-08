@@ -1,73 +1,205 @@
 // src/lib/safety/auditLogger.ts
-// Audit Logging - Logs every proposed trade and decision
+// Audit Logger - Logs all agent decisions and actions
 
 /**
- * Phase 1: Type definitions and skeleton
- * TODO Phase 2: Implement audit logging to database
- * TODO Phase 3: Integrate with trade proposal flow
- * TODO Phase 4: Add query functions for audit log
- * TODO Phase 5: Add outcome tracking
- * TODO Phase 6: Testing
+ * Phase 3: Full audit logger implementation
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { WorldState, CoordinatorOutput } from '../brains/types';
 import type { TradeProposal } from './safetyChecks';
+import type { BrainConsensus } from '../brains/types';
+import type { AgentMode } from '@/lib/agent/agentMode';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export interface AgentDecision {
-  contextSnapshot: WorldState;
-  proposedOrder: TradeProposal;
-  brainsOutput: CoordinatorOutput['brains'];
-  coordinatorOutput: CoordinatorOutput;
-  userAction: 'approved' | 'rejected' | 'modified' | 'pending';
-  userNotes?: string;
-  confidence: number;
-  outcome?: {
-    filled: boolean;
+/**
+ * Logs a trade proposal
+ */
+export async function logProposal(
+  proposal: TradeProposal,
+  brains: BrainConsensus,
+  safetyResult: { allowed: boolean; reasons: string[]; flags: string[] }
+): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('agent_decisions')
+      .insert({
+        symbol: proposal.ticker,
+        action: 'propose',
+        direction: proposal.side === 'LONG' ? 'BUY' : 'SELL',
+        brains: {
+          market: brains.market,
+          risk: brains.risk,
+          psychology: brains.psychology,
+        },
+        confidence: proposal.meta.confidence,
+        safety: {
+          allowed: safetyResult.allowed,
+          reasons: safetyResult.reasons,
+          flags: safetyResult.flags,
+        },
+        user_action: 'pending',
+        proposal: proposal,
+        mode: proposal.mode,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data.id;
+  } catch (err) {
+    console.error('[auditLogger] Error logging proposal:', err);
+    throw err;
+  }
+}
+
+/**
+ * Logs an approved trade
+ */
+export async function logApprovedTrade(
+  proposalId: string,
+  proposal: TradeProposal,
+  result: {
+    executed: boolean;
+    filled?: boolean;
     fillPrice?: number;
     fillQuantity?: number;
-    pnl?: number;
-    closedAt?: Date;
-  };
+    simulated?: boolean;
+    error?: string;
+  }
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('agent_decisions')
+      .update({
+        action: result.simulated ? 'execute' : 'execute',
+        user_action: 'approved',
+        result: {
+          executed: result.executed,
+          filled: result.filled,
+          fillPrice: result.fillPrice,
+          fillQuantity: result.fillQuantity,
+          simulated: result.simulated,
+          error: result.error,
+          outcome: result.filled ? 'OPEN' : 'CANCELLED',
+        },
+      })
+      .eq('id', proposalId);
+
+    if (error) {
+      throw error;
+    }
+  } catch (err) {
+    console.error('[auditLogger] Error logging approved trade:', err);
+    throw err;
+  }
 }
 
 /**
- * Logs an agent decision to the audit table
- * 
- * Phase 1: Safe placeholder - no-op (no database writes)
- * TODO Phase 2: Implement audit logging
- * - Insert into agent_decisions table
- * - Store context snapshot as JSONB
- * - Store proposed order as JSONB
- * - Store brains output as JSONB
- * - Store coordinator output as JSONB
- * - Store user action and notes
- * - Store confidence score
+ * Logs a rejected trade
  */
-export async function logDecision(decision: AgentDecision): Promise<void> {
-  // Phase 1: Safe placeholder - no side effects, no database writes
-  // Silently ignore for now - will be implemented in Phase 2
-  return Promise.resolve();
+export async function logRejectedTrade(
+  proposalId: string,
+  reason: string
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('agent_decisions')
+      .update({
+        user_action: 'rejected',
+        user_reason: reason,
+        result: {
+          executed: false,
+          outcome: 'CANCELLED',
+        },
+      })
+      .eq('id', proposalId);
+
+    if (error) {
+      throw error;
+    }
+  } catch (err) {
+    console.error('[auditLogger] Error logging rejected trade:', err);
+    throw err;
+  }
 }
 
 /**
- * Queries audit log entries
+ * Logs a decision (generic)
  */
-export async function queryAuditLog(options: {
-  limit?: number;
-  since?: Date;
-  userAction?: 'approved' | 'rejected' | 'modified';
-}): Promise<AgentDecision[]> {
-  // TODO Phase 4: Implement audit log querying
-  // - Query agent_decisions table
-  // - Apply filters (limit, since, userAction)
-  // - Return array of decisions
-  
-  return [];
+export async function logDecision(
+  decision: {
+    symbol?: string;
+    action: 'propose' | 'approve' | 'reject' | 'execute';
+    direction?: 'BUY' | 'SELL';
+    brains?: any;
+    confidence?: number;
+    safety?: any;
+    user_action?: 'approved' | 'rejected' | 'modified' | 'pending';
+    user_reason?: string;
+    proposal?: any;
+    result?: any;
+    mode: AgentMode;
+  }
+): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('agent_decisions')
+      .insert({
+        symbol: decision.symbol,
+        action: decision.action,
+        direction: decision.direction,
+        brains: decision.brains,
+        confidence: decision.confidence,
+        safety: decision.safety,
+        user_action: decision.user_action || 'pending',
+        user_reason: decision.user_reason,
+        proposal: decision.proposal,
+        result: decision.result,
+        mode: decision.mode,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data.id;
+  } catch (err) {
+    console.error('[auditLogger] Error logging decision:', err);
+    throw err;
+  }
 }
 
+/**
+ * Logs an error
+ */
+export async function logError(
+  context: string,
+  error: Error | string,
+  metadata?: any
+): Promise<void> {
+  try {
+    await supabase
+      .from('system_telemetry')
+      .insert({
+        metric_type: 'error',
+        metric_value: {
+          context,
+          error: typeof error === 'string' ? error : error.message,
+          stack: typeof error === 'object' && 'stack' in error ? error.stack : undefined,
+          metadata,
+          timestamp: new Date().toISOString(),
+        },
+      });
+  } catch (err) {
+    console.error('[auditLogger] Error logging error:', err);
+  }
+}

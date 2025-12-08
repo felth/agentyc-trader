@@ -2,65 +2,39 @@
 // Trade Proposal Endpoint - Returns trade proposal with brain breakdown
 
 /**
- * Phase 2: Trade proposal endpoint
- * TODO Phase 3: Integrate with actual brain implementations
- * TODO Phase 4: Add memory context integration
- * TODO Phase 5: Add confidence calibration
+ * Phase 3: Full trade proposal endpoint
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { buildWorldState } from '@/lib/brains/worldState';
 import { coordinate } from '@/lib/brains/coordinator';
-import { preOrderSafetyCheck } from '@/lib/safety/safetyChecks';
-import { logDecision } from '@/lib/safety/auditLogger';
+import { checkProposal } from '@/lib/safety/safetyChecks';
+import { logProposal } from '@/lib/safety/auditLogger';
+import { getAgentContext } from '@/lib/memory/agentMemory';
+import { canProposeInMode } from '@/lib/agent/agentMode';
+import { createClient } from '@supabase/supabase-js';
 import type { TradeProposal } from '@/lib/safety/safetyChecks';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export interface ProposeTradeRequest {
-  symbol?: string;
-  direction?: 'BUY' | 'SELL';
-  entryPrice?: number;
-  stopPrice?: number;
+  ticker: string;
+  timeframe?: string;
 }
 
 export interface ProposeTradeResponse {
   ok: boolean;
-  proposal?: {
-    symbol: string;
-    direction: 'BUY' | 'SELL';
-    entry: number;
-    stop: number;
-    target: number;
-    size: number;
-    riskReward: number;
-    confidence: number;
-  };
-  brains?: {
-    market: {
-      state: 'green' | 'amber' | 'red';
-      conviction: string;
-      notes: string;
-    };
-    risk: {
-      state: 'green' | 'amber' | 'red';
-      conviction: string;
-      notes: string;
-    };
-    psychology: {
-      state: 'green' | 'amber' | 'red';
-      conviction: string;
-      notes: string;
-    };
-  };
+  proposal?: TradeProposal;
   safety?: {
-    checks: Array<{
-      check: string;
-      passed: boolean;
-      reason: string;
-    }>;
-    canTrade: boolean;
+    allowed: boolean;
+    reasons: string[];
+    flags: string[];
   };
   error?: string;
 }
@@ -69,101 +43,66 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as ProposeTradeRequest;
     
-    // TODO Phase 3: Build actual world state
-    // For now, return placeholder response
-    const worldState = await buildWorldState().catch(() => null);
-    
-    if (!worldState) {
+    if (!body.ticker) {
       return NextResponse.json({
         ok: false,
-        error: 'World state not yet implemented - Phase 3',
-      } as ProposeTradeResponse, { status: 501 });
+        error: 'ticker is required',
+      } as ProposeTradeResponse, { status: 400 });
     }
-    
-    // TODO Phase 3: Run coordinator with actual brain implementations
-    const coordinatorOutput = await coordinate(
-      worldState,
-      body.symbol,
-      body.entryPrice,
-      body.stopPrice
-    ).catch(() => null);
-    
-    if (!coordinatorOutput) {
+
+    // Get current mode
+    const { data: config } = await supabase
+      .from('agent_config')
+      .select('mode')
+      .single();
+
+    const mode = (config?.mode || 'off') as 'off' | 'learn' | 'paper' | 'live_assisted';
+
+    // Check if mode allows proposals
+    if (!canProposeInMode(mode)) {
       return NextResponse.json({
         ok: false,
-        error: 'Coordinator not yet implemented - Phase 3',
-      } as ProposeTradeResponse, { status: 501 });
+        error: `Agent is in ${mode.toUpperCase()} mode - proposals not allowed`,
+      } as ProposeTradeResponse, { status: 403 });
     }
-    
-    // Build trade proposal from coordinator output
-    const proposal: TradeProposal = {
-      symbol: body.symbol || 'UNKNOWN',
-      side: body.direction || 'BUY',
-      quantity: 0, // TODO: Calculate from risk brain
-      orderType: 'LIMIT',
-      entryPrice: body.entryPrice,
-      stopPrice: body.stopPrice,
-    };
-    
+
+    // Get agent context
+    const agentContext = await getAgentContext({
+      ticker: body.ticker,
+      timeframe: body.timeframe || 'H1',
+      mode,
+    });
+
+    // Build world state
+    const worldState = await buildWorldState({
+      ticker: body.ticker,
+      timeframe: (body.timeframe || 'H1') as any,
+      agentContext,
+    });
+
+    // Run coordinator (runs all brains and generates proposal)
+    const { proposal, coordinatorOutput } = await coordinate(worldState, agentContext);
+
     // Run safety checks
-    const safetyResult = await preOrderSafetyCheck(proposal, worldState);
-    
-    // Format response
-    const response: ProposeTradeResponse = {
+    const safetyResult = await checkProposal(proposal, worldState, agentContext);
+
+    // Log proposal
+    const proposalId = await logProposal(proposal, coordinatorOutput.brains, safetyResult);
+
+    // Return response
+    return NextResponse.json({
       ok: true,
       proposal: {
-        symbol: proposal.symbol,
-        direction: proposal.side,
-        entry: proposal.entryPrice || 0,
-        stop: proposal.stopPrice || 0,
-        target: 0, // TODO: Calculate from market brain
-        size: proposal.quantity,
-        riskReward: 0, // TODO: Calculate
-        confidence: coordinatorOutput.finalDecision.confidence,
+        ...proposal,
+        id: proposalId,
       },
-      brains: {
-        market: {
-          state: coordinatorOutput.brains.market.state,
-          conviction: coordinatorOutput.brains.market.reasoning,
-          notes: coordinatorOutput.brains.market.reasoning,
-        },
-        risk: {
-          state: coordinatorOutput.brains.risk.state,
-          conviction: coordinatorOutput.brains.risk.reasoning,
-          notes: coordinatorOutput.brains.risk.reasoning,
-        },
-        psychology: {
-          state: coordinatorOutput.brains.psychology.state,
-          conviction: coordinatorOutput.brains.psychology.reasoning,
-          notes: coordinatorOutput.brains.psychology.reasoning,
-        },
-      },
-      safety: {
-        checks: safetyResult.errors.map(e => ({
-          check: e.check,
-          passed: false,
-          reason: e.reason,
-        })),
-        canTrade: safetyResult.canTrade,
-      },
-    };
-    
-    // Log proposal (no-op in Phase 2)
-    await logDecision({
-      contextSnapshot: worldState,
-      proposedOrder: proposal,
-      brainsOutput: coordinatorOutput.brains,
-      coordinatorOutput,
-      userAction: 'pending',
-      confidence: coordinatorOutput.finalDecision.confidence,
-    }).catch(() => {}); // Ignore errors in Phase 2
-    
-    return NextResponse.json(response);
+      safety: safetyResult,
+    } as ProposeTradeResponse);
   } catch (err: any) {
+    console.error('[propose-trade] Error:', err);
     return NextResponse.json(
       { ok: false, error: err?.message ?? 'Unknown error' } as ProposeTradeResponse,
       { status: 500 }
     );
   }
 }
-

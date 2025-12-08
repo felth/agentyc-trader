@@ -47,15 +47,20 @@ echo ""
 echo "Step 4: Creating .env file..."
 if [ ! -f "/opt/ibeam/.env" ]; then
     cat > /opt/ibeam/.env << 'EOF'
-# IBKR credentials
-IBEAM_ACCOUNT=liamfeltham
+# IBKR / IBeam Credentials
+IBEAM_USER=liamfeltham
 IBEAM_PASSWORD=xuvgyn-Qicgun-mytzy8
+IBEAM_TOTP_SECRET=
 
-# Gateway location inside the container (mounted from host)
+# IBKR Account & Region
+IBEAM_ACCOUNT=liamfeltham
+IBEAM_REGION=us
+
+# IBeam Keep-Alive / Login Settings
+IBEAM_GATEWAY_URL=https://localhost:5000
 IBEAM_GATEWAY_DIR=/srv/clientportal.gw
-
-# Base URL / port IBeam expects for the gateway
-IBEAM_GATEWAY_BASE_URL=https://localhost:5000
+IBEAM_TRADE_MODE=paper
+IBEAM_QUICK_LOGIN=true
 
 # Optional: be conservative on retries / lockouts
 IBEAM_MAX_FAILED_AUTH=5

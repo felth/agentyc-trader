@@ -74,20 +74,25 @@ cp /opt/agentyc-trader/scripts/infra/ibeam/.env.example /opt/ibeam/.env
 chmod 600 /opt/ibeam/.env  # Set restrictive permissions immediately
 ```
 
-The .env.example file contains the credentials. Verify the contents:
+The .env file will be created with your credentials. Verify the contents:
 
 ```bash
 cat /opt/ibeam/.env
 ```
 
 You should see:
-- `IBEAM_ACCOUNT=liamfeltham`
+- `IBEAM_USER=liamfeltham`
 - `IBEAM_PASSWORD=xuvgyn-Qicgun-mytzy8`
+- `IBEAM_ACCOUNT=liamfeltham`
+- `IBEAM_REGION=us`
+- `IBEAM_TRADE_MODE=paper`
+- `IBEAM_QUICK_LOGIN=true`
 
 **Security Note:**
 - The .env file contains sensitive credentials
 - File permissions are set to 600 (owner read/write only)
 - The .env file is gitignored and will not be committed to version control
+- The .env.example file in the repo uses placeholder values
 - Consider using Docker secrets for production (advanced)
 
 ### 5. Pull IBeam Docker Image

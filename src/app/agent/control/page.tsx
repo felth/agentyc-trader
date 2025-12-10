@@ -130,13 +130,56 @@ export default function AgentControlPage() {
                          status.brains.risk.state === 'green' &&
                          status.brains.psychology.state === 'green';
 
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dayStr = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Agent Control Panel</h1>
-          <p className="text-white/60">Multi-Brain Trading Agent Control & Monitoring</p>
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
+      {/* Hero Section */}
+      <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-10 lg:pb-12">
+        <div className="relative min-h-[50vh] md:min-h-[60vh] rounded-[2rem] overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url('/hero-journal.jpeg')" }}
+          />
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          
+          <div className="relative h-full flex flex-col px-6 py-6">
+            {/* Top bar */}
+            <div className="flex items-center justify-between mb-auto">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white/90 tracking-tight">AGENTYC</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
+                  <span className="text-sm">🔍</span>
+                </button>
+                <Link
+                  href="/profile"
+                  className="w-8 h-8 rounded-full backdrop-blur-sm border bg-white/5 border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                  aria-label="Settings"
+                >
+                  <span className="text-sm">⚙️</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="mt-auto">
+              <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent mb-2">Agent Control</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-1">Control Panel</h1>
+              <p className="text-sm text-white/70">{dayStr} · {dateStr}</p>
+              <p className="text-xs text-white/60 mt-1">{time}</p>
+            </div>
+          </div>
         </div>
+      </section>
+
+      {/* Content Section */}
+      <section className="px-6 pb-32 flex flex-col gap-9 max-w-6xl mx-auto w-full">
 
         <div className="space-y-6">
           {/* Mode Selector */}
@@ -291,7 +334,7 @@ export default function AgentControlPage() {
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

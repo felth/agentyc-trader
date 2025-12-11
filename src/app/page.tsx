@@ -217,10 +217,9 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Dashboard Content Section */}
-      <section className="px-6 pb-32 flex flex-col gap-9">
-        {/* IBKR Connection Status Banner - Always visible */}
-        <div className={`relative rounded-2xl backdrop-blur-2xl border p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)] z-10 ${
+      {/* IBKR Connection Status Banner - Always visible at top of content */}
+      <div className="px-6 pt-6">
+        <div className={`relative rounded-2xl backdrop-blur-2xl border p-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)] z-10 ${
           ibkrCheckStatus === "ok" 
             ? "bg-gradient-to-br from-green-500/20 to-emerald-500/10 border-green-500/30"
             : ibkrCheckStatus === "checking"
@@ -257,8 +256,8 @@ export default function HomePage() {
                 handleConnectIbkr(e);
               }}
               disabled={ibkrCheckStatus === "checking"}
-              style={{ minWidth: '120px' }}
-              className={`px-4 py-2 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 ${
+              style={{ minWidth: '140px', minHeight: '40px' }}
+              className={`px-6 py-2.5 text-white text-sm font-bold rounded-lg transition-colors duration-200 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 ${
                 ibkrCheckStatus === "ok"
                   ? "bg-green-500 hover:bg-green-600 active:bg-green-700"
                   : ibkrCheckStatus === "checking"
@@ -273,6 +272,10 @@ export default function HomePage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Dashboard Content Section */}
+      <section className="px-6 pb-32 flex flex-col gap-9">
 
         {/* Section 2: Account & Risk */}
         <div>

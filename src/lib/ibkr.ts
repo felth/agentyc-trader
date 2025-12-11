@@ -10,6 +10,9 @@ if (!BRIDGE_KEY) {
   throw new Error("IBKR_BRIDGE_KEY is not set in environment");
 }
 
+// Type assertion: after the check above, BRIDGE_KEY is guaranteed to be a string
+const BRIDGE_KEY_STRING: string = BRIDGE_KEY;
+
 export async function ibkrRequest<T = any>(
   path: string,
   options: RequestInit = {}
@@ -23,7 +26,7 @@ export async function ibkrRequest<T = any>(
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "X-Bridge-Key": BRIDGE_KEY,
+      "X-Bridge-Key": BRIDGE_KEY_STRING,
       ...(options.headers || {}),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,

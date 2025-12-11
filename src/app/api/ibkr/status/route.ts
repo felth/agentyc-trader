@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import * as https from 'https';
-import { getIbeamStatus } from '@/lib/data/ibkrBridge';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -222,24 +221,28 @@ export async function GET() {
     checkBridgeStatus(),
   ]);
 
-  // Use IBeam's authenticated status as source of truth
-  // If IBeam says authenticated, trust it even if direct Gateway check fails
-  const ibeamAuthenticated = ibeamStatus?.status?.authenticated === true || 
-                              ibeamStatus?.ok === true;
-  const gatewayAuthenticated = gateway.authenticated || ibeamAuthenticated;
+  // IBeam manages authentication - if IBeam is running, it's managing auth
+  // Trust IBeam's status over direct Gateway checks
+  // If IBeam health server responds, IBeam is running and authenticated (per logs)
+  const gatewayAuthenticated = ibeam.authenticated || gateway.authenticated;
+  const gatewayOk = ibeam.ok || gateway.ok;
 
-  // Overall status: IBeam authenticated OR (Gateway reachable AND authenticated via Bridge)
-  const ok = ibeamAuthenticated || (gateway.ok && gatewayAuthenticated);
+  // Overall status: IBeam running (manages auth) OR Gateway authenticated via Bridge
+  const ok = ibeam.authenticated || (gateway.ok && gateway.authenticated);
 
   return NextResponse.json({
     ok,
     bridge,
     gateway: {
-      ok: gateway.ok || ibeamAuthenticated,
+      ok: gatewayOk,
       authenticated: gatewayAuthenticated,
       error: gateway.error,
     },
-    ibeam: ibeamStatus,
+    ibeam: {
+      ok: ibeam.ok,
+      authenticated: ibeam.authenticated,
+      error: ibeam.error,
+    },
   });
 }
 

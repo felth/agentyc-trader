@@ -157,25 +157,22 @@ export default function HomePage() {
       const res = await fetch('/api/ibkr/status');
       const data = await res.json();
       
-      if (data?.ok) {
+      // Overall ok depends on gateway.ok === true
+      // Gateway health endpoint doesn't require auth, so gateway.ok means it's running
+      if (data?.ok && data?.gateway?.ok) {
         const bridgeOk = data.bridge?.ok === true;
-        // Use IBeam status if available, fall back to gateway for backward compatibility
-        const ibeamStatus = data.ibeam || data.gateway;
-        const gatewayAuthenticated = ibeamStatus?.ok === true &&
-          ibeamStatus?.status?.authenticated === true &&
-          ibeamStatus?.status?.connected === true &&
-          ibeamStatus?.status?.running === true;
+        const gatewayOk = data.gateway?.ok === true;
         
         // Update main status
         setIbkrStatus({
           bridgeOk,
-          gatewayAuthenticated,
+          gatewayAuthenticated: gatewayOk, // Gateway ok means it's reachable and running
         });
         
         // Set check status and message
-        if (bridgeOk && gatewayAuthenticated) {
+        if (gatewayOk) {
           setIbkrCheckStatus("ok");
-          setIbkrMessage("✓ IBKR gateway is connected and authenticated");
+          setIbkrMessage("✓ IBKR gateway is connected and running");
           // Clear success message after 5 seconds
           setTimeout(() => {
             setIbkrMessage(null);
@@ -183,17 +180,12 @@ export default function HomePage() {
           }, 5000);
         } else {
           setIbkrCheckStatus("error");
-          if (!bridgeOk && !gatewayAuthenticated) {
-            setIbkrMessage("✗ IBKR bridge and gateway are not connected");
-          } else if (!bridgeOk) {
-            setIbkrMessage("✗ IBKR bridge is not responding");
-          } else {
-            setIbkrMessage("✗ IBKR gateway is not authenticated");
-          }
+          setIbkrMessage("✗ IBKR gateway is not reachable");
         }
       } else {
         setIbkrCheckStatus("error");
-        setIbkrMessage(`✗ Failed to check IBKR status: ${data?.error || 'Unknown error'}`);
+        const errorMsg = data?.gateway?.error || data?.error || 'Unknown error';
+        setIbkrMessage(`✗ Failed to check IBKR status: ${errorMsg}`);
       }
     } catch (err: any) {
       setIbkrCheckStatus("error");

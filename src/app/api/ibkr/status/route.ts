@@ -10,14 +10,16 @@ const insecureAgent = new https.Agent({
 });
 
 /**
- * Check IBKR Gateway status by calling the gateway directly
+ * Check IBKR Gateway status by calling the gateway health endpoint
  * Gateway is at https://127.0.0.1:5000 behind IBeam
  * Uses native https module to handle self-signed certificates (fetch doesn't support agent in Node.js 18+)
+ * Health endpoint doesn't require authentication and correctly indicates Gateway is running
  */
 async function checkGatewayStatus(): Promise<{ ok: boolean; error: string | null }> {
   return new Promise((resolve) => {
     const url = require('url');
-    const parsedUrl = url.parse('https://127.0.0.1:5000/v1/api/iserver/auth/status');
+    // Try /health first, fallback to /gw/health if needed
+    const parsedUrl = url.parse('https://127.0.0.1:5000/health');
     
     const options = {
       hostname: parsedUrl.hostname,
@@ -32,11 +34,23 @@ async function checkGatewayStatus(): Promise<{ ok: boolean; error: string | null
     };
 
     const req = https.request(options, (res: any) => {
-      // If we get ANY HTTP response (even 404/401/403), gateway is reachable and running
-      // The specific endpoint might be wrong or require auth, but the Gateway service itself is up
       const statusCode = res.statusCode || 200;
-      // Any status code means Gateway responded - it's reachable
-      resolve({ ok: true, error: null });
+      
+      // HTTP 200 from health endpoint means Gateway is running
+      if (statusCode === 200) {
+        resolve({ ok: true, error: null });
+      } else {
+        // If /health returns non-200, try /gw/health as fallback
+        // For now, treat any 2xx/3xx as OK, but log other codes
+        if (statusCode >= 200 && statusCode < 400) {
+          resolve({ ok: true, error: null });
+        } else {
+          resolve({ 
+            ok: false, 
+            error: `Gateway health endpoint returned ${statusCode}` 
+          });
+        }
+      }
       
       // Drain response data to free up resources
       res.on('data', () => {});

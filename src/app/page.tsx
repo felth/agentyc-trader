@@ -56,16 +56,13 @@ export default function HomePage() {
         }
 
         if (ibkrRes.ok) {
-          // Use IBeam status if available, fall back to gateway for backward compatibility
-          const ibeamStatus = ibkrRes.ibeam || ibkrRes.gateway;
-          const isAuthenticated = ibeamStatus?.ok === true &&
-            ibeamStatus?.status?.authenticated === true &&
-            ibeamStatus?.status?.connected === true &&
-            ibeamStatus?.status?.running === true;
+          // Gateway health endpoint doesn't require auth, so gateway.ok means it's running
+          const gatewayOk = ibkrRes.gateway?.ok === true;
+          const bridgeOk = ibkrRes.bridge?.ok === true;
           
           setIbkrStatus({
-            bridgeOk: ibkrRes.bridge?.ok === true,
-            gatewayAuthenticated: isAuthenticated,
+            bridgeOk,
+            gatewayAuthenticated: gatewayOk,
           });
         }
       } catch (err) {
@@ -223,7 +220,8 @@ export default function HomePage() {
       {/* Dashboard Content Section */}
       <section className="px-6 pb-32 flex flex-col gap-9">
         {/* IBKR Connection Status Banner - Shows when disconnected or when checking */}
-        {((ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated)) || ibkrCheckStatus !== "idle") && (
+        {/* Always show IBKR connection card */}
+        {(
           <div className={`relative rounded-2xl backdrop-blur-2xl border p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)] ${
             ibkrCheckStatus === "ok" 
               ? "bg-gradient-to-br from-green-500/20 to-emerald-500/10 border-green-500/30"
@@ -276,7 +274,6 @@ export default function HomePage() {
               </button>
             </div>
           </div>
-        )}
 
         {/* Section 2: Account & Risk */}
       <div>

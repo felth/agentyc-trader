@@ -10,12 +10,61 @@ const insecureAgent = new https.Agent({
 });
 
 /**
- * Check IBKR Gateway status by calling the gateway health endpoint
- * Gateway is at https://127.0.0.1:5000 behind IBeam
- * Uses native https module to handle self-signed certificates (fetch doesn't support agent in Node.js 18+)
- * Health endpoint doesn't require authentication and correctly indicates Gateway is running
+ * Check IBKR Gateway status through the Bridge (which has session cookies)
+ * The Bridge is the proper way to check auth status since it maintains the session
+ * Gateway direct check might fail even when Bridge/IBeam have valid session
  */
-async function checkGatewayStatus(): Promise<{ ok: boolean; authenticated: boolean; error: string | null }> {
+async function checkGatewayStatusViaBridge(): Promise<{ ok: boolean; authenticated: boolean; error: string | null }> {
+  // Check if bridge is configured
+  if (!process.env.IBKR_BRIDGE_KEY || !process.env.IBKR_BRIDGE_URL) {
+    // If bridge not configured, fall back to direct Gateway check
+    return checkGatewayStatusDirect();
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(`${process.env.IBKR_BRIDGE_URL}/gateway/auth-status`, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Bridge-Key': process.env.IBKR_BRIDGE_KEY,
+      },
+      cache: 'no-store',
+    }).finally(() => clearTimeout(timeoutId));
+
+    if (response.ok) {
+      const data = await response.json();
+      const authenticated = data?.status?.authenticated === true || data?.authenticated === true;
+      return { 
+        ok: true, 
+        authenticated: authenticated || false,
+        error: authenticated ? null : 'Bridge reports gateway not authenticated'
+      };
+    }
+    
+    return { 
+      ok: false, 
+      authenticated: false,
+      error: `Bridge returned ${response.status}` 
+    };
+  } catch (err: any) {
+    const errorMsg = err?.message || 'Unknown error';
+    if (errorMsg.includes('aborted') || errorMsg.includes('timeout')) {
+      return { ok: false, authenticated: false, error: 'Bridge connection timeout' };
+    }
+    // Bridge failed, fall back to direct check
+    return checkGatewayStatusDirect();
+  }
+}
+
+/**
+ * Fallback: Check IBKR Gateway status by calling the gateway directly
+ * This is less reliable since it might not have session cookies
+ */
+async function checkGatewayStatusDirect(): Promise<{ ok: boolean; authenticated: boolean; error: string | null }> {
   return new Promise((resolve) => {
     const url = require('url');
     // Check auth status endpoint to see if actually authenticated
@@ -157,11 +206,10 @@ async function checkBridgeStatus(): Promise<{ ok: boolean; error: string | null 
 }
 
 export async function GET() {
-  // Check gateway and bridge in parallel
-  // IBeam is hidden - it's an infrastructure detail, not a user-facing service
-  // Gateway status is what matters for trading functionality
+  // Check gateway via Bridge (has session cookies) and bridge health in parallel
+  // Use Bridge for auth check since it maintains the authenticated session
   const [gateway, bridge] = await Promise.all([
-    checkGatewayStatus(),
+    checkGatewayStatusViaBridge(),
     checkBridgeStatus(),
   ]);
 

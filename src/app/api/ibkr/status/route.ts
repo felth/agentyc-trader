@@ -15,88 +15,94 @@ const insecureAgent = new https.Agent({
  * Uses native https module to handle self-signed certificates (fetch doesn't support agent in Node.js 18+)
  * Health endpoint doesn't require authentication and correctly indicates Gateway is running
  */
-async function checkGatewayStatus(): Promise<{ ok: boolean; error: string | null }> {
+async function checkGatewayStatus(): Promise<{ ok: boolean; authenticated: boolean; error: string | null }> {
   return new Promise((resolve) => {
     const url = require('url');
-    // Try multiple endpoints - gateway might have different health endpoints
-    const endpoints = ['/health', '/gw/health', '/v1/api/iserver/auth/status'];
-    let endpointIndex = 0;
+    // Check auth status endpoint to see if actually authenticated
+    const parsedUrl = url.parse('https://127.0.0.1:5000/v1/api/iserver/auth/status');
     
-    function tryNextEndpoint() {
-      if (endpointIndex >= endpoints.length) {
-        resolve({ ok: false, error: 'Gateway not reachable on any endpoint' });
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || 5000,
+      path: parsedUrl.path,
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      agent: insecureAgent,
+      timeout: 5000,
+    };
+
+    let responseBody = '';
+    const req = https.request(options, (res: any) => {
+      const statusCode = res.statusCode || 200;
+      
+      // Collect response body
+      res.on('data', (chunk: Buffer) => {
+        responseBody += chunk.toString();
+      });
+      
+      res.on('end', () => {
+        // If we got a response, gateway is reachable
+        const gatewayReachable = statusCode >= 200 && statusCode < 500;
+        
+        if (!gatewayReachable) {
+          resolve({ ok: false, authenticated: false, error: `Gateway returned ${statusCode}` });
+          return;
+        }
+        
+        // Try to parse JSON response to check authentication
+        let authenticated = false;
+        try {
+          const json = JSON.parse(responseBody);
+          // IBKR Gateway auth status response structure
+          authenticated = json?.authenticated === true || 
+                         (json?.status?.authenticated === true && json?.status?.connected === true);
+        } catch (e) {
+          // If response isn't JSON or parse fails, assume not authenticated
+          // But gateway is still reachable
+        }
+        
+        if (authenticated) {
+          resolve({ ok: true, authenticated: true, error: null });
+        } else {
+          // Gateway is reachable but not authenticated
+          resolve({ ok: true, authenticated: false, error: 'Gateway reachable but not authenticated' });
+        }
+      });
+    });
+
+    req.on('error', (err: any) => {
+      const errorMsg = err?.message || 'Unknown error';
+      
+      // Connection refused means gateway is definitely down
+      if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('refused')) {
+        resolve({ ok: false, authenticated: false, error: 'Gateway connection refused - not running' });
         return;
       }
       
-      const endpoint = endpoints[endpointIndex];
-      endpointIndex++;
-      const parsedUrl = url.parse(`https://127.0.0.1:5000${endpoint}`);
+      // Timeout means gateway not responding
+      if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
+        resolve({ ok: false, authenticated: false, error: 'Gateway connection timeout' });
+        return;
+      }
       
-      const options = {
-        hostname: parsedUrl.hostname,
-        port: parsedUrl.port || 5000,
-        path: parsedUrl.path,
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        agent: insecureAgent,
-        timeout: 3000, // 3 second timeout per endpoint
-      };
+      // SSL errors shouldn't happen with rejectUnauthorized: false
+      // But if they do, assume gateway is reachable but we can't verify auth
+      if (errorMsg.includes('certificate') || errorMsg.includes('SSL') || errorMsg.includes('TLS')) {
+        resolve({ ok: true, authenticated: false, error: 'Gateway reachable but authentication status unknown' });
+        return;
+      }
+      
+      resolve({ ok: false, authenticated: false, error: `Gateway check failed: ${errorMsg}` });
+    });
 
-      const req = https.request(options, (res: any) => {
-        const statusCode = res.statusCode || 200;
-        
-        // Any HTTP response (200-499) means Gateway is running
-        // 404/403/401 are acceptable - they mean the service is up
-        if (statusCode >= 200 && statusCode < 500) {
-          resolve({ ok: true, error: null });
-        } else {
-          // Try next endpoint
-          tryNextEndpoint();
-        }
-        
-        // Drain response data
-        res.on('data', () => {});
-        res.on('end', () => {});
-      });
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ ok: false, authenticated: false, error: 'Gateway connection timeout' });
+    });
 
-      req.on('error', (err: any) => {
-        const errorMsg = err?.message || 'Unknown error';
-        
-        // Connection refused means gateway is definitely down - don't try other endpoints
-        if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('refused')) {
-          resolve({ ok: false, error: 'Gateway connection refused - not running' });
-          return;
-        }
-        
-        // Timeout or other errors - try next endpoint
-        if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
-          tryNextEndpoint();
-          return;
-        }
-        
-        // SSL errors shouldn't happen with rejectUnauthorized: false
-        // But if they do, gateway is probably reachable
-        if (errorMsg.includes('certificate') || errorMsg.includes('SSL') || errorMsg.includes('TLS')) {
-          resolve({ ok: true, error: null });
-          return;
-        }
-        
-        // Other errors - try next endpoint
-        tryNextEndpoint();
-      });
-
-      req.on('timeout', () => {
-        req.destroy();
-        tryNextEndpoint();
-      });
-
-      req.end();
-    }
-    
-    // Start trying endpoints
-    tryNextEndpoint();
+    req.end();
   });
 }
 
@@ -159,13 +165,17 @@ export async function GET() {
     checkBridgeStatus(),
   ]);
 
-  // Overall status depends ONLY on gateway being reachable
-  const ok = !!gateway.ok;
+  // Overall status depends on gateway being reachable AND authenticated
+  const ok = !!gateway.ok && !!gateway.authenticated;
 
   return NextResponse.json({
     ok,
     bridge,
-    gateway,
+    gateway: {
+      ok: gateway.ok,
+      authenticated: gateway.authenticated,
+      error: gateway.error,
+    },
   });
 }
 

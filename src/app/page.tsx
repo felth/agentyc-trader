@@ -163,19 +163,22 @@ export default function HomePage() {
       console.log('IBKR Status Response:', data);
       
       const gatewayOk = data?.gateway?.ok === true;
+      const gatewayAuthenticated = data?.gateway?.authenticated === true;
       const bridgeOk = data?.bridge?.ok === true;
       
       // Update main status always
       setIbkrStatus({
         bridgeOk: bridgeOk || false,
-        gatewayAuthenticated: gatewayOk || false,
+        gatewayAuthenticated: gatewayAuthenticated || false,
       });
       
-      // Set check status and message based on gateway status
-      if (gatewayOk) {
+      // Set check status and message based on gateway authentication
+      if (gatewayOk && gatewayAuthenticated) {
         setIbkrCheckStatus("ok");
-        setIbkrMessage("✓ IBKR gateway is connected and running");
-        // Don't auto-reset - keep showing success status
+        setIbkrMessage("✓ IBKR gateway is connected and authenticated");
+      } else if (gatewayOk && !gatewayAuthenticated) {
+        setIbkrCheckStatus("error");
+        setIbkrMessage("✗ Gateway is reachable but not authenticated - check IBeam logs");
       } else {
         setIbkrCheckStatus("error");
         const errorMsg = data?.gateway?.error || data?.error || 'Gateway is not reachable';

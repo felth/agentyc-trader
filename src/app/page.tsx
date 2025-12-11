@@ -27,6 +27,8 @@ export default function HomePage() {
     bridgeOk: boolean;
     gatewayAuthenticated: boolean;
   } | null>(null);
+  const [ibkrCheckStatus, setIbkrCheckStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
+  const [ibkrMessage, setIbkrMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [imminentHighImpact, setImminentHighImpact] = useState(false);
 
@@ -143,45 +145,57 @@ export default function HomePage() {
           `${order.side} ${order.symbol} ${order.orderType === 'LIMIT' && order.entry ? `@ ${order.entry.toFixed(2)}` : 'market'}`
       ) || [];
 
-  // Handle IBKR reconnect
-  function handleReconnectIbkr() {
-    const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL ?? "https://ibkr.agentyctrader.com";
-    window.open(GATEWAY_URL, '_blank', 'noopener,noreferrer');
-    // Optionally poll status after opening the reconnect page
-    setTimeout(() => {
-      let pollCount = 0;
-      const maxPolls = 12; // Poll for 1 minute (12 * 5s = 60s)
-      const pollInterval = setInterval(async () => {
-        pollCount++;
-        const res = await fetch('/api/ibkr/status').catch(() => null);
-        if (res) {
-          const data = await res.json().catch(() => null);
-          if (data?.ok) {
-              const bridgeOk = data.bridge?.ok === true;
-              // Use IBeam status if available, fall back to gateway for backward compatibility
-              const ibeamStatus = data.ibeam || data.gateway;
-              const gatewayAuthenticated = ibeamStatus?.ok === true &&
-                ibeamStatus?.status?.authenticated === true &&
-                ibeamStatus?.status?.connected === true &&
-                ibeamStatus?.status?.running === true;
-              // Update state
-              setIbkrStatus({
-                bridgeOk,
-                gatewayAuthenticated,
-              });
-            // Stop polling if authenticated
-            if (bridgeOk && gatewayAuthenticated) {
-              clearInterval(pollInterval);
-              return;
-            }
+  // Handle IBKR connection check (replaces external redirect)
+  async function handleConnectIbkr() {
+    setIbkrCheckStatus("checking");
+    setIbkrMessage("Checking IBKR gateway connection...");
+    
+    try {
+      const res = await fetch('/api/ibkr/status');
+      const data = await res.json();
+      
+      if (data?.ok) {
+        const bridgeOk = data.bridge?.ok === true;
+        // Use IBeam status if available, fall back to gateway for backward compatibility
+        const ibeamStatus = data.ibeam || data.gateway;
+        const gatewayAuthenticated = ibeamStatus?.ok === true &&
+          ibeamStatus?.status?.authenticated === true &&
+          ibeamStatus?.status?.connected === true &&
+          ibeamStatus?.status?.running === true;
+        
+        // Update main status
+        setIbkrStatus({
+          bridgeOk,
+          gatewayAuthenticated,
+        });
+        
+        // Set check status and message
+        if (bridgeOk && gatewayAuthenticated) {
+          setIbkrCheckStatus("ok");
+          setIbkrMessage("✓ IBKR gateway is connected and authenticated");
+          // Clear success message after 5 seconds
+          setTimeout(() => {
+            setIbkrMessage(null);
+            setIbkrCheckStatus("idle");
+          }, 5000);
+        } else {
+          setIbkrCheckStatus("error");
+          if (!bridgeOk && !gatewayAuthenticated) {
+            setIbkrMessage("✗ IBKR bridge and gateway are not connected");
+          } else if (!bridgeOk) {
+            setIbkrMessage("✗ IBKR bridge is not responding");
+          } else {
+            setIbkrMessage("✗ IBKR gateway is not authenticated");
           }
         }
-        // Stop polling after max attempts
-        if (pollCount >= maxPolls) {
-          clearInterval(pollInterval);
-        }
-      }, 5000);
-    }, 3000);
+      } else {
+        setIbkrCheckStatus("error");
+        setIbkrMessage(`✗ Failed to check IBKR status: ${data?.error || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      setIbkrCheckStatus("error");
+      setIbkrMessage(`✗ Error checking IBKR connection: ${err?.message || 'Network error'}`);
+    }
   }
 
   if (loading) {
@@ -213,21 +227,52 @@ export default function HomePage() {
 
       {/* Dashboard Content Section */}
       <section className="px-6 pb-32 flex flex-col gap-9">
-        {/* IBKR Connection Status Banner - Only shows when disconnected */}
-        {ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
-          <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
+        {/* IBKR Connection Status Banner - Shows when disconnected or when checking */}
+        {((ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated)) || ibkrCheckStatus !== "idle") && (
+          <div className={`relative rounded-2xl backdrop-blur-2xl border p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)] ${
+            ibkrCheckStatus === "ok" 
+              ? "bg-gradient-to-br from-green-500/20 to-emerald-500/10 border-green-500/30"
+              : ibkrCheckStatus === "checking"
+              ? "bg-gradient-to-br from-blue-500/20 to-cyan-500/10 border-blue-500/30"
+              : "bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-amber-500/30"
+          }`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 space-y-2">
-                <h3 className="text-sm font-bold text-amber-400">IBKR not connected</h3>
-                <p className="text-xs text-amber-300/90 leading-relaxed">
-                  To refresh your live brokerage data, tap Reconnect and complete login in the IBKR app.
+                <h3 className={`text-sm font-bold ${
+                  ibkrCheckStatus === "ok" ? "text-green-400" :
+                  ibkrCheckStatus === "checking" ? "text-blue-400" :
+                  "text-amber-400"
+                }`}>
+                  {ibkrCheckStatus === "ok" ? "IBKR connected" :
+                   ibkrCheckStatus === "checking" ? "Checking IBKR..." :
+                   "IBKR not connected"}
+                </h3>
+                <p className={`text-xs leading-relaxed ${
+                  ibkrCheckStatus === "ok" ? "text-green-300/90" :
+                  ibkrCheckStatus === "checking" ? "text-blue-300/90" :
+                  "text-amber-300/90"
+                }`}>
+                  {ibkrMessage || 
+                   (ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated)
+                     ? "Click the button to check IBKR gateway connection status."
+                     : "To refresh your live brokerage data, check the connection status.")}
                 </p>
               </div>
               <button
-                onClick={handleReconnectIbkr}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap"
+                onClick={handleConnectIbkr}
+                disabled={ibkrCheckStatus === "checking"}
+                className={`px-4 py-2 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${
+                  ibkrCheckStatus === "ok"
+                    ? "bg-green-500 hover:bg-green-600 active:bg-green-700"
+                    : ibkrCheckStatus === "checking"
+                    ? "bg-blue-500 hover:bg-blue-600 active:bg-blue-700"
+                    : "bg-amber-500 hover:bg-amber-600 active:bg-amber-700"
+                }`}
               >
-                Reconnect IBKR
+                {ibkrCheckStatus === "checking" ? "Checking..." :
+                 ibkrCheckStatus === "ok" ? "Connected" :
+                 ibkrCheckStatus === "error" ? "Retry Connection" :
+                 "Check IBKR Status"}
               </button>
             </div>
           </div>

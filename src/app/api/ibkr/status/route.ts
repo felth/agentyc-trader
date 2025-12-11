@@ -45,10 +45,14 @@ export async function GET() {
       ibeam: ibeamStatus,   // Also expose as "ibeam" for clarity
     });
   } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message ?? 'Unknown error' },
-      { status: 500 }
-    );
+    // Always return 200, indicate errors via JSON
+    return NextResponse.json({
+      ok: false,
+      error: e?.message ?? 'Unknown error',
+      bridge: { ok: false, error: 'Status check failed' },
+      gateway: { ok: false, error: 'Status check failed' },
+      ibeam: { ok: false, error: 'Status check failed' },
+    });
   }
 }
 

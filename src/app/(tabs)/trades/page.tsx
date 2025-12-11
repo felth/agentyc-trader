@@ -87,15 +87,51 @@ function TradesContent() {
     );
   }
 
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dayStr = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
   return (
-    <main className="bg-black text-white min-h-screen flex flex-col">
-      <div className="px-4 sm:px-6 lg:px-8 pb-32 flex-1">
-        <div className="max-w-6xl mx-auto space-y-6 pt-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-white">Trades</h1>
-            <AgentStatusBadge />
+    <main className="bg-[#0A0A0A] min-h-screen flex flex-col">
+      {/* Hero Section */}
+      <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-10 lg:pb-12">
+        <div className="relative min-h-[50vh] md:min-h-[60vh] rounded-[2rem] overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url('/hero-journal.jpeg')" }}
+          />
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          
+          <div className="relative h-full flex flex-col px-6 py-6">
+            {/* Top bar */}
+            <div className="flex items-center justify-between mb-auto">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white/90 tracking-tight">AGENTYC</span>
+              </div>
+              <div className="flex items-center gap-3 relative">
+                <button className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
+                  <span className="text-sm">🔍</span>
+                </button>
+                <AgentStatusBadge />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="mt-auto">
+              <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent mb-2">Trades</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-1">Positions & Orders</h1>
+              <p className="text-sm text-white/70">{dayStr} · {dateStr}</p>
+              <p className="text-xs text-white/60 mt-1">{time}</p>
+            </div>
           </div>
+        </div>
+      </section>
+
+      {/* Content Section */}
+      <section className="px-6 pb-32 flex flex-col gap-9 max-w-6xl mx-auto w-full">
+        <div className="space-y-6">
 
           {/* Tabs */}
           <div className="flex gap-2 border-b border-white/10">
@@ -146,7 +182,7 @@ function TradesContent() {
           {/* Trade History Tab */}
           {activeTab === "history" && <HistoryPlaceholder />}
         </div>
-      </div>
+      </section>
     </main>
   );
 }

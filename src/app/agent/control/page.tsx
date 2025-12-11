@@ -138,8 +138,8 @@ export default function AgentControlPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
       {/* Hero Section */}
-      <section className="px-4 sm:px-6 lg:px-8 pt-6 pb-10 lg:pb-12">
-        <div className="relative min-h-[50vh] md:min-h-[60vh] rounded-[2rem] overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
+      <section className="px-4 sm:px-6 lg:px-8 pt-4 pb-10 lg:pb-12">
+        <div className="relative min-h-[55vh] md:min-h-[65vh] rounded-[2rem] overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8">
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: "url('/hero-journal.jpeg')" }}

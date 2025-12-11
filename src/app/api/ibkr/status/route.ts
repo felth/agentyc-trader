@@ -1,31 +1,39 @@
-import { NextResponse } from 'next/server';
-import { ibkrRequest } from '@/lib/ibkr';
+import { NextResponse } from "next/server";
+import { ibkrRequest } from "@/lib/ibkr";
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+type BridgeHealth = {
+  ok?: boolean;
+  service?: string;
+  status?: string;
+  note?: string;
+};
 
 export async function GET() {
-  // Single source of truth: IBKR Bridge
-  const authCheck = await ibkrRequest('/gateway/auth-status');
+  try {
+    const health = await ibkrRequest<BridgeHealth>("/health");
 
-  // Bridge unreachable
-  if (!authCheck.ok) {
+    const bridgeOk = !!health?.ok;
+
+    return NextResponse.json({
+      ok: bridgeOk,
+      bridge: {
+        ok: bridgeOk,
+        error: bridgeOk ? null : "Bridge /health did not return ok: true",
+        raw: health,
+      },
+    });
+  } catch (err: any) {
     return NextResponse.json({
       ok: false,
-      gateway: { ok: false, error: authCheck.error },
-      bridge: { ok: false, error: authCheck.error },
+      bridge: {
+        ok: false,
+        error:
+          err?.message ||
+          "IBKR bridge health check failed (could not reach /health)",
+      },
     });
   }
-
-  const authenticated = authCheck.data?.authenticated ?? false;
-
-  return NextResponse.json({
-    ok: authenticated,
-    gateway: { 
-      ok: authenticated, 
-      authenticated: authenticated,
-      error: authenticated ? null : 'Not authenticated' 
-    },
-    bridge: { ok: true, error: null },
-  });
 }

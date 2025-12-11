@@ -414,23 +414,18 @@ async def ping(x_bridge_key: str = Header(None)):
 
 @app.get("/gateway/auth-status")
 async def gateway_auth_status(x_bridge_key: str = Header(None)):
-    verify(x_bridge_key)
     """
-    Proxy through to the IBKR Client Portal Gateway auth status on the droplet:
-       https://localhost:5000/v1/api/iserver/auth/status
+    Deprecated: auth-status is no longer a proxy to IBKR's /iserver/auth/status.
+    IBKR authentication is managed by IBeam + Gateway.
+    The trading app should detect auth issues from real trading/account endpoints
+    (401/403 responses), not from this diagnostic route.
     """
-    url = "https://localhost:5000/v1/api/iserver/auth/status"
-    try:
-        async with httpx.AsyncClient(verify=False, timeout=5.0) as client:
-            r = await client.get(url)
-            r.raise_for_status()
-            data = r.json()
-            return {"ok": True, "status": data}
-    except Exception as e:
-        return {
-            "ok": False,
-            "error": f"Gateway auth status fetch failed: {e.__class__.__name__}: {e}",
-        }
+    verify_key(x_bridge_key)
+    return {
+        "ok": True,
+        "service": "ibkr-bridge",
+        "note": "auth-status is deprecated; use real trading endpoints to detect authentication errors.",
+    }
 
 
 

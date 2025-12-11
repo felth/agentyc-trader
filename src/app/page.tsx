@@ -23,12 +23,13 @@ export default function HomePage() {
     timeDisplay: string;
   } | null>(null);
   const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
+  const [ibkrCheckStatus, setIbkrCheckStatus] = useState<
+    "idle" | "checking" | "ok" | "error"
+  >("idle");
   const [ibkrStatus, setIbkrStatus] = useState<{
-    bridgeOk: boolean;
-    gatewayAuthenticated: boolean;
+    ok: boolean;
+    message: string;
   } | null>(null);
-  const [ibkrCheckStatus, setIbkrCheckStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
-  const [ibkrMessage, setIbkrMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [imminentHighImpact, setImminentHighImpact] = useState(false);
 
@@ -55,15 +56,20 @@ export default function HomePage() {
           setTradePlan(planRes.plan);
         }
 
-        if (ibkrRes.ok) {
-          // Gateway health endpoint doesn't require auth, so gateway.ok means it's running
-          const gatewayOk = ibkrRes.gateway?.ok === true;
-          const bridgeOk = ibkrRes.bridge?.ok === true;
-          
+        if (ibkrRes.ok && ibkrRes.bridge?.ok) {
           setIbkrStatus({
-            bridgeOk,
-            gatewayAuthenticated: gatewayOk,
+            ok: true,
+            message: "IBKR bridge is online and reachable.",
           });
+          setIbkrCheckStatus("ok");
+        } else {
+          setIbkrStatus({
+            ok: false,
+            message:
+              ibkrRes.bridge?.error ||
+              "IBKR bridge is not reachable. Check the droplet or bridge service.",
+          });
+          setIbkrCheckStatus("error");
         }
       } catch (err) {
         console.error("Failed to fetch home data:", err);
@@ -96,13 +102,8 @@ export default function HomePage() {
     return "Closed";
   };
 
-  // Determine IBKR status
-  const ibkrCardStatus =
-    ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated
-      ? "LIVE"
-      : ibkrStatus?.bridgeOk || ibkrStatus?.gatewayAuthenticated
-      ? "DEGRADED"
-      : "ERROR";
+  // Determine IBKR status for account card (simplified: bridge ok = LIVE)
+  const ibkrCardStatus = ibkrStatus?.ok ? "LIVE" : "ERROR";
 
   // Prepare watchlist items
   const watchlistItems =
@@ -142,40 +143,36 @@ export default function HomePage() {
           `${order.side} ${order.symbol} ${order.orderType === 'LIMIT' && order.entry ? `@ ${order.entry.toFixed(2)}` : 'market'}`
       ) || [];
 
-  // Handle IBKR connection check - simplified to use Bridge as single source of truth
-  async function handleConnectIbkr(e?: React.MouseEvent) {
-    e?.preventDefault();
-    e?.stopPropagation();
-    
+  // Handle IBKR connection check - simplified to only check Bridge /health
+  const handleCheckIbkr = async () => {
+    if (ibkrCheckStatus === "checking") return;
+
     setIbkrCheckStatus("checking");
-    setIbkrMessage("Checking IBKR connection...");
-    
     try {
-      const res = await fetch('/api/ibkr/status');
+      const res = await fetch("/api/ibkr/status");
       const data = await res.json();
-      
-      // Simple response: data.ok = authenticated, data.gateway.authenticated = auth status
-      const isAuthenticated = data?.ok === true && data?.gateway?.authenticated === true;
-      
-      setIbkrStatus({
-        bridgeOk: data?.bridge?.ok === true,
-        gatewayAuthenticated: isAuthenticated,
-      });
-      
-      if (isAuthenticated) {
+
+      if (data.ok && data.bridge?.ok) {
         setIbkrCheckStatus("ok");
-        setIbkrMessage("✓ IBKR is authenticated and live");
+        setIbkrStatus({
+          ok: true,
+          message: "IBKR bridge is online and reachable.",
+        });
       } else {
+        const msg =
+          data.bridge?.error ||
+          "IBKR bridge is not reachable. Check the droplet or bridge service.";
         setIbkrCheckStatus("error");
-        const errorMsg = data?.gateway?.error || data?.error || 'Not authenticated';
-        setIbkrMessage(`✗ ${errorMsg}`);
+        setIbkrStatus({ ok: false, message: msg });
       }
     } catch (err: any) {
-      console.error('IBKR status check error:', err);
       setIbkrCheckStatus("error");
-      setIbkrMessage(`✗ Error: ${err?.message || 'Network error'}`);
+      setIbkrStatus({
+        ok: false,
+        message: err?.message || "Failed to check IBKR status.",
+      });
     }
-  }
+  };
 
   // Format date and time for hero section
   const today = new Date();
@@ -193,62 +190,43 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* IBKR Connection Status Banner - Always visible, even during loading */}
-      <div className="px-6 pt-6">
-        <div className={`relative rounded-2xl backdrop-blur-2xl border p-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)] z-10 ${
-          ibkrCheckStatus === "ok" 
-            ? "bg-gradient-to-br from-green-500/20 to-emerald-500/10 border-green-500/30"
-            : ibkrCheckStatus === "checking"
-            ? "bg-gradient-to-br from-blue-500/20 to-cyan-500/10 border-blue-500/30"
-            : "bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-amber-500/30"
-        }`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 space-y-2">
-              <h3 className={`text-sm font-bold ${
-                ibkrCheckStatus === "ok" ? "text-green-400" :
-                ibkrCheckStatus === "checking" ? "text-blue-400" :
-                "text-amber-400"
-              }`}>
-                {ibkrCheckStatus === "ok" ? "IBKR connected" :
-                 ibkrCheckStatus === "checking" ? "Checking IBKR..." :
-                 "IBKR not connected"}
-              </h3>
-              <p className={`text-xs leading-relaxed ${
-                ibkrCheckStatus === "ok" ? "text-green-300/90" :
-                ibkrCheckStatus === "checking" ? "text-blue-300/90" :
-                "text-amber-300/90"
-              }`}>
-                {ibkrMessage || 
-                 (ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated)
-                   ? "Click the button to check IBKR gateway connection status."
-                   : "To refresh your live brokerage data, check the connection status.")}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleConnectIbkr(e);
-              }}
-              disabled={ibkrCheckStatus === "checking"}
-              style={{ minWidth: '140px', minHeight: '40px' }}
-              className={`px-6 py-2.5 text-white text-sm font-bold rounded-lg transition-colors duration-200 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 ${
-                ibkrCheckStatus === "ok"
-                  ? "bg-green-500 hover:bg-green-600 active:bg-green-700"
-                  : ibkrCheckStatus === "checking"
-                  ? "bg-blue-500 hover:bg-blue-600 active:bg-blue-700"
-                  : "bg-amber-500 hover:bg-amber-600 active:bg-amber-700"
-              }`}
-            >
-              {ibkrCheckStatus === "checking" ? "Checking..." :
-               ibkrCheckStatus === "ok" ? "Connected" :
-               ibkrCheckStatus === "error" ? "Retry Connection" :
-               "Check IBKR Status"}
-            </button>
+      {/* IBKR Connection Status Card - Always visible */}
+      <section className="px-6 pt-4 pb-6">
+        <div
+          className={`rounded-2xl border px-4 py-3 flex items-center justify-between gap-3 text-sm ${
+            ibkrCheckStatus === "ok"
+              ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
+              : ibkrCheckStatus === "error"
+              ? "bg-amber-500/10 border-amber-500/40 text-amber-300"
+              : "bg-white/5 border-white/10 text-white/70"
+          }`}
+        >
+          <div className="flex flex-col">
+            <span className="font-semibold tracking-tight">
+              IBKR Connection
+            </span>
+            <span className="text-xs opacity-80">
+              {ibkrStatus
+                ? ibkrStatus.message
+                : "Check that the IBKR bridge is online on your server."}
+            </span>
           </div>
+
+          <button
+            onClick={handleCheckIbkr}
+            disabled={ibkrCheckStatus === "checking"}
+            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-semibold bg-ultra-accent text-black hover:bg-ultra-accentHover disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          >
+            {ibkrCheckStatus === "checking"
+              ? "Checking..."
+              : ibkrCheckStatus === "ok"
+              ? "Connected"
+              : ibkrCheckStatus === "error"
+              ? "Retry"
+              : "Check IBKR Status"}
+          </button>
         </div>
-      </div>
+      </section>
 
       {/* Dashboard Content Section */}
       <section className="px-6 pb-32 flex flex-col gap-9">
@@ -358,11 +336,7 @@ export default function HomePage() {
         items={[
           {
             label: "IBKR",
-            status: ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated
-              ? "LIVE"
-              : ibkrStatus?.bridgeOk || ibkrStatus?.gatewayAuthenticated
-              ? "DEGRADED"
-              : "ERROR",
+            status: ibkrStatus?.ok ? "LIVE" : "ERROR",
           },
           {
             label: "MARKET FEED",

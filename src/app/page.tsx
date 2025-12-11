@@ -146,7 +146,10 @@ export default function HomePage() {
       ) || [];
 
   // Handle IBKR connection check (replaces external redirect)
-  async function handleConnectIbkr() {
+  async function handleConnectIbkr(e?: React.MouseEvent) {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
     setIbkrCheckStatus("checking");
     setIbkrMessage("Checking IBKR gateway connection...");
     
@@ -259,7 +262,12 @@ export default function HomePage() {
                 </p>
               </div>
               <button
-                onClick={handleConnectIbkr}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleConnectIbkr(e);
+                }}
                 disabled={ibkrCheckStatus === "checking"}
                 className={`px-4 py-2 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed ${
                   ibkrCheckStatus === "ok"

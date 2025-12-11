@@ -265,13 +265,12 @@ export default function HomePage() {
 
       {/* Dashboard Content Section */}
       <section className="px-6 pb-32 flex flex-col gap-9">
-
         {/* Section 2: Account & Risk */}
         <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Today's Account & Risk
-        </h2>
-        {dashboard?.account && (
+          <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
+            Today's Account & Risk
+          </h2>
+          {dashboard?.account && (
           <AccountRiskCard
             netLiquidity={dashboard.account.equity}
             buyingPower={dashboard.account.buyingPower}

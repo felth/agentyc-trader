@@ -142,52 +142,38 @@ export default function HomePage() {
           `${order.side} ${order.symbol} ${order.orderType === 'LIMIT' && order.entry ? `@ ${order.entry.toFixed(2)}` : 'market'}`
       ) || [];
 
-  // Handle IBKR connection check (replaces external redirect)
+  // Handle IBKR connection check - simplified to use Bridge as single source of truth
   async function handleConnectIbkr(e?: React.MouseEvent) {
     e?.preventDefault();
     e?.stopPropagation();
     
     setIbkrCheckStatus("checking");
-    setIbkrMessage("Checking IBKR gateway connection...");
+    setIbkrMessage("Checking IBKR connection...");
     
     try {
       const res = await fetch('/api/ibkr/status');
-      
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-      
       const data = await res.json();
       
-      // Debug: log the response
-      console.log('IBKR Status Response:', data);
+      // Simple response: data.ok = authenticated, data.gateway.authenticated = auth status
+      const isAuthenticated = data?.ok === true && data?.gateway?.authenticated === true;
       
-      const gatewayOk = data?.gateway?.ok === true;
-      const gatewayAuthenticated = data?.gateway?.authenticated === true;
-      const bridgeOk = data?.bridge?.ok === true;
-      
-      // Update main status always
       setIbkrStatus({
-        bridgeOk: bridgeOk || false,
-        gatewayAuthenticated: gatewayAuthenticated || false,
+        bridgeOk: data?.bridge?.ok === true,
+        gatewayAuthenticated: isAuthenticated,
       });
       
-      // Set check status and message based on gateway authentication
-      if (gatewayOk && gatewayAuthenticated) {
+      if (isAuthenticated) {
         setIbkrCheckStatus("ok");
-        setIbkrMessage("✓ IBKR gateway is connected and authenticated");
-      } else if (gatewayOk && !gatewayAuthenticated) {
-        setIbkrCheckStatus("error");
-        setIbkrMessage("✗ Gateway is reachable but not authenticated - check IBeam logs");
+        setIbkrMessage("✓ IBKR is authenticated and live");
       } else {
         setIbkrCheckStatus("error");
-        const errorMsg = data?.gateway?.error || data?.error || 'Gateway is not reachable';
+        const errorMsg = data?.gateway?.error || data?.error || 'Not authenticated';
         setIbkrMessage(`✗ ${errorMsg}`);
       }
     } catch (err: any) {
       console.error('IBKR status check error:', err);
       setIbkrCheckStatus("error");
-      setIbkrMessage(`✗ Error checking IBKR connection: ${err?.message || 'Network error'}`);
+      setIbkrMessage(`✗ Error: ${err?.message || 'Network error'}`);
     }
   }
 

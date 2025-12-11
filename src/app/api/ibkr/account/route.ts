@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getIbkrAccount } from '@/lib/data/ibkrBridge';
+import { ibkrRequest } from '@/lib/ibkr';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET() {
-  try {
-    const account = await getIbkrAccount();
-    return NextResponse.json({ ok: true, account });
-  } catch (error: any) {
-    return NextResponse.json(
-      { ok: false, error: error?.message ?? 'Unknown error' },
-      { status: 500 }
-    );
-  }
+  const acct = await ibkrRequest('/portfolio/account');
+  return NextResponse.json(acct);
 }
-

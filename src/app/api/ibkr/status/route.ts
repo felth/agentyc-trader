@@ -18,44 +18,48 @@ const insecureAgent = new https.Agent({
 async function checkGatewayStatus(): Promise<{ ok: boolean; error: string | null }> {
   return new Promise((resolve) => {
     const url = require('url');
-    // Try /health first, fallback to /gw/health if needed
-    const parsedUrl = url.parse('https://127.0.0.1:5000/health');
+    // Try multiple endpoints - gateway might have different health endpoints
+    const endpoints = ['/health', '/gw/health', '/v1/api/iserver/auth/status'];
+    let endpointIndex = 0;
     
-    const options = {
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port || 5000,
-      path: parsedUrl.path,
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      agent: insecureAgent, // Use the insecure agent for self-signed certs
-      timeout: 5000, // 5 second timeout
-    };
-
-    const req = https.request(options, (res: any) => {
-      const statusCode = res.statusCode || 200;
-      
-      // HTTP 200 from health endpoint means Gateway is running
-      if (statusCode === 200) {
-        resolve({ ok: true, error: null });
-      } else {
-        // If /health returns non-200, try /gw/health as fallback
-        // For now, treat any 2xx/3xx as OK, but log other codes
-        if (statusCode >= 200 && statusCode < 400) {
-          resolve({ ok: true, error: null });
-        } else {
-          resolve({ 
-            ok: false, 
-            error: `Gateway health endpoint returned ${statusCode}` 
-          });
-        }
+    function tryNextEndpoint() {
+      if (endpointIndex >= endpoints.length) {
+        resolve({ ok: false, error: 'Gateway not reachable on any endpoint' });
+        return;
       }
       
-      // Drain response data to free up resources
-      res.on('data', () => {});
-      res.on('end', () => {});
-    });
+      const endpoint = endpoints[endpointIndex];
+      endpointIndex++;
+      const parsedUrl = url.parse(`https://127.0.0.1:5000${endpoint}`);
+      
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || 5000,
+        path: parsedUrl.path,
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        agent: insecureAgent,
+        timeout: 3000, // 3 second timeout per endpoint
+      };
+
+      const req = https.request(options, (res: any) => {
+        const statusCode = res.statusCode || 200;
+        
+        // Any HTTP response (200-499) means Gateway is running
+        // 404/403/401 are acceptable - they mean the service is up
+        if (statusCode >= 200 && statusCode < 500) {
+          resolve({ ok: true, error: null });
+        } else {
+          // Try next endpoint
+          tryNextEndpoint();
+        }
+        
+        // Drain response data
+        res.on('data', () => {});
+        res.on('end', () => {});
+      });
 
     req.on('error', (err: any) => {
       const errorMsg = err?.message || 'Unknown error';

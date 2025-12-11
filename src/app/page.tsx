@@ -152,39 +152,37 @@ export default function HomePage() {
     
     try {
       const res = await fetch('/api/ibkr/status');
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       const data = await res.json();
       
-      // Overall ok depends on gateway.ok === true
-      // Gateway health endpoint doesn't require auth, so gateway.ok means it's running
-      if (data?.ok && data?.gateway?.ok) {
-        const bridgeOk = data.bridge?.ok === true;
-        const gatewayOk = data.gateway?.ok === true;
-        
-        // Update main status
-        setIbkrStatus({
-          bridgeOk,
-          gatewayAuthenticated: gatewayOk, // Gateway ok means it's reachable and running
-        });
-        
-        // Set check status and message
-        if (gatewayOk) {
-          setIbkrCheckStatus("ok");
-          setIbkrMessage("✓ IBKR gateway is connected and running");
-          // Clear success message after 5 seconds
-          setTimeout(() => {
-            setIbkrMessage(null);
-            setIbkrCheckStatus("idle");
-          }, 5000);
-        } else {
-          setIbkrCheckStatus("error");
-          setIbkrMessage("✗ IBKR gateway is not reachable");
-        }
+      // Debug: log the response
+      console.log('IBKR Status Response:', data);
+      
+      const gatewayOk = data?.gateway?.ok === true;
+      const bridgeOk = data?.bridge?.ok === true;
+      
+      // Update main status always
+      setIbkrStatus({
+        bridgeOk: bridgeOk || false,
+        gatewayAuthenticated: gatewayOk || false,
+      });
+      
+      // Set check status and message based on gateway status
+      if (gatewayOk) {
+        setIbkrCheckStatus("ok");
+        setIbkrMessage("✓ IBKR gateway is connected and running");
+        // Don't auto-reset - keep showing success status
       } else {
         setIbkrCheckStatus("error");
-        const errorMsg = data?.gateway?.error || data?.error || 'Unknown error';
-        setIbkrMessage(`✗ Failed to check IBKR status: ${errorMsg}`);
+        const errorMsg = data?.gateway?.error || data?.error || 'Gateway is not reachable';
+        setIbkrMessage(`✗ ${errorMsg}`);
       }
     } catch (err: any) {
+      console.error('IBKR status check error:', err);
       setIbkrCheckStatus("error");
       setIbkrMessage(`✗ Error checking IBKR connection: ${err?.message || 'Network error'}`);
     }

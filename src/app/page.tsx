@@ -190,17 +190,6 @@ export default function HomePage() {
     }
   }
 
-  if (loading) {
-    return (
-      <main className="px-6 pt-10 pb-32 bg-[#0A0A0A] min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[#00FF7F]/30 border-t-[#00FF7F] rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-sm text-white/50">Loading dashboard...</p>
-        </div>
-      </main>
-    );
-  }
-
   // Format date and time for hero section
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -217,7 +206,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* IBKR Connection Status Banner - Always visible at top of content */}
+      {/* IBKR Connection Status Banner - Always visible, even during loading */}
       <div className="px-6 pt-6">
         <div className={`relative rounded-2xl backdrop-blur-2xl border p-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)] z-10 ${
           ibkrCheckStatus === "ok" 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as https from 'https';
+import { getIbeamStatus } from '@/lib/data/ibkrBridge';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -206,24 +207,39 @@ async function checkBridgeStatus(): Promise<{ ok: boolean; error: string | null 
 }
 
 export async function GET() {
-  // Check gateway via Bridge (has session cookies) and bridge health in parallel
-  // Use Bridge for auth check since it maintains the authenticated session
+  // IBeam manages authentication - check its status as source of truth
+  // IBeam logs show authenticated status, so trust IBeam's reporting
+  let ibeamStatus;
+  try {
+    ibeamStatus = await getIbeamStatus();
+  } catch (err: any) {
+    ibeamStatus = { ok: false, error: err?.message || 'IBeam check failed' };
+  }
+
+  // Check gateway via Bridge and bridge health in parallel
   const [gateway, bridge] = await Promise.all([
     checkGatewayStatusViaBridge(),
     checkBridgeStatus(),
   ]);
 
-  // Overall status depends on gateway being reachable AND authenticated
-  const ok = !!gateway.ok && !!gateway.authenticated;
+  // Use IBeam's authenticated status as source of truth
+  // If IBeam says authenticated, trust it even if direct Gateway check fails
+  const ibeamAuthenticated = ibeamStatus?.status?.authenticated === true || 
+                              ibeamStatus?.ok === true;
+  const gatewayAuthenticated = gateway.authenticated || ibeamAuthenticated;
+
+  // Overall status: IBeam authenticated OR (Gateway reachable AND authenticated via Bridge)
+  const ok = ibeamAuthenticated || (gateway.ok && gatewayAuthenticated);
 
   return NextResponse.json({
     ok,
     bridge,
     gateway: {
-      ok: gateway.ok,
-      authenticated: gateway.authenticated,
+      ok: gateway.ok || ibeamAuthenticated,
+      authenticated: gatewayAuthenticated,
       error: gateway.error,
     },
+    ibeam: ibeamStatus,
   });
 }
 

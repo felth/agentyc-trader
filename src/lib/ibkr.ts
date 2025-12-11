@@ -3,15 +3,15 @@
 // NO direct calls to Gateway (127.0.0.1:5000) - all traffic goes through Bridge
 
 const BRIDGE_URL = process.env.IBKR_BRIDGE_URL ?? "http://127.0.0.1:8000";
-const BRIDGE_KEY = process.env.IBKR_BRIDGE_KEY;
+const BRIDGE_KEY_RAW = process.env.IBKR_BRIDGE_KEY;
 
-if (!BRIDGE_KEY) {
+if (!BRIDGE_KEY_RAW) {
   // This is a server-side env misconfiguration; safe to throw, API route will catch.
   throw new Error("IBKR_BRIDGE_KEY is not set in environment");
 }
 
-// Type assertion: after the check above, BRIDGE_KEY is guaranteed to be a string
-const BRIDGE_KEY_STRING: string = BRIDGE_KEY;
+// After the check above, we know BRIDGE_KEY_RAW is a string
+const BRIDGE_KEY: string = BRIDGE_KEY_RAW;
 
 export async function ibkrRequest<T = any>(
   path: string,
@@ -26,7 +26,7 @@ export async function ibkrRequest<T = any>(
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "X-Bridge-Key": BRIDGE_KEY_STRING,
+      "X-Bridge-Key": BRIDGE_KEY,
       ...(options.headers || {}),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,

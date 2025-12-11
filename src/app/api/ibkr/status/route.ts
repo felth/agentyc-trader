@@ -61,27 +61,42 @@ async function checkGatewayStatus(): Promise<{ ok: boolean; error: string | null
         res.on('end', () => {});
       });
 
-    req.on('error', (err: any) => {
-      const errorMsg = err?.message || 'Unknown error';
-      
-      if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('refused')) {
-        resolve({ ok: false, error: 'Gateway connection refused - not running' });
-      } else if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
-        resolve({ ok: false, error: 'Gateway connection timeout' });
-      } else if (errorMsg.includes('certificate') || errorMsg.includes('SSL') || errorMsg.includes('TLS')) {
-        // SSL errors with rejectUnauthorized: false shouldn't happen, but if they do, gateway is reachable
-        resolve({ ok: true, error: null });
-      } else {
-        resolve({ ok: false, error: `Gateway check failed: ${errorMsg}` });
-      }
-    });
+      req.on('error', (err: any) => {
+        const errorMsg = err?.message || 'Unknown error';
+        
+        // Connection refused means gateway is definitely down - don't try other endpoints
+        if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('refused')) {
+          resolve({ ok: false, error: 'Gateway connection refused - not running' });
+          return;
+        }
+        
+        // Timeout or other errors - try next endpoint
+        if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
+          tryNextEndpoint();
+          return;
+        }
+        
+        // SSL errors shouldn't happen with rejectUnauthorized: false
+        // But if they do, gateway is probably reachable
+        if (errorMsg.includes('certificate') || errorMsg.includes('SSL') || errorMsg.includes('TLS')) {
+          resolve({ ok: true, error: null });
+          return;
+        }
+        
+        // Other errors - try next endpoint
+        tryNextEndpoint();
+      });
 
-    req.on('timeout', () => {
-      req.destroy();
-      resolve({ ok: false, error: 'Gateway connection timeout' });
-    });
+      req.on('timeout', () => {
+        req.destroy();
+        tryNextEndpoint();
+      });
 
-    req.end();
+      req.end();
+    }
+    
+    // Start trying endpoints
+    tryNextEndpoint();
   });
 }
 

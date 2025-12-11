@@ -1,53 +1,52 @@
 import { NextResponse } from 'next/server';
+import * as https from 'https';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// Create an agent that accepts self-signed certificates for local Gateway
+const insecureAgent = new https.Agent({
+  rejectUnauthorized: false,
+});
+
 /**
  * Check IBKR Gateway status by calling the gateway directly
  * Gateway is at https://127.0.0.1:5000 behind IBeam
+ * Uses fetch with custom https.Agent to handle self-signed certificates
  */
 async function checkGatewayStatus(): Promise<{ ok: boolean; error: string | null }> {
   try {
-    // Try to reach the gateway auth status endpoint
-    // Gateway uses self-signed certificate - Node.js fetch will reject by default
-    // We use process.env.NODE_TLS_REJECT_UNAUTHORIZED or handle the error gracefully
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    
-    // Use https module with rejectUnauthorized: false for self-signed cert
-    const https = await import('https');
-    const agent = new https.Agent({
-      rejectUnauthorized: false, // Allow self-signed certificates
-    });
-    
+
     const response = await fetch('https://127.0.0.1:5000/v1/api/iserver/auth/status', {
       method: 'GET',
       signal: controller.signal,
-      // @ts-ignore - agent option may not be in types but works in Node.js
-      agent,
+      // @ts-expect-error: node-fetch agent - works at runtime even if TypeScript doesn't recognize it
+      agent: insecureAgent,
       headers: {
         'Accept': 'application/json',
       },
+      cache: 'no-store',
     }).finally(() => clearTimeout(timeoutId));
 
     // If we get any response (even 401/403), gateway is reachable
     if (response.ok || response.status === 401 || response.status === 403) {
       return { ok: true, error: null };
     }
-    
-    return { 
-      ok: false, 
-      error: `Gateway returned ${response.status} ${response.statusText}` 
+
+    return {
+      ok: false,
+      error: `Gateway returned ${response.status} ${response.statusText}`
     };
   } catch (err: any) {
     const errorMsg = err?.message || 'Unknown error';
-    
+
     // SSL certificate errors mean gateway is reachable (just self-signed cert)
     if (errorMsg.includes('certificate') || errorMsg.includes('SSL') || errorMsg.includes('TLS')) {
       return { ok: true, error: null };
     }
-    
+
     if (errorMsg.includes('aborted') || errorMsg.includes('timeout')) {
       return { ok: false, error: 'Gateway connection timeout' };
     }
@@ -110,6 +109,7 @@ async function checkBridgeStatus(): Promise<{ ok: boolean; error: string | null 
 
 /**
  * Check IBeam status (non-blocking - timeout doesn't fail overall status)
+ * IBeam health server is on HTTP (not HTTPS), so no agent needed
  */
 async function checkIbeamStatus(): Promise<{ ok: boolean; error: string | null }> {
   try {
@@ -122,6 +122,7 @@ async function checkIbeamStatus(): Promise<{ ok: boolean; error: string | null }
       headers: {
         'Accept': 'application/json',
       },
+      cache: 'no-store',
     }).finally(() => clearTimeout(timeoutId));
 
     // Any HTTP response (even 404) means IBeam health server is running

@@ -12,49 +12,63 @@ const insecureAgent = new https.Agent({
 /**
  * Check IBKR Gateway status by calling the gateway directly
  * Gateway is at https://127.0.0.1:5000 behind IBeam
- * Uses fetch with custom https.Agent to handle self-signed certificates
+ * Uses native https module to handle self-signed certificates (fetch doesn't support agent in Node.js 18+)
  */
 async function checkGatewayStatus(): Promise<{ ok: boolean; error: string | null }> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-    const response = await fetch('https://127.0.0.1:5000/v1/api/iserver/auth/status', {
+  return new Promise((resolve) => {
+    const url = require('url');
+    const parsedUrl = url.parse('https://127.0.0.1:5000/v1/api/iserver/auth/status');
+    
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || 5000,
+      path: parsedUrl.path,
       method: 'GET',
-      signal: controller.signal,
-      // @ts-expect-error: node-fetch agent - works at runtime even if TypeScript doesn't recognize it
-      agent: insecureAgent,
       headers: {
         'Accept': 'application/json',
       },
-      cache: 'no-store',
-    }).finally(() => clearTimeout(timeoutId));
-
-    // If we get any response (even 401/403), gateway is reachable
-    if (response.ok || response.status === 401 || response.status === 403) {
-      return { ok: true, error: null };
-    }
-
-    return {
-      ok: false,
-      error: `Gateway returned ${response.status} ${response.statusText}`
+      agent: insecureAgent, // Use the insecure agent for self-signed certs
+      timeout: 5000, // 5 second timeout
     };
-  } catch (err: any) {
-    const errorMsg = err?.message || 'Unknown error';
 
-    // SSL certificate errors mean gateway is reachable (just self-signed cert)
-    if (errorMsg.includes('certificate') || errorMsg.includes('SSL') || errorMsg.includes('TLS')) {
-      return { ok: true, error: null };
-    }
+    const req = https.request(options, (res: any) => {
+      // If we get any response (even 401/403), gateway is reachable
+      const statusCode = res.statusCode || 200;
+      if (statusCode === 200 || statusCode === 401 || statusCode === 403) {
+        resolve({ ok: true, error: null });
+      } else {
+        resolve({ 
+          ok: false, 
+          error: `Gateway returned ${statusCode}` 
+        });
+      }
+      // Drain response data to free up resources
+      res.on('data', () => {});
+      res.on('end', () => {});
+    });
 
-    if (errorMsg.includes('aborted') || errorMsg.includes('timeout')) {
-      return { ok: false, error: 'Gateway connection timeout' };
-    }
-    if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('refused')) {
-      return { ok: false, error: 'Gateway connection refused - not running' };
-    }
-    return { ok: false, error: `Gateway check failed: ${errorMsg}` };
-  }
+    req.on('error', (err: any) => {
+      const errorMsg = err?.message || 'Unknown error';
+      
+      if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('refused')) {
+        resolve({ ok: false, error: 'Gateway connection refused - not running' });
+      } else if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
+        resolve({ ok: false, error: 'Gateway connection timeout' });
+      } else if (errorMsg.includes('certificate') || errorMsg.includes('SSL') || errorMsg.includes('TLS')) {
+        // SSL errors with rejectUnauthorized: false shouldn't happen, but if they do, gateway is reachable
+        resolve({ ok: true, error: null });
+      } else {
+        resolve({ ok: false, error: `Gateway check failed: ${errorMsg}` });
+      }
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ ok: false, error: 'Gateway connection timeout' });
+    });
+
+    req.end();
+  });
 }
 
 /**

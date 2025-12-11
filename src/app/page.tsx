@@ -219,10 +219,8 @@ export default function HomePage() {
 
       {/* Dashboard Content Section */}
       <section className="px-6 pb-32 flex flex-col gap-9">
-        {/* IBKR Connection Status Banner - Shows when disconnected or when checking */}
-        {/* Always show IBKR connection card */}
-        {(
-          <div className={`relative rounded-2xl backdrop-blur-2xl border p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)] ${
+        {/* IBKR Connection Status Banner - Always visible */}
+        <div className={`relative rounded-2xl backdrop-blur-2xl border p-4 mb-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)] ${
             ibkrCheckStatus === "ok" 
               ? "bg-gradient-to-br from-green-500/20 to-emerald-500/10 border-green-500/30"
               : ibkrCheckStatus === "checking"

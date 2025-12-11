@@ -117,42 +117,13 @@ async function checkBridgeStatus(): Promise<{ ok: boolean; error: string | null 
   }
 }
 
-/**
- * Check IBeam status (non-blocking - timeout doesn't fail overall status)
- * IBeam health server is on HTTP (not HTTPS), so no agent needed
- */
-async function checkIbeamStatus(): Promise<{ ok: boolean; error: string | null }> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout, non-blocking
-    
-    const response = await fetch('http://127.0.0.1:5001/', {
-      method: 'GET',
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-      },
-      cache: 'no-store',
-    }).finally(() => clearTimeout(timeoutId));
-
-    // Any HTTP response (even 404) means IBeam health server is running
-    return { ok: true, error: null };
-  } catch (err: any) {
-    const errorMsg = err?.message || 'Unknown error';
-    // IBeam health server timeout is non-critical - just report it
-    return { 
-      ok: false, 
-      error: `IBeam health server not responding: ${errorMsg}` 
-    };
-  }
-}
-
 export async function GET() {
-  // Check all components in parallel (non-blocking)
-  const [gateway, bridge, ibeam] = await Promise.all([
+  // Check gateway and bridge in parallel
+  // IBeam is hidden - it's an infrastructure detail, not a user-facing service
+  // Gateway status is what matters for trading functionality
+  const [gateway, bridge] = await Promise.all([
     checkGatewayStatus(),
     checkBridgeStatus(),
-    checkIbeamStatus(),
   ]);
 
   // Overall status depends ONLY on gateway being reachable
@@ -162,7 +133,6 @@ export async function GET() {
     ok,
     bridge,
     gateway,
-    ibeam,
   });
 }
 

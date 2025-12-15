@@ -160,7 +160,7 @@ export default function HomePage() {
           const data = await res.json().catch(() => null);
           if (data?.ok) {
             const bridgeOk = data.bridge?.ok === true;
-            const gatewayAuthenticated = data.gateway?.ok === true && data.gateway?.status?.authenticated === true;
+            const gatewayAuthenticated = data.gateway?.authenticated === true;
             
             if (bridgeOk && gatewayAuthenticated) {
               setIbkrCheckStatus("ok");
@@ -230,7 +230,7 @@ export default function HomePage() {
             <span className="text-xs opacity-80">
               {ibkrStatus
                 ? ibkrStatus.message
-                : "Check that the IBKR bridge is online on your server."}
+                : "Click Connect to open Gateway login in a new window. Complete login with 2FA."}
             </span>
           </div>
 

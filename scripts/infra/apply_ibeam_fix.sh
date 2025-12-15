@@ -102,15 +102,11 @@ echo "---------------------------------------------------"
 FIXED_FILE="$IBEAM_DIR/login_handler_fixed.py"
 
 python3 << 'PYTHON_SCRIPT'
-import re
 import sys
 
 # Read original file
 with open('login_handler_original.py', 'r') as f:
-    content = f.read()
-
-# Find the block to replace
-old_pattern = r'(submit_form_el\.click\(\)\s+trigger,\s*target\s*=\s*wait_and_identify_trigger\(\s*has_text\(targets\[\'SUCCESS\'\]\),\s*is_visible\(targets\[\'TWO_FA\'\]\),\s*is_visible\(targets\[\'TWO_FA_SELECT\'\]\),\s*is_visible\(targets\[\'TWO_FA_NOTIFICATION\'\]\),\s*is_visible\(targets\[\'ERROR\'\]),\s*is_clickable\(targets\[\'IBKEY_PROMO\'\]),\s*\))'
+    lines = f.readlines()
 
 new_code = '''submit_form_el.click()
 print("[LOGIN] Form submitted, waiting for immediate feedback (ERROR/2FA)...")
@@ -167,58 +163,62 @@ if target is None:
     target = 'SUBMITTED_UNKNOWN'
 '''
 
-# Try to replace
-if re.search(old_pattern, content, re.MULTILINE | re.DOTALL):
-    content = re.sub(old_pattern, new_code, content, flags=re.MULTILINE | re.DOTALL)
-    print("✓ Found and replaced wait_and_identify_trigger block")
-else:
-    # Try a more flexible pattern
-    old_pattern_flexible = r'(submit_form_el\.click\(\)\s+trigger,\s*target\s*=\s*wait_and_identify_trigger\([^)]+has_text\(targets\[\'SUCCESS\'\]\)[^)]+\))'
-    if re.search(old_pattern_flexible, content, re.MULTILINE | re.DOTALL):
-        content = re.sub(old_pattern_flexible, new_code, content, flags=re.MULTILINE | re.DOTALL)
-        print("✓ Found and replaced (flexible pattern)")
-    else:
-        print("⚠️  WARNING: Could not find exact pattern to replace")
-        print("   The file may have been modified already, or pattern is different")
-        print("   Attempting manual search...")
+# Find and replace using line-by-line search (simpler, more reliable)
+new_lines = []
+i = 0
+replaced = False
+
+while i < len(lines):
+    line = lines[i]
+    
+    # Look for submit_form_el.click() line
+    if 'submit_form_el.click()' in line and not replaced:
+        # Check if next few lines contain wait_and_identify_trigger with SUCCESS
+        check_range = min(i + 15, len(lines))
+        next_block = ''.join(lines[i:check_range])
         
-        # Try to find submit_form_el.click() and replace the next block
-        lines = content.split('\n')
-        new_lines = []
-        i = 0
-        replaced = False
-        while i < len(lines):
-            line = lines[i]
-            new_lines.append(line)
-            if 'submit_form_el.click()' in line and not replaced:
-                # Look ahead for wait_and_identify_trigger
-                j = i + 1
-                while j < len(lines) and j < i + 15:
-                    if 'wait_and_identify_trigger' in lines[j] and 'SUCCESS' in ''.join(lines[j:j+10]):
-                        # Found it - replace from submit_form_el.click() to end of wait_and_identify_trigger
-                        new_lines.pop()  # Remove the submit_form_el.click() line we just added
-                        new_lines.append(new_code)
-                        # Skip until we find the closing parenthesis
-                        while j < len(lines) and ')' not in lines[j]:
-                            j += 1
-                        j += 1  # Skip the closing )
-                        i = j - 1
-                        replaced = True
-                        print("✓ Found and replaced (manual search)")
-                        break
-                    j += 1
+        if 'wait_and_identify_trigger' in next_block and "targets['SUCCESS']" in next_block:
+            # Found the block - replace it
+            new_lines.append(new_code + '\n')
+            
+            # Skip original lines until we find the end of wait_and_identify_trigger call
             i += 1
-        
-        if replaced:
-            content = '\n'.join(new_lines)
-        else:
-            print("❌ ERROR: Could not find pattern to replace")
-            print("   Please check login_handler_original.py manually")
-            sys.exit(1)
+            paren_count = 0
+            found_trigger = False
+            
+            while i < len(lines) and i < i + 20:  # Safety limit
+                if i >= len(lines):
+                    break
+                current_line = lines[i]
+                
+                if 'wait_and_identify_trigger' in current_line:
+                    found_trigger = True
+                    # Count parentheses to find end of function call
+                    paren_count = current_line.count('(') - current_line.count(')')
+                
+                if found_trigger:
+                    paren_count += current_line.count('(') - current_line.count(')')
+                    if paren_count <= 0 and ')' in current_line:
+                        i += 1  # Skip the line with closing paren
+                        break
+                
+                i += 1
+            
+            replaced = True
+            continue
+    
+    new_lines.append(line)
+    i += 1
+
+if not replaced:
+    print("❌ ERROR: Could not find submit_form_el.click() with wait_and_identify_trigger pattern")
+    print("   The file structure may be different than expected")
+    print("   Please check login_handler_original.py manually")
+    sys.exit(1)
 
 # Write fixed file
 with open('login_handler_fixed.py', 'w') as f:
-    f.write(content)
+    f.writelines(new_lines)
 
 print("✓ Fixed file created: login_handler_fixed.py")
 PYTHON_SCRIPT

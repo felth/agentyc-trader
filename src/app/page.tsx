@@ -41,7 +41,7 @@ export default function HomePage() {
           fetch("/api/dashboard/home").then((r) => r.json()),
           fetch("/api/system/status").then((r) => r.json()),
           fetch("/api/agent/trade-plan").then((r) => r.json()),
-          fetch("/api/ibkr/status").then((r) => r.json()),
+          fetch(`/api/ibkr/status?t=${Date.now()}`).then((r) => r.json()),
         ]);
 
         if (dashboardRes.ok && dashboardRes.snapshot) {
@@ -59,6 +59,14 @@ export default function HomePage() {
         // Check both bridge health AND gateway authentication
         const bridgeOk = ibkrRes.bridge?.ok === true;
         const gatewayAuthenticated = ibkrRes.gateway?.authenticated === true;
+        
+        // Debug logging (remove in production)
+        console.log("IBKR Status Check:", {
+          bridgeOk,
+          gatewayAuthenticated,
+          gatewayStatus: ibkrRes.gateway,
+          fullResponse: ibkrRes,
+        });
         
         if (bridgeOk && gatewayAuthenticated) {
           setIbkrStatus({
@@ -166,7 +174,7 @@ export default function HomePage() {
       const maxPolls = 12; // Poll for 1 minute (12 * 5s = 60s)
       const pollInterval = setInterval(async () => {
         pollCount++;
-        const res = await fetch('/api/ibkr/status').catch(() => null);
+        const res = await fetch(`/api/ibkr/status?t=${Date.now()}`).catch(() => null);
         if (res) {
           const data = await res.json().catch(() => null);
           if (data?.ok) {

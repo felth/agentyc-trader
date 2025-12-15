@@ -4,6 +4,9 @@ import { ibkrRequest } from "@/lib/ibkr";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// Disable caching
+export const revalidate = 0;
+
 type BridgeHealth = {
   ok?: boolean;
   service?: string;

@@ -64,7 +64,7 @@ export async function GET() {
       gateway: {
         ok: gatewayOk,
         authenticated: gatewayAuthenticated,
-        status: gatewayStatus,
+        status: gatewayStatus || { authenticated: gatewayAuthenticated },
         error: gatewayOk ? null : "Could not check Gateway auth status",
       },
     });

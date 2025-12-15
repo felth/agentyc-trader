@@ -42,8 +42,18 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-DOCKER_COMPOSE_VERSION=$(docker compose version 2>&1 | head -1 || echo "not found")
-echo "✓ Docker compose: $DOCKER_COMPOSE_VERSION"
+# Check for docker compose v2 or docker-compose v1
+if docker compose version &>/dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose"
+    DOCKER_COMPOSE_VERSION=$(docker compose version 2>&1 | head -1)
+elif docker-compose version &>/dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+    DOCKER_COMPOSE_VERSION=$(docker-compose version 2>&1 | head -1)
+else
+    echo "❌ ERROR: Neither 'docker compose' nor 'docker-compose' found"
+    exit 1
+fi
+echo "✓ Docker compose: $DOCKER_COMPOSE_VERSION (using: $DOCKER_COMPOSE_CMD)"
 
 echo ""
 
@@ -51,7 +61,7 @@ echo ""
 echo "Step 2: Cleaning up docker compose state..."
 echo "---------------------------------------------------"
 
-docker compose down --remove-orphans 2>/dev/null || true
+$DOCKER_COMPOSE_CMD down --remove-orphans 2>/dev/null || true
 
 # Remove any stale containers
 STALE_CONTAINERS=$(docker ps -a --filter "name=ibeam" --format "{{.ID}}" 2>/dev/null || true)
@@ -274,7 +284,7 @@ echo "Step 6: Starting container and applying fix..."
 echo "---------------------------------------------------"
 
 # Start container
-docker compose up -d
+$DOCKER_COMPOSE_CMD up -d
 
 # Wait for container to be running
 echo "Waiting for container to start..."
@@ -283,7 +293,7 @@ sleep 5
 # Check if container is running
 if ! docker ps | grep -q ibeam; then
     echo "❌ ERROR: Container failed to start"
-    docker compose logs ibeam | tail -20
+    $DOCKER_COMPOSE_CMD logs ibeam | tail -20
     exit 1
 fi
 
@@ -303,7 +313,7 @@ fi
 
 # Restart container to use fixed code
 echo "Restarting container to apply fix..."
-docker compose restart ibeam
+$DOCKER_COMPOSE_CMD restart ibeam
 
 echo "✓ Container restarted with fixed code"
 echo ""
@@ -313,11 +323,11 @@ echo "Step 7: Verification..."
 echo "---------------------------------------------------"
 
 echo "Container status:"
-docker compose ps
+$DOCKER_COMPOSE_CMD ps
 
 echo ""
 echo "Recent logs (last 10 lines):"
-docker compose logs --tail 10 ibeam
+$DOCKER_COMPOSE_CMD logs --tail 10 ibeam
 
 echo ""
 echo "========================================="
@@ -326,7 +336,7 @@ echo "========================================="
 echo ""
 echo "Next steps:"
 echo "1. Monitor logs for 2FA prompt:"
-echo "   docker compose logs -f ibeam | grep -E '2FA|notification|waiting'"
+echo "   $DOCKER_COMPOSE_CMD logs -f ibeam | grep -E '2FA|notification|waiting'"
 echo ""
 echo "2. Approve 2FA on your phone when prompted"
 echo ""
@@ -334,6 +344,6 @@ echo "3. Verify authentication:"
 echo "   docker exec $CONTAINER_NAME curl -sk https://localhost:5000/v1/api/iserver/auth/status | jq"
 echo ""
 echo "4. To disconnect:"
-echo "   docker compose stop ibeam"
+echo "   $DOCKER_COMPOSE_CMD stop ibeam"
 echo ""
 

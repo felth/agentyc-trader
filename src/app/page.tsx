@@ -261,7 +261,7 @@ export default function HomePage() {
             {ibkrCheckStatus === "checking"
               ? "Connecting..."
               : ibkrCheckStatus === "ok"
-              ? "Connected"
+              ? "Reconnect"
               : "Connect IBKR"}
           </button>
         </div>

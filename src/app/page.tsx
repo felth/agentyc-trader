@@ -143,35 +143,57 @@ export default function HomePage() {
           `${order.side} ${order.symbol} ${order.orderType === 'LIMIT' && order.entry ? `@ ${order.entry.toFixed(2)}` : 'market'}`
       ) || [];
 
-  // Handle IBKR connection check - simplified to only check Bridge /health
-  const handleCheckIbkr = async () => {
-    if (ibkrCheckStatus === "checking") return;
-
+  // Handle IBKR connection - opens Gateway in new tab for manual login + 2FA
+  const handleConnectIbkr = () => {
+    const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL ?? "https://ibkr.agentyctrader.com";
+    window.open(GATEWAY_URL, '_blank', 'noopener,noreferrer');
+    
+    // Poll status after opening the Gateway page
     setIbkrCheckStatus("checking");
-    try {
-      const res = await fetch("/api/ibkr/status");
-      const data = await res.json();
-
-      if (data.ok && data.bridge?.ok) {
-        setIbkrCheckStatus("ok");
-        setIbkrStatus({
-          ok: true,
-          message: "IBKR bridge is online and reachable.",
-        });
-      } else {
-        const msg =
-          data.bridge?.error ||
-          "IBKR bridge is not reachable. Check the droplet or bridge service.";
-        setIbkrCheckStatus("error");
-        setIbkrStatus({ ok: false, message: msg });
-      }
-    } catch (err: any) {
-      setIbkrCheckStatus("error");
-      setIbkrStatus({
-        ok: false,
-        message: err?.message || "Failed to check IBKR status.",
-      });
-    }
+    setTimeout(() => {
+      let pollCount = 0;
+      const maxPolls = 12; // Poll for 1 minute (12 * 5s = 60s)
+      const pollInterval = setInterval(async () => {
+        pollCount++;
+        const res = await fetch('/api/ibkr/status').catch(() => null);
+        if (res) {
+          const data = await res.json().catch(() => null);
+          if (data?.ok) {
+            const bridgeOk = data.bridge?.ok === true;
+            const gatewayAuthenticated = data.gateway?.ok === true && data.gateway?.status?.authenticated === true;
+            
+            if (bridgeOk && gatewayAuthenticated) {
+              setIbkrCheckStatus("ok");
+              setIbkrStatus({
+                ok: true,
+                message: "IBKR connected and authenticated.",
+              });
+              clearInterval(pollInterval);
+              // Refresh dashboard data
+              window.location.reload();
+              return;
+            } else if (bridgeOk) {
+              setIbkrCheckStatus("checking");
+              setIbkrStatus({
+                ok: false,
+                message: "Waiting for authentication... Complete login in the opened window.",
+              });
+            }
+          }
+        }
+        // Stop polling after max attempts
+        if (pollCount >= maxPolls) {
+          clearInterval(pollInterval);
+          if (ibkrCheckStatus === "checking") {
+            setIbkrCheckStatus("error");
+            setIbkrStatus({
+              ok: false,
+              message: "Connection timeout. Please try again.",
+            });
+          }
+        }
+      }, 5000);
+    }, 3000);
   };
 
   // Format date and time for hero section
@@ -213,17 +235,15 @@ export default function HomePage() {
           </div>
 
           <button
-            onClick={handleCheckIbkr}
+            onClick={handleConnectIbkr}
             disabled={ibkrCheckStatus === "checking"}
             className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-semibold bg-ultra-accent text-black hover:bg-ultra-accentHover disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
             {ibkrCheckStatus === "checking"
-              ? "Checking..."
+              ? "Connecting..."
               : ibkrCheckStatus === "ok"
               ? "Connected"
-              : ibkrCheckStatus === "error"
-              ? "Retry"
-              : "Check IBKR Status"}
+              : "Connect IBKR"}
           </button>
         </div>
       </section>

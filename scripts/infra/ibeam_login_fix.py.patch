@@ -1,0 +1,160 @@
+# IBeam Login Handler Fix - Python Patch
+#
+# File: /srv/ibeam/src/handlers/login_handler.py
+# Purpose: Fix post-submit timeout by removing brittle DOM-based SUCCESS detection
+#          and relying on http_handler.get_status() for auth verification
+#
+# Implementation: Add diagnostic capture + modify step_login() post-submit wait logic
+
+# ============================================================================
+# CHANGE 1: Add diagnostic helper function (add after imports, before class)
+# ============================================================================
+
+def _capture_timeout_diagnostics(driver, outputs_dir, stage_name):
+    """
+    Capture screenshot and page state when timeout occurs.
+    Saves to outputs_dir for debugging.
+    """
+    try:
+        from datetime import datetime
+        import os
+        from pathlib import Path
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        outputs_path = Path(outputs_dir)
+        outputs_path.mkdir(parents=True, exist_ok=True)
+        
+        # Screenshot
+        screenshot_path = outputs_path / f"timeout_{stage_name}_{timestamp}.png"
+        driver.save_screenshot(str(screenshot_path))
+        
+        # Page source (first 2000 chars)
+        page_source = driver.page_source[:2000]
+        page_source_path = outputs_path / f"timeout_{stage_name}_{timestamp}.html"
+        with open(page_source_path, 'w', encoding='utf-8') as f:
+            f.write(page_source)
+        
+        # Current URL and basic info
+        info = {
+            'timestamp': timestamp,
+            'current_url': driver.current_url,
+            'page_title': driver.title,
+            'screenshot': str(screenshot_path),
+            'page_source_snippet': page_source
+        }
+        import json
+        info_path = outputs_path / f"timeout_{stage_name}_{timestamp}.json"
+        with open(info_path, 'w') as f:
+            json.dump(info, f, indent=2)
+        
+        print(f"[DIAGNOSTIC] Timeout at {stage_name}: screenshot={screenshot_path}, url={driver.current_url}")
+        return info
+    except Exception as e:
+        print(f"[DIAGNOSTIC] Failed to capture diagnostics: {e}")
+        return None
+
+
+# ============================================================================
+# CHANGE 2: Modify step_login() method - Replace post-submit wait block
+# ============================================================================
+# 
+# LOCATION: Inside step_login() method, after submit_form_el.click()
+# OLD CODE (around lines 192-203):
+# 
+#     submit_form_el.click()
+#     trigger, target = wait_and_identify_trigger(
+#         has_text(targets['SUCCESS']),
+#         is_visible(targets['TWO_FA']),
+#         is_visible(targets['TWO_FA_SELECT']),
+#         is_visible(targets['TWO_FA_NOTIFICATION']),
+#         is_visible(targets['ERROR']),
+#         is_clickable(targets['IBKEY_PROMO']),
+#     )
+#
+# NEW CODE (replace the above):
+# 
+
+    submit_form_el.click()
+    print("[LOGIN] Form submitted, waiting for response...")
+    
+    # Use shorter timeout for immediate feedback (ERROR, 2FA)
+    # If no error appears quickly, treat as "submitted" and let http_handler.get_status() verify auth
+    short_timeout = 20  # seconds - enough for 2FA/ERROR to appear, but not wait forever for SUCCESS
+    
+    from selenium.webdriver.support.wait import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.common.exceptions import TimeoutException
+    
+    try:
+        wait = WebDriverWait(driver, short_timeout)
+        
+        # Check for ERROR first (fails fast if login failed)
+        try:
+            error_locator = targets.get('ERROR')
+            if error_locator:
+                error_el = wait.until(EC.visibility_of_element_located(error_locator))
+                print("[LOGIN] ERROR detected after submit")
+                trigger = None
+                target = 'ERROR'
+                return trigger, target
+        except TimeoutException:
+            pass
+        
+        # Check for 2FA prompts (quick checks, 2 seconds each)
+        two_fa_locators = [
+            targets.get('TWO_FA'),
+            targets.get('TWO_FA_SELECT'),
+            targets.get('TWO_FA_NOTIFICATION'),
+        ]
+        for locator in two_fa_locators:
+            if locator:
+                try:
+                    el = WebDriverWait(driver, 2).until(EC.visibility_of_element_located(locator))
+                    print(f"[LOGIN] 2FA prompt detected: {locator}")
+                    trigger = None
+                    target = 'TWO_FA'
+                    return trigger, target
+                except TimeoutException:
+                    continue
+        
+        # No ERROR, no 2FA detected quickly - likely submitted successfully
+        # Capture diagnostics for debugging, then let http_handler.get_status() verify auth
+        _capture_timeout_diagnostics(driver, self.outputs_dir, 'post_submit_no_feedback')
+        trigger = None
+        target = 'SUBMITTED_UNKNOWN'
+        print("[LOGIN] No ERROR/2FA detected quickly - treating as submitted")
+        print("[LOGIN] Auth status will be verified by http_handler.get_status() in post-authentication")
+        return trigger, target
+        
+    except Exception as e:
+        # Unexpected error - capture diagnostics and re-raise
+        _capture_timeout_diagnostics(driver, self.outputs_dir, 'post_submit_exception')
+        print(f"[LOGIN] Exception during post-submit wait: {e}")
+        raise
+
+
+# ============================================================================
+# NOTES:
+# ============================================================================
+#
+# 1. This removes reliance on brittle DOM-based SUCCESS detection
+# 2. Uses shorter timeout (20s) for ERROR/2FA only
+# 3. Returns 'SUBMITTED_UNKNOWN' target when no immediate feedback
+# 4. strategy_handler._post_authentication() should already call http_handler.get_status()
+#    to verify auth, so this target will work with existing flow
+# 5. If strategy_handler needs modification to handle SUBMITTED_UNKNOWN, check:
+#    /srv/ibeam/src/handlers/strategy_handler.py in _authentication_strategy_B() or _post_authentication()
+#
+
+
+# ============================================================================
+# VERIFICATION AFTER PATCH:
+# ============================================================================
+#
+# 1. Restart IBeam: docker-compose restart ibeam (in /opt/ibeam)
+# 2. Monitor logs: docker logs -f ibeam_ibeam_1 | grep -E "LOGIN|DIAGNOSTIC|authenticated"
+# 3. Test auth: docker exec ibeam_ibeam_1 sh -lc 'curl -sk https://localhost:5000/v1/api/iserver/auth/status' | jq
+#    Expected: {"authenticated": true, ...} (not 401)
+# 4. Check diagnostics (if timeout occurs): docker exec ibeam_ibeam_1 ls -lah /srv/outputs/timeout_*
+#
+

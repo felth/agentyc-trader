@@ -54,18 +54,13 @@ export default function HomePage() {
         }
 
         // Check status exactly as working commit 216e999
+        // Only set status if response is ok - otherwise leave null (banner won't show until status is checked)
         if (ibkrRes.ok) {
           setIbkrStatus({
             bridgeOk: ibkrRes.bridge?.ok === true,
             gatewayAuthenticated:
               ibkrRes.gateway?.ok === true &&
               ibkrRes.gateway?.status?.authenticated === true,
-          });
-        } else {
-          // Not connected - set state so banner shows
-          setIbkrStatus({
-            bridgeOk: false,
-            gatewayAuthenticated: false,
           });
         }
       } catch (err) {
@@ -198,7 +193,7 @@ export default function HomePage() {
       </div>
 
       {/* IBKR Connection Status Banner - Only shows when NOT connected */}
-      {ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
+      {(ibkrStatus === null || !ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
         <section className="px-6 pt-4 pb-6">
           <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
             <div className="flex items-start justify-between gap-3">

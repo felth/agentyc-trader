@@ -56,12 +56,23 @@ export default function HomePage() {
           setTradePlan(planRes.plan);
         }
 
-        if (ibkrRes.ok && ibkrRes.bridge?.ok) {
+        // Check both bridge health AND gateway authentication
+        const bridgeOk = ibkrRes.bridge?.ok === true;
+        const gatewayAuthenticated = ibkrRes.gateway?.authenticated === true;
+        
+        if (bridgeOk && gatewayAuthenticated) {
           setIbkrStatus({
             ok: true,
-            message: "IBKR bridge is online and reachable.",
+            message: "IBKR connected and authenticated.",
           });
           setIbkrCheckStatus("ok");
+        } else if (bridgeOk) {
+          // Bridge is up but Gateway not authenticated
+          setIbkrStatus({
+            ok: false,
+            message: "Bridge online. Click Connect to authenticate with Gateway.",
+          });
+          setIbkrCheckStatus("error");
         } else {
           setIbkrStatus({
             ok: false,

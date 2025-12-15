@@ -61,6 +61,12 @@ export default function HomePage() {
               ibkrRes.gateway?.ok === true &&
               ibkrRes.gateway?.status?.authenticated === true,
           });
+        } else {
+          // Not connected - set state so banner shows
+          setIbkrStatus({
+            bridgeOk: false,
+            gatewayAuthenticated: false,
+          });
         }
       } catch (err) {
         console.error("Failed to fetch home data:", err);

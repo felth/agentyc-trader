@@ -41,7 +41,7 @@ export default function HomePage() {
           fetch("/api/dashboard/home").then((r) => r.json()),
           fetch("/api/system/status").then((r) => r.json()),
           fetch("/api/agent/trade-plan").then((r) => r.json()),
-          fetch(`/api/ibkr/status?t=${Date.now()}`).then((r) => r.json()),
+          fetch("/api/ibkr/status").then((r) => r.json()),
         ]);
 
         if (dashboardRes.ok && dashboardRes.snapshot) {
@@ -56,37 +56,18 @@ export default function HomePage() {
           setTradePlan(planRes.plan);
         }
 
-        // Check both bridge health AND gateway authentication
-        const bridgeOk = ibkrRes.bridge?.ok === true;
-        const gatewayAuthenticated = ibkrRes.gateway?.authenticated === true;
-        
-        // Debug logging (remove in production)
-        console.log("IBKR Status Check:", {
-          bridgeOk,
-          gatewayAuthenticated,
-          gatewayStatus: ibkrRes.gateway,
-          fullResponse: ibkrRes,
-        });
-        
-        if (bridgeOk && gatewayAuthenticated) {
+        // Simple check: if status is ok, we're connected
+        if (ibkrRes.ok) {
           setIbkrStatus({
             ok: true,
             message: "IBKR connected and authenticated.",
           });
           setIbkrCheckStatus("ok");
-        } else if (bridgeOk) {
-          // Bridge is up but Gateway not authenticated
-          setIbkrStatus({
-            ok: false,
-            message: "Bridge online. Click Connect to authenticate with Gateway.",
-          });
-          setIbkrCheckStatus("error");
         } else {
+          // Not connected - button will show to connect
           setIbkrStatus({
             ok: false,
-            message:
-              ibkrRes.bridge?.error ||
-              "IBKR bridge is not reachable. Check the droplet or bridge service.",
+            message: "Click Connect to authenticate with Gateway.",
           });
           setIbkrCheckStatus("error");
         }
@@ -174,7 +155,7 @@ export default function HomePage() {
       const maxPolls = 12; // Poll for 1 minute (12 * 5s = 60s)
       const pollInterval = setInterval(async () => {
         pollCount++;
-        const res = await fetch(`/api/ibkr/status?t=${Date.now()}`).catch(() => null);
+            const res = await fetch('/api/ibkr/status').catch(() => null);
         if (res) {
           const data = await res.json().catch(() => null);
           if (data?.ok) {
@@ -261,7 +242,7 @@ export default function HomePage() {
             {ibkrCheckStatus === "checking"
               ? "Connecting..."
               : ibkrCheckStatus === "ok"
-              ? "Reconnect"
+              ? "Connected"
               : "Connect IBKR"}
           </button>
         </div>

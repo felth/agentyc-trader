@@ -24,7 +24,6 @@ export default function HomePage() {
   } | null>(null);
   const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
   const [ibkrStatus, setIbkrStatus] = useState<{
-    ok: boolean;
     bridgeOk: boolean;
     gatewayAuthenticated: boolean;
   } | null>(null);
@@ -54,20 +53,13 @@ export default function HomePage() {
           setTradePlan(planRes.plan);
         }
 
-        // Check status exactly as original
+        // Check status exactly as working commit 216e999
         if (ibkrRes.ok) {
-          const bridgeOk = ibkrRes.bridge?.ok === true;
-          const gatewayAuthenticated = ibkrRes.gateway?.ok === true && ibkrRes.gateway?.status?.authenticated === true;
           setIbkrStatus({
-            ok: true,
-            bridgeOk,
-            gatewayAuthenticated,
-          });
-        } else {
-          setIbkrStatus({
-            ok: false,
-            bridgeOk: false,
-            gatewayAuthenticated: false,
+            bridgeOk: ibkrRes.bridge?.ok === true,
+            gatewayAuthenticated:
+              ibkrRes.gateway?.ok === true &&
+              ibkrRes.gateway?.status?.authenticated === true,
           });
         }
       } catch (err) {
@@ -102,7 +94,12 @@ export default function HomePage() {
   };
 
   // Determine IBKR status for account card
-  const ibkrCardStatus = ibkrStatus?.ok && ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated ? "LIVE" : "ERROR";
+  const ibkrCardStatus =
+    ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated
+      ? "LIVE"
+      : ibkrStatus?.bridgeOk || ibkrStatus?.gatewayAuthenticated
+      ? "DEGRADED"
+      : "ERROR";
 
   // Prepare watchlist items
   const watchlistItems =
@@ -159,7 +156,6 @@ export default function HomePage() {
             const gatewayAuthenticated = data.gateway?.ok === true && data.gateway?.status?.authenticated === true;
             // Update state
             setIbkrStatus({
-              ok: true,
               bridgeOk,
               gatewayAuthenticated,
             });
@@ -325,7 +321,7 @@ export default function HomePage() {
         items={[
           {
             label: "IBKR",
-            status: ibkrStatus?.ok && ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated ? "LIVE" : "ERROR",
+            status: ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated ? "LIVE" : "ERROR",
           },
           {
             label: "MARKET FEED",

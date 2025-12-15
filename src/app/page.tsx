@@ -23,12 +23,10 @@ export default function HomePage() {
     timeDisplay: string;
   } | null>(null);
   const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
-  const [ibkrCheckStatus, setIbkrCheckStatus] = useState<
-    "idle" | "checking" | "ok" | "error"
-  >("idle");
   const [ibkrStatus, setIbkrStatus] = useState<{
     ok: boolean;
-    message: string;
+    bridgeOk: boolean;
+    gatewayAuthenticated: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [imminentHighImpact, setImminentHighImpact] = useState(false);
@@ -56,20 +54,21 @@ export default function HomePage() {
           setTradePlan(planRes.plan);
         }
 
-        // Simple check: if status is ok, we're connected
+        // Check status exactly as original
         if (ibkrRes.ok) {
+          const bridgeOk = ibkrRes.bridge?.ok === true;
+          const gatewayAuthenticated = ibkrRes.gateway?.ok === true && ibkrRes.gateway?.status?.authenticated === true;
           setIbkrStatus({
             ok: true,
-            message: "IBKR connected and authenticated.",
+            bridgeOk,
+            gatewayAuthenticated,
           });
-          setIbkrCheckStatus("ok");
         } else {
-          // Not connected - button will show to connect
           setIbkrStatus({
             ok: false,
-            message: "Click Connect to authenticate with Gateway.",
+            bridgeOk: false,
+            gatewayAuthenticated: false,
           });
-          setIbkrCheckStatus("error");
         }
       } catch (err) {
         console.error("Failed to fetch home data:", err);
@@ -102,8 +101,8 @@ export default function HomePage() {
     return "Closed";
   };
 
-  // Determine IBKR status for account card (simplified: bridge ok = LIVE)
-  const ibkrCardStatus = ibkrStatus?.ok ? "LIVE" : "ERROR";
+  // Determine IBKR status for account card
+  const ibkrCardStatus = ibkrStatus?.ok && ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated ? "LIVE" : "ERROR";
 
   // Prepare watchlist items
   const watchlistItems =
@@ -143,58 +142,42 @@ export default function HomePage() {
           `${order.side} ${order.symbol} ${order.orderType === 'LIMIT' && order.entry ? `@ ${order.entry.toFixed(2)}` : 'market'}`
       ) || [];
 
-  // Handle IBKR connection - opens Gateway in new tab for manual login + 2FA
-  const handleConnectIbkr = () => {
+  function handleReconnectIbkr() {
     const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL ?? "https://ibkr.agentyctrader.com";
     window.open(GATEWAY_URL, '_blank', 'noopener,noreferrer');
-    
-    // Poll status after opening the Gateway page
-    setIbkrCheckStatus("checking");
+    // Optionally poll status after opening the reconnect page
     setTimeout(() => {
       let pollCount = 0;
       const maxPolls = 12; // Poll for 1 minute (12 * 5s = 60s)
       const pollInterval = setInterval(async () => {
         pollCount++;
-            const res = await fetch('/api/ibkr/status').catch(() => null);
+        const res = await fetch('/api/ibkr/status').catch(() => null);
         if (res) {
           const data = await res.json().catch(() => null);
           if (data?.ok) {
             const bridgeOk = data.bridge?.ok === true;
-            const gatewayAuthenticated = data.gateway?.authenticated === true;
-            
+            const gatewayAuthenticated = data.gateway?.ok === true && data.gateway?.status?.authenticated === true;
+            // Update state
+            setIbkrStatus({
+              ok: true,
+              bridgeOk,
+              gatewayAuthenticated,
+            });
+            // Stop polling if authenticated
             if (bridgeOk && gatewayAuthenticated) {
-              setIbkrCheckStatus("ok");
-              setIbkrStatus({
-                ok: true,
-                message: "IBKR connected and authenticated.",
-              });
               clearInterval(pollInterval);
-              // Refresh dashboard data
               window.location.reload();
               return;
-            } else if (bridgeOk) {
-              setIbkrCheckStatus("checking");
-              setIbkrStatus({
-                ok: false,
-                message: "Waiting for authentication... Complete login in the opened window.",
-              });
             }
           }
         }
         // Stop polling after max attempts
         if (pollCount >= maxPolls) {
           clearInterval(pollInterval);
-          if (ibkrCheckStatus === "checking") {
-            setIbkrCheckStatus("error");
-            setIbkrStatus({
-              ok: false,
-              message: "Connection timeout. Please try again.",
-            });
-          }
         }
       }, 5000);
     }, 3000);
-  };
+  }
 
   // Format date and time for hero section
   const today = new Date();
@@ -212,41 +195,27 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* IBKR Connection Status Card - Always visible */}
-      <section className="px-6 pt-4 pb-6">
-        <div
-          className={`rounded-2xl border px-4 py-3 flex items-center justify-between gap-3 text-sm ${
-            ibkrCheckStatus === "ok"
-              ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
-              : ibkrCheckStatus === "error"
-              ? "bg-amber-500/10 border-amber-500/40 text-amber-300"
-              : "bg-white/5 border-white/10 text-white/70"
-          }`}
-        >
-          <div className="flex flex-col">
-            <span className="font-semibold tracking-tight">
-              IBKR Connection
-            </span>
-            <span className="text-xs opacity-80">
-              {ibkrStatus
-                ? ibkrStatus.message
-                : "Click Connect to open Gateway login in a new window. Complete login with 2FA."}
-            </span>
+      {/* IBKR Connection Status Banner - Only shows when NOT connected */}
+      {ibkrStatus && (!ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
+        <section className="px-6 pt-4 pb-6">
+          <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 space-y-2">
+                <h3 className="text-sm font-bold text-amber-400">IBKR not connected</h3>
+                <p className="text-xs text-amber-300/90 leading-relaxed">
+                  To refresh your live brokerage data, tap Connect and complete login in the Gateway window.
+                </p>
+              </div>
+              <button
+                onClick={handleReconnectIbkr}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap"
+              >
+                Connect IBKR
+              </button>
+            </div>
           </div>
-
-          <button
-            onClick={handleConnectIbkr}
-            disabled={ibkrCheckStatus === "checking"}
-            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-semibold bg-ultra-accent text-black hover:bg-ultra-accentHover disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-          >
-            {ibkrCheckStatus === "checking"
-              ? "Connecting..."
-              : ibkrCheckStatus === "ok"
-              ? "Connected"
-              : "Connect IBKR"}
-          </button>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Dashboard Content Section */}
       <section className="px-6 pb-32 flex flex-col gap-9">
@@ -356,7 +325,7 @@ export default function HomePage() {
         items={[
           {
             label: "IBKR",
-            status: ibkrStatus?.ok ? "LIVE" : "ERROR",
+            status: ibkrStatus?.ok && ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated ? "LIVE" : "ERROR",
           },
           {
             label: "MARKET FEED",

@@ -1,87 +1,31 @@
-import { NextResponse } from "next/server";
-import { ibkrRequest } from "@/lib/ibkr";
+import { NextResponse } from 'next/server';
+import { getIbkrHealth, getIbkrGatewayAuthStatus } from '@/lib/data/ibkrBridge';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
-// Disable caching
-export const revalidate = 0;
-
-type BridgeHealth = {
-  ok?: boolean;
-  service?: string;
-  status?: string;
-  note?: string;
-};
-
-type GatewayAuthStatus = {
-  authenticated?: boolean;
-  connected?: boolean;
-  competing?: boolean;
-  serverInfo?: {
-    serverName?: string;
-    serverVersion?: string;
-  };
-  iserver?: {
-    authStatus?: {
-      authenticated?: boolean;
-    };
-  };
-};
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    // Check Bridge health
-    const health = await ibkrRequest<BridgeHealth>("/health");
-    const bridgeOk = !!health?.ok;
-
-    // Check Gateway authentication status
-    let gatewayOk = false;
-    let gatewayAuthenticated = false;
-    let gatewayStatus: GatewayAuthStatus | null = null;
-
-    if (bridgeOk) {
-      try {
-        gatewayStatus = await ibkrRequest<GatewayAuthStatus>("/gateway/auth-status");
-        gatewayOk = gatewayStatus !== null;
-        gatewayAuthenticated =
-          gatewayStatus?.authenticated === true ||
-          gatewayStatus?.iserver?.authStatus?.authenticated === true ||
-          false;
-      } catch (err) {
-        // Gateway check failed, but bridge is ok
-        gatewayOk = false;
-      }
-    }
+    const [health, gateway] = await Promise.all([
+      getIbkrHealth().catch((err) => ({
+        ok: false,
+        error: err?.message ?? 'Health check failed',
+      })),
+      getIbkrGatewayAuthStatus().catch((err) => ({
+        ok: false,
+        error: err?.message ?? 'Gateway auth status failed',
+      })),
+    ]);
 
     return NextResponse.json({
-      ok: bridgeOk && gatewayAuthenticated,
-      bridge: {
-        ok: bridgeOk,
-        error: bridgeOk ? null : "Bridge /health did not return ok: true",
-        raw: health,
-      },
-      gateway: {
-        ok: gatewayOk,
-        authenticated: gatewayAuthenticated,
-        status: gatewayStatus || { authenticated: gatewayAuthenticated },
-        error: gatewayOk ? null : "Could not check Gateway auth status",
-      },
+      ok: true,
+      bridge: health,
+      gateway,
     });
-  } catch (err: any) {
-    return NextResponse.json({
-      ok: false,
-      bridge: {
-        ok: false,
-        error:
-          err?.message ||
-          "IBKR bridge health check failed (could not reach /health)",
-      },
-      gateway: {
-        ok: false,
-        authenticated: false,
-        error: "Gateway check failed",
-      },
-    });
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: e?.message ?? 'Unknown error' },
+      { status: 500 }
+    );
   }
 }

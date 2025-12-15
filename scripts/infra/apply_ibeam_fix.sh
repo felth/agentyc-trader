@@ -173,13 +173,19 @@ while i < len(lines):
     
     # Look for submit_form_el.click() line
     if 'submit_form_el.click()' in line and not replaced:
+        # Get indentation from this line
+        indent = len(line) - len(line.lstrip())
+        indent_str = line[:indent]
+        
         # Check if next few lines contain wait_and_identify_trigger with SUCCESS
         check_range = min(i + 15, len(lines))
         next_block = ''.join(lines[i:check_range])
         
         if 'wait_and_identify_trigger' in next_block and "targets['SUCCESS']" in next_block:
-            # Found the block - replace it
-            new_lines.append(new_code + '\n')
+            # Found the block - replace it with proper indentation
+            # Indent each line of new_code
+            indented_new_code = '\n'.join([indent_str + l if l.strip() else l for l in new_code.split('\n')])
+            new_lines.append(indented_new_code + '\n')
             
             # Skip original lines until we find the end of wait_and_identify_trigger call
             i += 1

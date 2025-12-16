@@ -1,26 +1,83 @@
 import { NextResponse } from 'next/server';
-import { getIbkrHealth, getIbkrGatewayAuthStatus } from '@/lib/data/ibkrBridge';
+import { getIbkrHealth } from '@/lib/data/ibkrBridge';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+async function getGatewayAuthStatus() {
+  // Get gateway base URL: server-side preferred, fallback to public
+  const gatewayBase = process.env.IBKR_GATEWAY_URL || process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL;
+  
+  if (!gatewayBase) {
+    return {
+      ok: false,
+      error: 'IBKR_GATEWAY_URL or NEXT_PUBLIC_IBKR_GATEWAY_URL not set',
+    };
+  }
+
+  const authStatusUrl = `${gatewayBase}/v1/api/iserver/auth/status`;
+  
+  try {
+    const res = await fetch(authStatusUrl, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (res.status === 200) {
+      const data = await res.json();
+      return {
+        ok: true,
+        status: res.status,
+        data,
+      };
+    } else if (res.status === 401) {
+      // 401 means Gateway is reachable but not authenticated
+      return {
+        ok: true,
+        status: res.status,
+        authenticated: false,
+        connected: false,
+      };
+    } else {
+      // Other status codes
+      const text = await res.text().catch(() => '');
+      return {
+        ok: false,
+        status: res.status,
+        error: `Gateway returned ${res.status} ${res.statusText}: ${text}`,
+      };
+    }
+  } catch (err: any) {
+    return {
+      ok: false,
+      error: err?.message ?? 'Failed to fetch Gateway auth status',
+    };
+  }
+}
+
 export async function GET() {
   try {
-    const [health, gateway] = await Promise.all([
+    const [bridgeHealth, gatewayAuth] = await Promise.all([
       getIbkrHealth().catch((err) => ({
         ok: false,
         error: err?.message ?? 'Health check failed',
       })),
-      getIbkrGatewayAuthStatus().catch((err) => ({
-        ok: false,
-        error: err?.message ?? 'Gateway auth status failed',
-      })),
+      getGatewayAuthStatus(),
     ]);
+
+    // Determine authenticated status from gateway response
+    const authenticated = gatewayAuth.ok && 
+      (gatewayAuth.data?.authenticated === true || 
+       gatewayAuth.data?.iserver?.authStatus?.authenticated === true);
 
     return NextResponse.json({
       ok: true,
-      bridge: health,
-      gateway,
+      bridge: bridgeHealth,
+      gateway: gatewayAuth,
+      authenticated,
     });
   } catch (e: any) {
     return NextResponse.json(

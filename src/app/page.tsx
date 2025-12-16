@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import HeroSection from "@/components/home/HeroSection";
 import AccountRiskCard from "@/components/home/AccountRiskCard";
 import PositionsSnapshot from "@/components/home/PositionsSnapshot";
@@ -27,6 +27,8 @@ export default function HomePage() {
     bridgeOk: boolean;
     gatewayAuthenticated: boolean;
   } | null>(null);
+  const [ibkrAuth, setIbkrAuth] = useState<"idle" | "connecting" | "authed" | "failed">("idle");
+  const pollRef = useRef<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [imminentHighImpact, setImminentHighImpact] = useState(false);
 
@@ -56,12 +58,22 @@ export default function HomePage() {
         // Check status exactly as working commit 216e999
         // Only set status if response is ok - otherwise leave null (banner won't show until status is checked)
         if (ibkrRes.ok) {
+          const gatewayAuthenticated = ibkrRes.gateway?.ok === true &&
+            (ibkrRes.gateway?.data?.authenticated === true ||
+             ibkrRes.gateway?.status?.authenticated === true ||
+             ibkrRes.authenticated === true);
+          
           setIbkrStatus({
             bridgeOk: ibkrRes.bridge?.ok === true,
-            gatewayAuthenticated:
-              ibkrRes.gateway?.ok === true &&
-              ibkrRes.gateway?.status?.authenticated === true,
+            gatewayAuthenticated,
           });
+          
+          // Update ibkrAuth state based on authentication
+          if (gatewayAuthenticated) {
+            setIbkrAuth("authed");
+          } else {
+            setIbkrAuth("idle");
+          }
         }
       } catch (err) {
         console.error("Failed to fetch home data:", err);
@@ -140,41 +152,64 @@ export default function HomePage() {
           `${order.side} ${order.symbol} ${order.orderType === 'LIMIT' && order.entry ? `@ ${order.entry.toFixed(2)}` : 'market'}`
       ) || [];
 
-  function handleReconnectIbkr() {
-    const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL ?? "https://ibkr.agentyctrader.com";
-    window.open(GATEWAY_URL, '_blank', 'noopener,noreferrer');
-    // Optionally poll status after opening the reconnect page
-    setTimeout(() => {
-      let pollCount = 0;
-      const maxPolls = 12; // Poll for 1 minute (12 * 5s = 60s)
-      const pollInterval = setInterval(async () => {
-        pollCount++;
-        const res = await fetch('/api/ibkr/status').catch(() => null);
-        if (res) {
-          const data = await res.json().catch(() => null);
-          if (data?.ok) {
-            const bridgeOk = data.bridge?.ok === true;
-            const gatewayAuthenticated = data.gateway?.ok === true && data.gateway?.status?.authenticated === true;
-            // Update state
-            setIbkrStatus({
-              bridgeOk,
-              gatewayAuthenticated,
-            });
-            // Stop polling if authenticated
-            if (bridgeOk && gatewayAuthenticated) {
-              clearInterval(pollInterval);
-              window.location.reload();
-              return;
-            }
-          }
+  async function pollIbkrStatus(maxMs = 120000) {
+    const start = Date.now();
+
+    while (Date.now() - start < maxMs) {
+      try {
+        // cache-bust each poll
+        const res = await fetch(`/api/ibkr/status?ts=${Date.now()}`, { cache: "no-store" });
+        const data = await res.json();
+
+        // Check authentication using the same defensive logic as initial load
+        // Check top-level authenticated field OR nested paths
+        const isAuthenticated = 
+          data?.authenticated === true ||
+          (data?.gateway?.ok === true && 
+           (data?.gateway?.data?.authenticated === true ||
+            data?.gateway?.status?.authenticated === true ||
+            data?.gateway?.data?.iserver?.authStatus?.authenticated === true));
+
+        if (isAuthenticated) {
+          // Update both states immediately when authentication is detected
+          setIbkrStatus({
+            bridgeOk: data.bridge?.ok === true,
+            gatewayAuthenticated: true,
+          });
+          setIbkrAuth("authed");
+          return { ok: true as const, data };
         }
-        // Stop polling after max attempts
-        if (pollCount >= maxPolls) {
-          clearInterval(pollInterval);
-        }
-      }, 5000);
-    }, 3000);
+      } catch (err) {
+        // Log errors for debugging but keep polling
+        console.warn('[IBKR Poll] Error:', err);
+      }
+
+      // wait 4s
+      await new Promise((r) => setTimeout(r, 4000));
+    }
+
+    return { ok: false as const, error: "Timed out waiting for IBKR auth" };
   }
+
+  const handleConnectIbkr = async () => {
+    // 1) open gateway login tab (manual login)
+    const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL || "https://ibkr.agentyctrader.com";
+    window.open(GATEWAY_URL, "_blank", "noopener,noreferrer");
+
+    // 2) start polling your app endpoint until authenticated=true
+    setIbkrAuth("connecting");
+
+    const result = await pollIbkrStatus(120000); // 2 minutes
+
+    if (result.ok) {
+      // State already updated in pollIbkrStatus, but ensure UI reflects it
+      // Give React a moment to update UI, then reload to fetch fresh data
+      await new Promise(resolve => setTimeout(resolve, 100));
+      window.location.reload();
+    } else {
+      setIbkrAuth("failed");
+    }
+  };
 
   // Format date and time for hero section
   const today = new Date();
@@ -202,12 +237,19 @@ export default function HomePage() {
                 <p className="text-xs text-amber-300/90 leading-relaxed">
                   To refresh your live brokerage data, tap Connect and complete login in the Gateway window.
                 </p>
+                {ibkrAuth === "failed" && (
+                  <p className="text-xs text-amber-400/80 leading-relaxed mt-1">
+                    Auth not detected. Re-open the Gateway tab, complete login + 2FA, then click Connect again.
+                  </p>
+                )}
               </div>
               <button
-                onClick={handleReconnectIbkr}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap"
+                onClick={handleConnectIbkr}
+                disabled={ibkrAuth === "connecting"}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 disabled:bg-amber-500/50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap"
+                aria-busy={ibkrAuth === "connecting"}
               >
-                Connect IBKR
+                {ibkrAuth === "authed" ? "Connected" : ibkrAuth === "connecting" ? "Connecting..." : "Connect IBKR"}
               </button>
             </div>
           </div>

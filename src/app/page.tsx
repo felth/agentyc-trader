@@ -341,7 +341,10 @@ export default function HomePage() {
         <section className="px-6 pt-4 pb-6">
           <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
             <div className="flex items-start justify-between gap-3">
-              {ibkrAuth === "connecting" ? (
+              {(() => {
+                console.log('[IBKR UI] Rendering banner, ibkrAuth:', ibkrAuth, 'ibkrStatus:', ibkrStatus);
+                return ibkrAuth === "connecting";
+              })() ? (
                 <div className="flex-1 space-y-2">
                   <h3 className="text-sm font-bold text-amber-400">Waiting for IBKR authentication</h3>
                   <p className="text-xs text-amber-300/90 leading-relaxed">

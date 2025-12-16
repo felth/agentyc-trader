@@ -84,27 +84,32 @@ export async function GET() {
       },
     };
 
-    const r = NextResponse.json(response);
     // Force no-cache to prevent server/CDN caching
-    r.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    r.headers.set('Pragma', 'no-cache');
-    r.headers.set('Expires', '0');
-    return r;
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (e: any) {
     console.error('[ibkr/status] Error:', e);
-    const r = NextResponse.json(
+    // Force no-cache even on errors
+    return NextResponse.json(
       { 
         ok: false, 
         error: e?.message ?? 'Unknown error',
         bridge: bridgeHealth,
         gateway: gatewayAuth,
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
     );
-    // Force no-cache even on errors
-    r.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    r.headers.set('Pragma', 'no-cache');
-    r.headers.set('Expires', '0');
-    return r;
   }
 }

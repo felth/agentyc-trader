@@ -6,15 +6,8 @@ export const runtime = 'nodejs';
 
 async function getGatewayAuthStatus() {
   // Get gateway base URL: server-side preferred, fallback to public
-  const gatewayBase = process.env.IBKR_GATEWAY_URL || process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL;
+  const gatewayBase = process.env.IBKR_GATEWAY_URL || process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL || 'https://ibkr.agentyctrader.com';
   
-  if (!gatewayBase) {
-    return {
-      ok: false,
-      error: 'IBKR_GATEWAY_URL or NEXT_PUBLIC_IBKR_GATEWAY_URL not set',
-    };
-  }
-
   const authStatusUrl = `${gatewayBase}/v1/api/iserver/auth/status`;
   
   try {
@@ -54,13 +47,17 @@ async function getGatewayAuthStatus() {
     return {
       ok: false,
       error: err?.message ?? 'Failed to fetch Gateway auth status',
+      url: authStatusUrl,
     };
   }
 }
 
 export async function GET() {
+  let bridgeHealth: any = { ok: false, error: 'Not checked' };
+  let gatewayAuth: any = { ok: false, error: 'Not checked' };
+  
   try {
-    const [bridgeHealth, gatewayAuth] = await Promise.all([
+    const results = await Promise.allSettled([
       getIbkrHealth().catch((err) => ({
         ok: false,
         error: err?.message ?? 'Health check failed',
@@ -68,24 +65,35 @@ export async function GET() {
       getGatewayAuthStatus(),
     ]);
 
+    bridgeHealth = results[0].status === 'fulfilled' ? results[0].value : { ok: false, error: 'Promise rejected' };
+    gatewayAuth = results[1].status === 'fulfilled' ? results[1].value : { ok: false, error: 'Promise rejected' };
+
     // Determine authenticated status from gateway response
     const authenticated = gatewayAuth.ok && 
       (gatewayAuth.data?.authenticated === true || 
        gatewayAuth.data?.iserver?.authStatus?.authenticated === true);
 
-    // Always include gateway field - even if it fails
+    // ALWAYS include gateway field - even if it fails
     const response = {
       ok: true,
       bridge: bridgeHealth,
       gateway: gatewayAuth,
-      authenticated,
+      authenticated: authenticated || false,
+      _debug: {
+        gatewayBase: process.env.IBKR_GATEWAY_URL || process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL || 'using default',
+      },
     };
 
     return NextResponse.json(response);
   } catch (e: any) {
     console.error('[ibkr/status] Error:', e);
     return NextResponse.json(
-      { ok: false, error: e?.message ?? 'Unknown error' },
+      { 
+        ok: false, 
+        error: e?.message ?? 'Unknown error',
+        bridge: bridgeHealth,
+        gateway: gatewayAuth,
+      },
       { status: 500 }
     );
   }

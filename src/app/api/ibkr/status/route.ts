@@ -84,10 +84,15 @@ export async function GET() {
       },
     };
 
-    return NextResponse.json(response);
+    const r = NextResponse.json(response);
+    // Force no-cache to prevent server/CDN caching
+    r.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    r.headers.set('Pragma', 'no-cache');
+    r.headers.set('Expires', '0');
+    return r;
   } catch (e: any) {
     console.error('[ibkr/status] Error:', e);
-    return NextResponse.json(
+    const r = NextResponse.json(
       { 
         ok: false, 
         error: e?.message ?? 'Unknown error',
@@ -96,5 +101,10 @@ export async function GET() {
       },
       { status: 500 }
     );
+    // Force no-cache even on errors
+    r.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    r.headers.set('Pragma', 'no-cache');
+    r.headers.set('Expires', '0');
+    return r;
   }
 }

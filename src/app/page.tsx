@@ -85,6 +85,40 @@ export default function HomePage() {
     fetchAllData();
   }, []);
 
+  // Re-check authentication status when tab becomes visible (user returns from 2FA)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      // If we're in "connecting" state and tab becomes visible, check status immediately
+      if (document.visibilityState === 'visible' && ibkrAuth === "connecting") {
+        console.log('[IBKR] Tab visible, checking auth status...');
+        
+        // Check immediately, then a few more times with short delays
+        for (let i = 0; i < 5; i++) {
+          const { authenticated, data } = await checkIbkrAuthStatus();
+          if (authenticated && data) {
+            console.log('[IBKR] Authentication detected on tab visibility!');
+            setIbkrStatus({
+              bridgeOk: data.bridge?.ok === true,
+              gatewayAuthenticated: true,
+            });
+            setIbkrAuth("authed");
+            // Reload to refresh all data
+            window.location.reload();
+            return;
+          }
+          // Wait 1 second before next check
+          if (i < 4) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        console.log('[IBKR] Auth not detected after tab became visible');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [ibkrAuth]);
+
   // Calculate open risk in R multiples
   // Assuming daily loss limit is from trade plan or default 2000
   const dailyLossLimit = tradePlan?.dailyLossLimitUsd || 2000;
@@ -152,42 +186,56 @@ export default function HomePage() {
           `${order.side} ${order.symbol} ${order.orderType === 'LIMIT' && order.entry ? `@ ${order.entry.toFixed(2)}` : 'market'}`
       ) || [];
 
+  async function checkIbkrAuthStatus(): Promise<{ authenticated: boolean; data?: any }> {
+    try {
+      const res = await fetch(`/api/ibkr/status?ts=${Date.now()}`, { cache: "no-store" });
+      const data = await res.json();
+      
+      console.log('[IBKR Check] Response:', data);
+
+      // Check authentication using the same defensive logic as initial load
+      const isAuthenticated = 
+        data?.authenticated === true ||
+        (data?.gateway?.ok === true && 
+         (data?.gateway?.data?.authenticated === true ||
+          data?.gateway?.status?.authenticated === true ||
+          data?.gateway?.data?.iserver?.authStatus?.authenticated === true));
+
+      console.log('[IBKR Check] Authenticated:', isAuthenticated);
+
+      return { authenticated: isAuthenticated, data };
+    } catch (err) {
+      console.error('[IBKR Check] Error:', err);
+      return { authenticated: false };
+    }
+  }
+
   async function pollIbkrStatus(maxMs = 120000) {
     const start = Date.now();
+    let pollCount = 0;
 
     while (Date.now() - start < maxMs) {
-      try {
-        // cache-bust each poll
-        const res = await fetch(`/api/ibkr/status?ts=${Date.now()}`, { cache: "no-store" });
-        const data = await res.json();
+      pollCount++;
+      console.log(`[IBKR Poll] Attempt ${pollCount}`);
 
-        // Check authentication using the same defensive logic as initial load
-        // Check top-level authenticated field OR nested paths
-        const isAuthenticated = 
-          data?.authenticated === true ||
-          (data?.gateway?.ok === true && 
-           (data?.gateway?.data?.authenticated === true ||
-            data?.gateway?.status?.authenticated === true ||
-            data?.gateway?.data?.iserver?.authStatus?.authenticated === true));
+      const { authenticated, data } = await checkIbkrAuthStatus();
 
-        if (isAuthenticated) {
-          // Update both states immediately when authentication is detected
-          setIbkrStatus({
-            bridgeOk: data.bridge?.ok === true,
-            gatewayAuthenticated: true,
-          });
-          setIbkrAuth("authed");
-          return { ok: true as const, data };
-        }
-      } catch (err) {
-        // Log errors for debugging but keep polling
-        console.warn('[IBKR Poll] Error:', err);
+      if (authenticated && data) {
+        console.log('[IBKR Poll] Authentication detected!');
+        // Update both states immediately when authentication is detected
+        setIbkrStatus({
+          bridgeOk: data.bridge?.ok === true,
+          gatewayAuthenticated: true,
+        });
+        setIbkrAuth("authed");
+        return { ok: true as const, data };
       }
 
       // wait 4s
       await new Promise((r) => setTimeout(r, 4000));
     }
 
+    console.warn('[IBKR Poll] Timeout reached');
     return { ok: false as const, error: "Timed out waiting for IBKR auth" };
   }
 
@@ -240,6 +288,11 @@ export default function HomePage() {
                 {ibkrAuth === "failed" && (
                   <p className="text-xs text-amber-400/80 leading-relaxed mt-1">
                     Auth not detected. Re-open the Gateway tab, complete login + 2FA, then click Connect again.
+                  </p>
+                )}
+                {ibkrAuth === "connecting" && (
+                  <p className="text-xs text-amber-300/80 leading-relaxed mt-1">
+                    Complete login in the Gateway tab, then return here. Status will update automatically.
                   </p>
                 )}
               </div>

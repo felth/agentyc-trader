@@ -73,13 +73,17 @@ export async function GET() {
       (gatewayAuth.data?.authenticated === true || 
        gatewayAuth.data?.iserver?.authStatus?.authenticated === true);
 
-    return NextResponse.json({
+    // Always include gateway field - even if it fails
+    const response = {
       ok: true,
       bridge: bridgeHealth,
       gateway: gatewayAuth,
       authenticated,
-    });
+    };
+
+    return NextResponse.json(response);
   } catch (e: any) {
+    console.error('[ibkr/status] Error:', e);
     return NextResponse.json(
       { ok: false, error: e?.message ?? 'Unknown error' },
       { status: 500 }

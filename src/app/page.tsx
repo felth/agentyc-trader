@@ -55,13 +55,9 @@ export default function HomePage() {
           setTradePlan(planRes.plan);
         }
 
-        // Check status exactly as working commit 216e999
-        // Only set status if response is ok - otherwise leave null (banner won't show until status is checked)
+        // Check status - use the top-level authenticated field computed by API
         if (ibkrRes.ok) {
-          const gatewayAuthenticated = ibkrRes.gateway?.ok === true &&
-            (ibkrRes.gateway?.data?.authenticated === true ||
-             ibkrRes.gateway?.status?.authenticated === true ||
-             ibkrRes.authenticated === true);
+          const gatewayAuthenticated = ibkrRes.authenticated === true;
           
           setIbkrStatus({
             bridgeOk: ibkrRes.bridge?.ok === true,
@@ -90,28 +86,30 @@ export default function HomePage() {
     const handleVisibilityChange = async () => {
       // If we're in "connecting" state and tab becomes visible, check status immediately
       if (document.visibilityState === 'visible' && ibkrAuth === "connecting") {
-        console.log('[IBKR] Tab visible, checking auth status...');
+        console.log('[IBKR] 👁️ Tab visible, checking auth status immediately...');
         
         // Check immediately, then a few more times with short delays
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 10; i++) {
+          console.log(`[IBKR] Visibility check ${i + 1}/10`);
           const { authenticated, data } = await checkIbkrAuthStatus();
           if (authenticated && data) {
-            console.log('[IBKR] Authentication detected on tab visibility!');
+            console.log('[IBKR] ✅ Authentication detected on tab visibility!');
             setIbkrStatus({
               bridgeOk: data.bridge?.ok === true,
               gatewayAuthenticated: true,
             });
             setIbkrAuth("authed");
             // Reload to refresh all data
+            await new Promise(resolve => setTimeout(resolve, 200));
             window.location.reload();
             return;
           }
           // Wait 1 second before next check
-          if (i < 4) {
+          if (i < 9) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
-        console.log('[IBKR] Auth not detected after tab became visible');
+        console.log('[IBKR] ⚠️ Auth not detected after tab became visible (checked 10 times)');
       }
     };
 
@@ -188,24 +186,33 @@ export default function HomePage() {
 
   async function checkIbkrAuthStatus(): Promise<{ authenticated: boolean; data?: any }> {
     try {
-      const res = await fetch(`/api/ibkr/status?ts=${Date.now()}`, { cache: "no-store" });
-      const data = await res.json();
+      const url = `/api/ibkr/status?ts=${Date.now()}`;
+      console.log('[IBKR Check] Fetching:', url);
       
-      console.log('[IBKR Check] Response:', data);
+      const res = await fetch(url, { 
+        cache: "no-store",
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      if (!res.ok) {
+        console.error('[IBKR Check] HTTP error:', res.status, res.statusText);
+        return { authenticated: false };
+      }
+      
+      const data = await res.json();
+      console.log('[IBKR Check] Full response:', JSON.stringify(data, null, 2));
 
-      // Check authentication using the same defensive logic as initial load
-      const isAuthenticated = 
-        data?.authenticated === true ||
-        (data?.gateway?.ok === true && 
-         (data?.gateway?.data?.authenticated === true ||
-          data?.gateway?.status?.authenticated === true ||
-          data?.gateway?.data?.iserver?.authStatus?.authenticated === true));
-
-      console.log('[IBKR Check] Authenticated:', isAuthenticated);
+      // SIMPLIFIED: Just check the top-level authenticated field that the API computes
+      // The API route already does the complex logic and sets authenticated: true/false
+      const isAuthenticated = data?.authenticated === true;
+      
+      console.log('[IBKR Check] Authenticated:', isAuthenticated, '(from data.authenticated:', data?.authenticated, ')');
 
       return { authenticated: isAuthenticated, data };
     } catch (err) {
-      console.error('[IBKR Check] Error:', err);
+      console.error('[IBKR Check] Exception:', err);
       return { authenticated: false };
     }
   }
@@ -213,15 +220,19 @@ export default function HomePage() {
   async function pollIbkrStatus(maxMs = 120000) {
     const start = Date.now();
     let pollCount = 0;
+    const pollInterval = 3000; // Poll every 3 seconds (faster)
+
+    console.log('[IBKR Poll] Starting, will poll for', maxMs / 1000, 'seconds');
 
     while (Date.now() - start < maxMs) {
       pollCount++;
-      console.log(`[IBKR Poll] Attempt ${pollCount}`);
+      const elapsed = Math.floor((Date.now() - start) / 1000);
+      console.log(`[IBKR Poll] Attempt ${pollCount} (${elapsed}s elapsed)`);
 
       const { authenticated, data } = await checkIbkrAuthStatus();
 
       if (authenticated && data) {
-        console.log('[IBKR Poll] Authentication detected!');
+        console.log('[IBKR Poll] ✅ Authentication detected!');
         // Update both states immediately when authentication is detected
         setIbkrStatus({
           bridgeOk: data.bridge?.ok === true,
@@ -229,32 +240,51 @@ export default function HomePage() {
         });
         setIbkrAuth("authed");
         return { ok: true as const, data };
+      } else {
+        console.log(`[IBKR Poll] Not authenticated yet, waiting ${pollInterval / 1000}s...`);
       }
 
-      // wait 4s
-      await new Promise((r) => setTimeout(r, 4000));
+      // Wait before next poll
+      await new Promise((r) => setTimeout(r, pollInterval));
     }
 
-    console.warn('[IBKR Poll] Timeout reached');
+    console.warn('[IBKR Poll] ⏱️ Timeout reached after', maxMs / 1000, 'seconds');
     return { ok: false as const, error: "Timed out waiting for IBKR auth" };
   }
 
   const handleConnectIbkr = async () => {
-    // 1) open gateway login tab (manual login)
-    const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL || "https://ibkr.agentyctrader.com";
-    window.open(GATEWAY_URL, "_blank", "noopener,noreferrer");
+    console.log('[IBKR] Connect button clicked');
+    
+    try {
+      // 1) open gateway login tab (manual login)
+      const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL || "https://ibkr.agentyctrader.com";
+      console.log('[IBKR] Opening Gateway URL:', GATEWAY_URL);
+      window.open(GATEWAY_URL, "_blank", "noopener,noreferrer");
 
-    // 2) start polling your app endpoint until authenticated=true
-    setIbkrAuth("connecting");
+      // 2) start polling your app endpoint until authenticated=true
+      console.log('[IBKR] Setting state to connecting');
+      setIbkrAuth("connecting");
 
-    const result = await pollIbkrStatus(120000); // 2 minutes
-
-    if (result.ok) {
-      // State already updated in pollIbkrStatus, but ensure UI reflects it
-      // Give React a moment to update UI, then reload to fetch fresh data
+      // Small delay to ensure state is set before polling starts
       await new Promise(resolve => setTimeout(resolve, 100));
-      window.location.reload();
-    } else {
+
+      console.log('[IBKR] Starting polling...');
+      const result = await pollIbkrStatus(120000); // 2 minutes
+
+      console.log('[IBKR] Polling finished, result:', result);
+
+      if (result.ok) {
+        console.log('[IBKR] Success! Reloading page...');
+        // State already updated in pollIbkrStatus
+        // Give React a moment to update UI, then reload to fetch fresh data
+        await new Promise(resolve => setTimeout(resolve, 100));
+        window.location.reload();
+      } else {
+        console.error('[IBKR] Polling failed:', result.error);
+        setIbkrAuth("failed");
+      }
+    } catch (err) {
+      console.error('[IBKR] Exception in handleConnectIbkr:', err);
       setIbkrAuth("failed");
     }
   };

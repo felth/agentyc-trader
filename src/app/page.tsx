@@ -27,6 +27,15 @@ export default function HomePage() {
     bridgeOk: boolean;
     gatewayAuthenticated: boolean;
   } | null>(null);
+  const [agentStatus, setAgentStatus] = useState<{
+    safety: {
+      ibkrConnected: boolean;
+      ibkrAuthenticated: boolean;
+    };
+    health: {
+      overall: 'healthy' | 'degraded' | 'unhealthy';
+    };
+  } | null>(null);
   const [ibkrAuth, setIbkrAuth] = useState<"idle" | "connecting" | "authed" | "failed">("idle");
   const pollRef = useRef<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,11 +45,12 @@ export default function HomePage() {
   useEffect(() => {
     async function fetchAllData() {
       try {
-        const [dashboardRes, systemRes, planRes, ibkrRes] = await Promise.all([
+        const [dashboardRes, systemRes, planRes, ibkrRes, agentStatusRes] = await Promise.all([
           fetch("/api/dashboard/home").then((r) => r.json()),
           fetch("/api/system/status").then((r) => r.json()),
           fetch("/api/agent/trade-plan").then((r) => r.json()),
           fetch("/api/ibkr/status").then((r) => r.json()),
+          fetch("/api/agent/status").then((r) => r.json()),
         ]);
 
         if (dashboardRes.ok && dashboardRes.snapshot) {
@@ -55,7 +65,7 @@ export default function HomePage() {
           setTradePlan(planRes.plan);
         }
 
-        // Check status - use the top-level authenticated field computed by API
+        // Check IBKR status - use the top-level authenticated field computed by API
         if (ibkrRes.ok) {
           const gatewayAuthenticated = ibkrRes.authenticated === true;
           
@@ -70,6 +80,19 @@ export default function HomePage() {
           } else {
             setIbkrAuth("idle");
           }
+        }
+
+        // Get agent status for IBKR connection and overall health
+        if (agentStatusRes.ok) {
+          setAgentStatus({
+            safety: {
+              ibkrConnected: agentStatusRes.safety?.ibkrConnected === true,
+              ibkrAuthenticated: agentStatusRes.safety?.ibkrAuthenticated === true,
+            },
+            health: {
+              overall: agentStatusRes.health?.overall || 'unhealthy',
+            },
+          });
         }
       } catch (err) {
         console.error("Failed to fetch home data:", err);
@@ -145,12 +168,14 @@ export default function HomePage() {
   };
 
   // Determine IBKR status for account card
-  const ibkrCardStatus =
-    ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated
-      ? "LIVE"
-      : ibkrStatus?.bridgeOk || ibkrStatus?.gatewayAuthenticated
-      ? "DEGRADED"
-      : "ERROR";
+  // Determine IBKR connection status - use agentStatus.safety OR ibkrStatus.authenticated
+  // This is separate from overall health
+  const isIbkrConnected = 
+    (agentStatus?.safety?.ibkrConnected && agentStatus?.safety?.ibkrAuthenticated) ||
+    (ibkrStatus?.gatewayAuthenticated === true);
+
+  // Determine IBKR status for account card
+  const ibkrCardStatus = isIbkrConnected ? "LIVE" : "ERROR";
 
   // Prepare watchlist items
   const watchlistItems =
@@ -337,14 +362,12 @@ export default function HomePage() {
       </div>
 
       {/* IBKR Connection Status Banner - Only shows when NOT connected */}
-      {(ibkrStatus === null || !ibkrStatus.bridgeOk || !ibkrStatus.gatewayAuthenticated) && (
+      {/* Use agentStatus.safety OR ibkrStatus.authenticated - NOT health.overall */}
+      {!isIbkrConnected && (
         <section className="px-6 pt-4 pb-6">
           <div className="relative rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 backdrop-blur-2xl border border-amber-500/30 p-4 shadow-[0_8px_24px_rgba(245,99,0,0.2)]">
             <div className="flex items-start justify-between gap-3">
-              {(() => {
-                console.log('[IBKR UI] Rendering banner, ibkrAuth:', ibkrAuth, 'ibkrStatus:', ibkrStatus);
-                return ibkrAuth === "connecting";
-              })() ? (
+              {ibkrAuth === "connecting" ? (
                 <div className="flex-1 space-y-2">
                   <h3 className="text-sm font-bold text-amber-400">Waiting for IBKR authentication</h3>
                   <p className="text-xs text-amber-300/90 leading-relaxed">
@@ -499,7 +522,14 @@ export default function HomePage() {
         items={[
           {
             label: "IBKR",
-            status: ibkrStatus?.bridgeOk && ibkrStatus?.gatewayAuthenticated ? "LIVE" : "ERROR",
+            // Use agentStatus.safety OR ibkrStatus.authenticated - NOT health.overall
+            status: isIbkrConnected ? "LIVE" : "ERROR",
+          },
+          {
+            label: "SYSTEM",
+            // Overall health is separate from IBKR connection
+            status: agentStatus?.health?.overall === 'healthy' ? "LIVE" :
+                    agentStatus?.health?.overall === 'degraded' ? "DEGRADED" : "ERROR",
           },
           {
             label: "MARKET FEED",

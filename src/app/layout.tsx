@@ -2,9 +2,27 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { BottomNav } from "../components/layout/BottomNav";
 import { TopNav } from "../components/layout/TopNav";
+import { APP_METADATA } from "@/lib/config/app";
 
 export const metadata: Metadata = {
-  title: "Agentyc Trader"
+  title: APP_METADATA.title,
+  description: APP_METADATA.description,
+  metadataBase: new URL(APP_METADATA.url),
+  alternates: {
+    canonical: APP_METADATA.url,
+  },
+  openGraph: {
+    title: APP_METADATA.title,
+    description: APP_METADATA.description,
+    url: APP_METADATA.url,
+    siteName: APP_METADATA.siteName,
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: APP_METADATA.title,
+    description: APP_METADATA.description,
+  },
 };
 
 export const viewport: Viewport = {

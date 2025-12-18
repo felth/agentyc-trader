@@ -31,7 +31,7 @@ export function AccountSnapshotCard({
         <div className="rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] backdrop-blur-2xl border border-white/15 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.4)] group-hover:border-ultra-accent/70 group-hover:shadow-ultra-accent/20 transition-all duration-300">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-bold text-white">Account</h3>
-            <span className="text-[10px] text-white/40 uppercase tracking-wider">Source: Interactive Brokers (live)</span>
+            <span className="text-[10px] text-white/40 uppercase tracking-wider">Source: Primary Broker (live)</span>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -77,7 +77,7 @@ export function AccountSnapshotCard({
           </div>
             
             <div className="mt-4 flex items-center justify-between text-[11px] text-white/50 pt-4 border-t border-white/10">
-              <span>SOURCE: INTERACTIVE BROKERS (LIVE)</span>
+              <span>SOURCE: PRIMARY BROKER (LIVE)</span>
               <span className="inline-flex items-center gap-1 text-white/60 group-hover:text-white/90 transition-colors">
                 View full performance
                 <span className="inline-block translate-x-0 group-hover:translate-x-0.5 transition-transform">→</span>

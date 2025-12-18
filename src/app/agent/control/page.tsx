@@ -288,9 +288,9 @@ export default function AgentControlPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-white/80">IBKR Connection</span>
+                <span className="text-white/80">Broker Connection</span>
                 <SourceStatusBadge
-                  provider="IBKR"
+                  provider="BROKER"
                   status={status.safety.ibkrConnected && status.safety.ibkrAuthenticated ? 'LIVE' : 'ERROR'}
                 />
               </div>

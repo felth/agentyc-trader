@@ -21,7 +21,7 @@ export default function PnLBreakdownCard({
 }: PnLBreakdownCardProps) {
   return (
     <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
-      <SourceStatusBadge provider="IBKR" status={status} />
+      <SourceStatusBadge provider="BROKER" status={status} />
       
       <h2 className="text-[18px] font-bold text-white mb-6">PnL Breakdown</h2>
 

@@ -62,7 +62,7 @@ export default function PerformanceHero({
                   <span className="text-xs text-white/70">This month:</span>
                   <span className="ml-2 text-sm font-bold text-white/50">+0.0R</span>
                   <span className="ml-1 text-xs text-white/50">(+$0.00)</span>
-                  <p className="text-[10px] text-white/40 mt-1">Monthly realised PnL requires IBKR trade history.</p>
+                  <p className="text-[10px] text-white/40 mt-1">Monthly realised PnL requires broker trade history.</p>
                 </div>
               )}
 

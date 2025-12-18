@@ -59,7 +59,7 @@ export default function AgentContextPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-2">Trading Context</h1>
         <p className="text-sm text-white/60">
-          Live snapshot of your IBKR account + positions as seen by the agent.
+          Live snapshot of your broker account + positions as seen by the agent.
         </p>
       </div>
 

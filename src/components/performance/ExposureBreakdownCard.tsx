@@ -29,7 +29,7 @@ export default function ExposureBreakdownCard({
       href="/performance?tab=exposure"
       className="relative block rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:border-white/25 active:scale-[0.99]"
     >
-      <SourceStatusBadge provider="IBKR" status={status} />
+      <SourceStatusBadge provider="BROKER" status={status} />
       
       <h2 className="text-[18px] font-bold text-white mb-6">Exposure Breakdown</h2>
 

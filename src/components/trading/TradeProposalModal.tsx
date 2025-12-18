@@ -154,7 +154,7 @@ export default function TradeProposalModal({
     if (mode === 'live_assisted') {
       const confirmed = confirm(
         '⚠️ LIVE ASSISTED MODE\n\n' +
-        'This will send a REAL order to IBKR.\n\n' +
+        'This will send a REAL order to broker.\n\n' +
         `Symbol: ${proposal?.ticker}\n` +
         `Side: ${proposal?.side}\n` +
         `Size: ${proposal?.size.units.toFixed(2)} units\n` +

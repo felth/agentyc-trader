@@ -44,7 +44,7 @@ export default function AccountRiskCard({
       href="/performance"
       className="relative block rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:border-white/25 active:scale-[0.99]"
     >
-      <SourceStatusBadge provider="IBKR" status={status} />
+      <SourceStatusBadge provider="BROKER" status={status} />
       
       <div className="grid grid-cols-2 gap-6">
         {/* Left Column */}

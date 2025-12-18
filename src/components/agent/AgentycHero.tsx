@@ -42,7 +42,7 @@ export default function AgentycHero({
                     : "bg-[#FF4D4D]/20 text-[#FF4D4D]"
                 }`}
               >
-                IBKR: {ibkrStatus}
+                BROKER: {ibkrStatus}
               </div>
               <div
                 className={`px-2 py-1 rounded-full text-[10px] font-semibold uppercase ${

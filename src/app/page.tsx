@@ -282,7 +282,7 @@ export default function HomePage() {
     }
 
     console.warn('[IBKR Poll] ⏱️ Timeout reached after', maxMs / 1000, 'seconds');
-    return { ok: false as const, error: "Timed out waiting for IBKR auth" };
+    return { ok: false as const, error: "Timed out waiting for broker auth" };
   }
 
   const handleConnectIbkr = async () => {
@@ -363,7 +363,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* IBKR Connection Status Banner - Only shows when NOT connected */}
+      {/* Broker Connection Status Banner - Only shows when NOT connected */}
       {/* Use agentStatus.safety OR ibkrStatus.authenticated - NOT health.overall */}
       {!isIbkrConnected && (
         <section className="px-6 pt-4 pb-6">
@@ -371,7 +371,7 @@ export default function HomePage() {
             <div className="flex items-start justify-between gap-3">
               {ibkrAuth === "connecting" ? (
                 <div className="flex-1 space-y-2">
-                  <h3 className="text-sm font-bold text-amber-400">Waiting for IBKR authentication</h3>
+                  <h3 className="text-sm font-bold text-amber-400">Waiting for broker authentication</h3>
                   <p className="text-xs text-amber-300/90 leading-relaxed">
                     Complete login in the Gateway tab (username, password, 2FA), then return here and tap "Check now".
                   </p>
@@ -393,7 +393,7 @@ export default function HomePage() {
               ) : (
                 <>
                   <div className="flex-1 space-y-2">
-                    <h3 className="text-sm font-bold text-amber-400">IBKR not connected</h3>
+                    <h3 className="text-sm font-bold text-amber-400">Broker not connected</h3>
                     <p className="text-xs text-amber-300/90 leading-relaxed">
                       To refresh your live brokerage data, tap Connect and complete login in the Gateway window.
                     </p>
@@ -407,7 +407,7 @@ export default function HomePage() {
                     onClick={handleConnectIbkr}
                     className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors duration-200 whitespace-nowrap"
                   >
-                    Connect IBKR
+                    Connect Broker
                   </button>
                 </>
               )}
@@ -527,7 +527,7 @@ export default function HomePage() {
       <SystemHealthFooter
         items={[
           {
-            label: "IBKR",
+            label: "BROKER",
             // Use agentStatus.safety OR ibkrStatus.authenticated - NOT health.overall
             status: isIbkrConnected ? "LIVE" : "ERROR",
           },

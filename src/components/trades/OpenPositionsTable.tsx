@@ -30,9 +30,9 @@ export default function OpenPositionsTable({
   if (positions.length === 0) {
     return (
       <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
-        <SourceStatusBadge provider="IBKR" status={status} />
+        <SourceStatusBadge provider="BROKER" status={status} />
         <div className="space-y-2">
-          <p className="text-sm text-white/50">No open positions in your IBKR account.</p>
+          <p className="text-sm text-white/50">No open positions in your broker account.</p>
         </div>
       </div>
     );
@@ -41,7 +41,7 @@ export default function OpenPositionsTable({
   return (
     <>
       <div className="relative rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-6">
-        <SourceStatusBadge provider="IBKR" status={status} />
+        <SourceStatusBadge provider="BROKER" status={status} />
         <h2 className="text-[18px] font-bold text-white mb-4">Open Positions</h2>
 
         <div className="overflow-x-auto">

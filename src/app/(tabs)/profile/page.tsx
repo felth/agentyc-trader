@@ -143,7 +143,7 @@ function ProfileContent() {
         <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-white mb-0.5">Interactive Brokers</p>
+              <p className="text-sm font-bold text-white mb-0.5">Primary Broker</p>
               <p className="text-xs text-slate-400 font-medium">Live account connection</p>
             </div>
             <Link
@@ -227,17 +227,17 @@ function ProfileContent() {
             <div>
               <p className="text-sm font-bold text-white mb-2">System Health</p>
               <p className="text-xs text-white/50 mb-4">
-                Diagnostic information for IBKR Gateway, Bridge, and DashboardSnapshot status.
+                Diagnostic information for Broker Gateway, Bridge, and DashboardSnapshot status.
               </p>
             </div>
             <div className="space-y-3 pt-3 border-t border-white/5">
               <div>
-                <p className="text-xs text-slate-400 mb-1">IBKR Bridge</p>
+                <p className="text-xs text-slate-400 mb-1">Broker Bridge</p>
                 <p className="text-sm text-white/50">Check bridge health endpoint</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400 mb-1">Gateway Auth Status</p>
-                <p className="text-sm text-white/50">IBKR Client Portal Gateway authentication state</p>
+                <p className="text-sm text-white/50">Broker Gateway authentication state</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400 mb-1">Last DashboardSnapshot</p>

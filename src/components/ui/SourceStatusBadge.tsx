@@ -1,7 +1,7 @@
 "use client";
 
 type Status = "LIVE" | "OK" | "IDLE" | "DEGRADED" | "ERROR" | "OFF" | "TODO";
-type Provider = "IBKR" | "FMP" | "DERIVED" | "AGENT" | "AGENCY" | "AGENTYC" | "COINGECKO" | "MEMORY" | "JOURNAL";
+type Provider = "BROKER" | "FMP" | "DERIVED" | "AGENT" | "AGENCY" | "AGENTYC" | "COINGECKO" | "MEMORY" | "JOURNAL";
 
 const statusColors: Record<Status, string> = {
   LIVE: "#00FF7F",

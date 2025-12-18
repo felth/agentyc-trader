@@ -33,58 +33,49 @@ export default function MarketRegimeCard({
       ? "text-[#FF4D4D]"
       : "text-[#FFBF00]";
 
+  // Truncate summary to max 90 chars
+  const truncatedSummary = summary.length > 90 ? summary.substring(0, 87) + "..." : summary;
+
   return (
     <Link
       href="/market"
-      className="relative block rounded-[24px] bg-white/[0.08] backdrop-blur-xl border border-white/15 p-7 cursor-pointer transition-all duration-150 hover:scale-[1.01] hover:border-white/25 active:scale-[0.99]"
+      className="relative block rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/5 p-5 cursor-pointer transition-all duration-150 hover:bg-white/[0.05] hover:border-white/10 active:scale-[0.99]"
     >
       {agentHint && <div className="absolute top-2 left-4 z-10">{agentHint}</div>}
-      {/* Status badges - positioned below hint to avoid overlap */}
-      <div className="absolute top-10 right-4 flex flex-col gap-1 items-end">
-        <span className="text-[11px] uppercase font-semibold tracking-wide" style={{ color: fmpStatus === "LIVE" ? "#00FF7F" : fmpStatus === "DEGRADED" ? "#FFBF00" : "#FF4D4D" }}>
-          FMP • {fmpStatus}
-        </span>
-        <span className="text-[11px] uppercase font-semibold tracking-wide" style={{ color: derivedStatus === "OK" ? "#7FE1FF" : derivedStatus === "DEGRADED" ? "#FFBF00" : "#FF4D4D" }}>
-          DERIVED • {derivedStatus}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-6 pt-2">
-        {/* Left Metrics */}
-        <div className="space-y-4">
+      
+      <div className="flex items-center justify-between gap-4 pr-20">
+        {/* Left: Metrics */}
+        <div className="flex items-center gap-6 flex-1 min-w-0">
           <div>
-            <p className="text-[12px] text-white/50 uppercase tracking-wider font-medium mb-1">
-              Trend Regime
+            <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium mb-1">
+              Trend
             </p>
-            <p className={`text-xl font-semibold ${regimeColor}`}>
+            <p className={`text-[16px] font-semibold ${regimeColor}`}>
               {trendRegime}
             </p>
           </div>
 
           <div>
-            <p className="text-[12px] text-white/50 uppercase tracking-wider font-medium mb-1">
-              Volatility State
+            <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium mb-1">
+              Volatility
             </p>
-            <p className="text-[14px] font-medium text-white">
+            <p className="text-[14px] font-medium text-white truncate">
               {volatilityState}
             </p>
           </div>
 
           <div>
-            <p className="text-[12px] text-white/50 uppercase tracking-wider font-medium mb-1">
+            <p className="text-[10px] text-white/50 uppercase tracking-wider font-medium mb-1">
               Session
             </p>
             <p className="text-[14px] font-medium text-white">{session}</p>
           </div>
         </div>
 
-        {/* Right Summary */}
-        <div>
-          <p className="text-[12px] text-white/50 uppercase tracking-wider font-medium mb-2">
-            Context
-          </p>
-          <p className="text-[14px] leading-relaxed text-white/80">
-            {summary}
+        {/* Right: Summary (single line) */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[14px] text-white/80 leading-tight truncate">
+            {truncatedSummary}
           </p>
         </div>
       </div>

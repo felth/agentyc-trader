@@ -2,15 +2,17 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import HeroSection from "@/components/home/HeroSection";
-import AccountRiskCard from "@/components/home/AccountRiskCard";
-import PositionsSnapshot from "@/components/home/PositionsSnapshot";
+import AccountSnapshotStrip from "@/components/home/AccountSnapshotStrip";
+import PositionsTopImpact from "@/components/home/PositionsTopImpact";
+import RiskGuardrailsCard from "@/components/home/RiskGuardrailsCard";
+import NextActionCard from "@/components/home/NextActionCard";
 import MarketRegimeCard from "@/components/home/MarketRegimeCard";
 import InteractiveWatchlist from "@/components/home/InteractiveWatchlist";
 import NewsRiskEvents from "@/components/home/NewsRiskEvents";
-import AgentTradePlanCard from "@/components/home/AgentTradePlanCard";
 import SystemHealthFooter from "@/components/home/SystemHealthFooter";
-import AgentHintTag from "@/components/ui/AgentHintTag";
+import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import AgentStatusBadge from "@/components/ui/AgentStatusBadge";
+import AgentHintTag from "@/components/ui/AgentHintTag";
 import { getRiskSeverity } from "@/lib/riskUtils";
 import type { DashboardSnapshot } from "@/lib/data/dashboard";
 import type { TradePlan } from "@/lib/agent/tradeSchema";
@@ -415,106 +417,110 @@ export default function HomePage() {
       )}
 
       {/* Dashboard Content Section */}
-      <section className="px-6 pb-32 flex flex-col gap-9">
-        {/* Section 2: Account & Risk */}
-        <div>
-          <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-            Today's Account & Risk
-          </h2>
-          {dashboard?.account && (
-          <AccountRiskCard
-            netLiquidity={dashboard.account.equity}
-            buyingPower={dashboard.account.buyingPower}
-            dailyPnl={dailyPnl}
-            openRiskR={openRiskR}
-            positionsCount={dashboard.positions?.length || 0}
-            status={ibkrCardStatus}
+      <section className="px-6 pb-32 flex flex-col gap-6">
+        {/* Section A: Account Snapshot Strip - Compact metrics at a glance */}
+        {dashboard?.account && (
+          <AccountSnapshotStrip
+            metrics={[
+              { 
+                label: "Net Liquidity", 
+                value: dashboard.account.equity || 0, 
+                href: "/performance" 
+              },
+              { 
+                label: "Day P&L", 
+                value: dailyPnl, 
+                href: "/performance" 
+              },
+              { 
+                label: "Unrealized", 
+                value: dashboard.account.unrealizedPnl || 0, 
+                href: "/trades" 
+              },
+              { 
+                label: "Buying Power", 
+                value: dashboard.account.buyingPower || 0, 
+                href: "/performance" 
+              },
+              { 
+                label: "Margin Used", 
+                value: (dashboard.account.equity || 0) - (dashboard.account.buyingPower || 0), 
+                href: "/performance" 
+              },
+              { 
+                label: "Risk", 
+                value: `${openRiskR.toFixed(1)}R`, 
+                href: "/performance" 
+              },
+            ]}
           />
         )}
-      </div>
 
-      {/* Section 3: Positions Snapshot */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Open Positions
-        </h2>
-        <PositionsSnapshot
+        {/* Section B: Positions That Matter - Top 5 by impact */}
+        <PositionsTopImpact
           positions={
             dashboard?.positions?.map((pos) => ({
               symbol: pos.symbol,
-              unrealizedPnl: pos.unrealizedPnl,
               quantity: pos.quantity,
-              correlationAlert: false, // TODO: Calculate correlations
+              unrealizedPnl: pos.unrealizedPnl,
+              percentMove: pos.avgPrice > 0 
+                ? ((pos.marketPrice - pos.avgPrice) / pos.avgPrice) * 100 
+                : 0,
+              marketPrice: pos.marketPrice,
+              avgPrice: pos.avgPrice,
             })) || []
           }
-          status={ibkrCardStatus}
-          agentHint={<AgentHintTag text="correlation watch" />}
         />
-      </div>
 
-      {/* Section 4: Market Regime Context */}
+        {/* Section C: Risk Guardrails - Safety at a glance */}
+        <RiskGuardrailsCard
+          dailyPnl={dailyPnl}
+          dailyLimit={dailyLossLimit}
+          openRiskR={openRiskR}
+        />
+
+      {/* Section D: Market Regime - Compact summary */}
       <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Market Regime (Agency View)
+        <h2 className="text-[#9EA6AE] text-[13px] uppercase tracking-[0.08em] mb-2 px-6">
+          Market Regime
         </h2>
+        <div className="px-6">
         <MarketRegimeCard
           trendRegime="RANGE" // TODO: Derive from market data
-          volatilityState="ATR 45th percentile" // TODO: Calculate from ATR
+          volatilityState="ATR 45th" // TODO: Calculate from ATR
           session={getCurrentSession()}
           summary="Stability. Low volatility. Best setups: pullbacks to support."
           fmpStatus="LIVE"
           derivedStatus="OK"
           agentHint={<AgentHintTag text="conditions assessed" />}
         />
+        </div>
       </div>
 
-      {/* Section 5: Interactive Watchlist */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Watchlist
-        </h2>
-        {watchlistItems.length > 0 && (
+      {/* Section E: Next Action - Single primary CTA */}
+      <NextActionCard
+        action={actionableBullets?.[0]}
+        riskSeverity={riskSeverity}
+        imminentHighImpact={imminentHighImpact}
+        onViewPlan={() => window.location.href = "/agent"}
+      />
+
+      {/* Section F: Secondary Content - Collapsible */}
+      {watchlistItems.length > 0 && (
+        <CollapsibleSection title="Watchlist" defaultCollapsed={true}>
           <InteractiveWatchlist items={watchlistItems} />
-        )}
-      </div>
+        </CollapsibleSection>
+      )}
 
-      {/* Section 6: News & Risk Events */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Upcoming Risk Events
-        </h2>
-        {calendarEvents.length > 0 && (
+      {calendarEvents.length > 0 && (
+        <CollapsibleSection title="Upcoming Risk Events" defaultCollapsed={true}>
           <NewsRiskEvents 
             events={calendarEvents} 
             status="LIVE"
             onImminentHighImpact={setImminentHighImpact}
           />
-        )}
-      </div>
-
-      {/* Section 7: Agency Trade Plan */}
-      <div>
-        <h2 className="text-[#9EA6AE] text-[15px] uppercase tracking-[0.08em] mb-2">
-          Trade Plan
-        </h2>
-        <AgentTradePlanCard
-          defaultSymbol="SPX"
-          hasPlan={!!tradePlan && (tradePlan.orders?.length || 0) > 0}
-          actionableBullets={actionableBullets}
-          status={tradePlan ? "LIVE" : "IDLE"}
-          riskSeverity={riskSeverity}
-          imminentHighImpact={imminentHighImpact}
-          onGeneratePlan={async () => {
-            const res = await fetch("/api/agent/trade-plan", { method: "POST" });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.ok && data.plan) {
-                setTradePlan(data.plan);
-              }
-            }
-          }}
-        />
-      </div>
+        </CollapsibleSection>
+      )}
       </section>
 
       {/* System Health Footer */}

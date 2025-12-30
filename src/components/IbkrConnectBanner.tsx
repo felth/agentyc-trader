@@ -73,8 +73,12 @@ export default function IbkrConnectBanner() {
   // authenticated state only affects the UI content (badge, message, button text)
 
   // ALWAYS render the banner - never hide it based on state
+  // Using inline style to ensure visibility (defense against CSS hiding)
   return (
-    <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+    <div 
+      className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+      style={{ display: 'block' }}
+    >
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">

@@ -26,8 +26,11 @@ export default function HomePage() {
   } | null>(null);
   const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
   const [ibkrStatus, setIbkrStatus] = useState<{
-    bridgeOk: boolean;
-    gatewayAuthenticated: boolean;
+    ok?: boolean;
+    bridge?: { ok?: boolean };
+    authenticated?: boolean;
+    gatewayAuthenticated?: boolean;
+    gateway?: { authenticated?: boolean; connected?: boolean; status?: number };
   } | null>(null);
   const [agentStatus, setAgentStatus] = useState<{
     safety: {
@@ -72,8 +75,11 @@ export default function HomePage() {
           const gatewayAuthenticated = ibkrRes.authenticated === true;
           
           setIbkrStatus({
-            bridgeOk: ibkrRes.bridge?.ok === true,
+            ok: ibkrRes.ok,
+            bridge: { ok: ibkrRes.bridge?.ok === true ? true : undefined },
+            authenticated: ibkrRes.authenticated,
             gatewayAuthenticated,
+            gateway: ibkrRes.gateway,
           });
           
           // Update ibkrAuth state based on authentication
@@ -120,8 +126,11 @@ export default function HomePage() {
           if (authenticated && data) {
             console.log('[IBKR] ✅ Authentication auto-detected!');
             setIbkrStatus({
-              bridgeOk: data.bridge?.ok === true,
+              ok: data.ok,
+              bridge: { ok: data.bridge?.ok === true ? true : undefined },
+              authenticated: data.authenticated,
               gatewayAuthenticated: true,
+              gateway: data.gateway,
             });
             setIbkrAuth("authed");
             // Reload to refresh all data
@@ -170,11 +179,12 @@ export default function HomePage() {
   };
 
   // Determine IBKR status for account card
-  // Determine IBKR connection status - use agentStatus.safety OR ibkrStatus.authenticated
+  // Determine IBKR connection status - use agentStatus.safety OR ibkrStatus
   // This is separate from overall health
   const isIbkrConnected = 
     (agentStatus?.safety?.ibkrConnected && agentStatus?.safety?.ibkrAuthenticated) ||
-    (ibkrStatus?.gatewayAuthenticated === true);
+    (ibkrStatus?.gatewayAuthenticated === true) ||
+    (ibkrStatus?.authenticated === true && ibkrStatus?.gateway?.connected === true);
 
   // Determine IBKR status for account card
   const ibkrCardStatus = isIbkrConnected ? "LIVE" : "ERROR";
@@ -268,8 +278,11 @@ export default function HomePage() {
         console.log('[IBKR Poll] ✅ Authentication detected!');
         // Update both states immediately when authentication is detected
         setIbkrStatus({
-          bridgeOk: data.bridge?.ok === true,
+          ok: data.ok,
+          bridge: { ok: data.bridge?.ok === true ? true : undefined },
+          authenticated: data.authenticated,
           gatewayAuthenticated: true,
+          gateway: data.gateway,
         });
         setIbkrAuth("authed");
         return { ok: true as const, data };
@@ -304,8 +317,11 @@ export default function HomePage() {
         if (result.ok) {
           console.log('[IBKR] Background polling detected auth!');
           setIbkrStatus({
-            bridgeOk: result.data?.bridge?.ok === true,
+            ok: result.data?.ok,
+            bridge: { ok: result.data?.bridge?.ok === true ? true : undefined },
+            authenticated: result.data?.authenticated,
             gatewayAuthenticated: true,
+            gateway: result.data?.gateway,
           });
           setIbkrAuth("authed");
           window.location.reload();
@@ -330,8 +346,11 @@ export default function HomePage() {
       if (authenticated && data) {
         console.log('[IBKR] ✅ Authentication detected via Check Now!');
         setIbkrStatus({
-          bridgeOk: data.bridge?.ok === true,
+          ok: data.ok,
+          bridge: { ok: data.bridge?.ok === true ? true : undefined },
+          authenticated: data.authenticated,
           gatewayAuthenticated: true,
+          gateway: data.gateway,
         });
         setIbkrAuth("authed");
         // Reload to refresh all data

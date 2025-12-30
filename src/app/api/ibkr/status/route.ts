@@ -21,9 +21,14 @@ async function getGatewayAuthStatus() {
 
     if (res.status === 200) {
       const data = await res.json();
+      // Check if authenticated from the response data
+      const isAuthenticated = data?.authenticated === true || 
+                              data?.iserver?.authStatus?.authenticated === true;
       return {
         ok: true,
         status: res.status,
+        authenticated: isAuthenticated,
+        connected: isAuthenticated, // If authenticated, consider connected
         data,
       };
     } else if (res.status === 401) {

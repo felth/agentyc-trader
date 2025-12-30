@@ -15,17 +15,15 @@ type IbkrStatus = {
 const SSO_URL = "https://ibkr.agentyctrader.com/sso/Login?forwardTo=22&RL=1";
 
 export default function IbkrConnectBanner() {
-  // Initialize with explicit false state - banner should always show when not authenticated
+  // Default to showing banner until proven connected
+  // Banner shows when NOT authenticated OR NOT connected
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState<boolean>(false);
+  const [status, setStatus] = useState<IbkrStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadStatus = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
-    // Default to not authenticated - only set to true if explicitly true
-    let isAuthenticated = false;
     
     try {
       const res = await fetch("/api/ibkr/status", { 
@@ -41,37 +39,50 @@ export default function IbkrConnectBanner() {
         authenticated: false 
       }));
       
-      // ONLY set authenticated to true if:
-      // 1. Response is ok (data.ok === true)
-      // 2. AND authenticated field is explicitly true
-      // Any other case = not authenticated (including undefined, null, false, errors)
-      if (data && data.ok === true && data.authenticated === true) {
-        isAuthenticated = true;
-      } else {
-        // Explicitly false for all other cases
-        isAuthenticated = false;
-        if (!data || data.ok === false) {
-          setError("Status unavailable");
-        }
-      }
+      setStatus(data);
       
-      setAuthenticated(isAuthenticated);
+      // Set error if there's a problem, but don't hide banner
+      if (!data || data.ok === false) {
+        setError("Status unavailable");
+      }
     } catch (e: any) {
-      // On any error, ensure authenticated is false - banner stays visible
+      // On any error, keep banner visible
       setError(e?.message || "Status fetch failed");
-      setAuthenticated(false);
+      setStatus(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    
+    // Load immediately
     loadStatus();
+    
+    // Poll every 10 seconds to keep status accurate
+    const interval = setInterval(() => {
+      if (!cancelled) {
+        loadStatus();
+      }
+    }, 10000);
+    
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [loadStatus]);
 
-  // Banner ALWAYS renders - never conditionally hidden
-  // authenticated state only affects the UI content (badge, message, button text)
+  // Determine connection status: show banner unless BOTH authenticated AND connected
+  const authenticated = status?.authenticated === true || status?.gateway?.authenticated === true;
+  const connected = status?.gateway?.connected === true;
+  const isFullyConnected = authenticated && connected;
+  const gatewayStatus = status?.gateway?.status;
 
+  // Banner ALWAYS renders - never conditionally hidden
+  // Only hide if BOTH authenticated AND connected are true
+  // Default to showing (isFullyConnected starts as false)
+  
   // ALWAYS render the banner - never hide it based on state
   // Using inline style to ensure visibility (defense against CSS hiding)
   return (
@@ -83,12 +94,12 @@ export default function IbkrConnectBanner() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-bold text-white">IBKR Connection</span>
-            {authenticated && (
+            {isFullyConnected && (
               <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-ultra-positive/20 text-ultra-positive border border-ultra-positive/40">
                 CONNECTED
               </span>
             )}
-            {!authenticated && !loading && (
+            {!isFullyConnected && !loading && (
               <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-white/10 text-white/70 border border-white/20">
                 NOT CONNECTED
               </span>
@@ -97,10 +108,13 @@ export default function IbkrConnectBanner() {
           <p className="text-xs text-slate-400 font-medium">
             {loading
               ? "Checking status…"
-              : authenticated
+              : isFullyConnected
                 ? "Connected to Interactive Brokers"
                 : "Login required to connect your IBKR account"}
             {error && !loading && ` (${error})`}
+            {!loading && typeof gatewayStatus === 'number' && (
+              <span className="ml-2 text-white/50">Gateway: {gatewayStatus}</span>
+            )}
           </p>
         </div>
 
@@ -114,7 +128,7 @@ export default function IbkrConnectBanner() {
             {loading ? "..." : "Refresh"}
           </button>
 
-          {authenticated ? (
+          {isFullyConnected ? (
             <a
               href={SSO_URL}
               target="_blank"

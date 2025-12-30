@@ -142,9 +142,9 @@ function ProfileContent() {
           <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Connections</h2>
         </div>
         
-        {/* IBKR Connection Banner - Always visible */}
-        <div className="mb-4">
-          <IbkrConnectBanner />
+        {/* IBKR Connection Banner - Always visible, never conditionally rendered */}
+        <div className="mb-4" key="ibkr-connect-banner-container">
+          <IbkrConnectBanner key="ibkr-connect-banner" />
         </div>
         
         <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-4">

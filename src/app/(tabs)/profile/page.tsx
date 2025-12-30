@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { TabPage } from "../../../components/layout/TabPage";
 import { MEMORY_CORPUS_INDEX, MEMORY_PLAYBOOK_INDEX, MEMORY_JOURNAL_INDEX } from "@/lib/constants/memory";
+import IbkrConnectBanner from "@/components/IbkrConnectBanner";
 
 function ProfileContent() {
   const pathname = usePathname();
@@ -140,19 +141,13 @@ function ProfileContent() {
         <div className="flex items-center justify-between mb-3 px-1">
           <h2 className="text-[11px] uppercase tracking-[0.15em] font-bold text-ultra-accent">Connections</h2>
         </div>
+        
+        {/* IBKR Connection Banner - Always visible */}
+        <div className="mb-4">
+          <IbkrConnectBanner />
+        </div>
+        
         <div className="rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-white mb-0.5">Primary Broker</p>
-              <p className="text-xs text-slate-400 font-medium">Live account connection</p>
-            </div>
-            <Link
-              href="/"
-              className="text-xs text-ultra-accent font-bold hover:text-ultra-accentHover transition-colors"
-            >
-              Manage connection
-            </Link>
-          </div>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-bold text-white mb-0.5">Market Data (FMP)</p>

@@ -1,0 +1,21 @@
+[Unit]
+Description=Agentyc Trader Next.js App
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/agentyc-trader
+# Load environment variables from .env.production
+EnvironmentFile=/opt/agentyc-trader/.env.production
+# Execute Next.js directly (bypasses npm to ensure env vars are preserved)
+ExecStart=/usr/bin/node node_modules/.bin/next start --port 3001
+Restart=on-failure
+RestartSec=5
+User=root
+# Ensure environment variables are passed to child processes
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+

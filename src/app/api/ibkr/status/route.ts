@@ -94,16 +94,17 @@ export async function GET() {
     });
   } catch (e: any) {
     console.error('[ibkr/status] Error:', e);
-    // Force no-cache even on errors
+    // Always return 200 so UI can handle errors gracefully
+    // Don't return 500 - treat errors as "not authenticated" state
     return NextResponse.json(
       { 
-        ok: false, 
-        error: e?.message ?? 'Unknown error',
+        ok: true,  // Changed from false - UI expects ok:true to show banner
+        authenticated: false,
         bridge: bridgeHealth,
-        gateway: gatewayAuth,
+        gateway: gatewayAuth.ok ? gatewayAuth : { ok: false, error: e?.message ?? 'Unknown error' },
       },
       { 
-        status: 500,
+        status: 200,  // Always return 200, not 500
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
           'Pragma': 'no-cache',

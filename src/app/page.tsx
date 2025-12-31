@@ -26,12 +26,19 @@ export default function HomePage() {
   } | null>(null);
   const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
   const [ibkrStatus, setIbkrStatus] = useState<{
-    ok?: boolean;
-    bridge?: { ok?: boolean };
+
+  ok?: boolean;
+  bridge?: { ok?: boolean };
+  authenticated?: boolean;
+  gatewayAuthenticated?: boolean;
+  gateway?: {
     authenticated?: boolean;
-    gatewayAuthenticated?: boolean;
-    gateway?: { authenticated?: boolean; connected?: boolean; status?: number };
-  } | null>(null);
+    connected?: boolean;
+    status?: number;
+  };
+} | null>(null);
+
+
   const [agentStatus, setAgentStatus] = useState<{
     safety: {
       ibkrConnected: boolean;
@@ -81,6 +88,16 @@ export default function HomePage() {
             gatewayAuthenticated,
             gateway: ibkrRes.gateway,
           });
+  ok: ibkrRes?.ok === true,
+  bridge: { ok: ibkrRes?.bridge?.ok === true },
+  authenticated: gatewayAuthenticated,
+  gatewayAuthenticated: gatewayAuthenticated,
+  gateway: {
+    authenticated: gatewayAuthenticated,
+    connected: ibkrRes?.gateway?.connected === true,
+    status: ibkrRes?.gateway?.status,
+  },
+});
           
           // Update ibkrAuth state based on authentication
           if (gatewayAuthenticated) {
@@ -132,6 +149,9 @@ export default function HomePage() {
               gatewayAuthenticated: true,
               gateway: data.gateway,
             });
+  bridge: { ok: data.bridge?.ok === true },
+  gatewayAuthenticated: true,
+});
             setIbkrAuth("authed");
             // Reload to refresh all data
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -185,6 +205,16 @@ export default function HomePage() {
     (agentStatus?.safety?.ibkrConnected && agentStatus?.safety?.ibkrAuthenticated) ||
     (ibkrStatus?.gatewayAuthenticated === true) ||
     (ibkrStatus?.authenticated === true && ibkrStatus?.gateway?.connected === true);
+  const gwAuth =
+  ibkrStatus?.authenticated === true ||
+  ibkrStatus?.gateway?.authenticated === true;
+
+const gwConnected =
+  ibkrStatus?.gateway?.connected === true;
+
+const isIbkrConnected =
+  (agentStatus?.safety?.ibkrConnected && agentStatus?.safety?.ibkrAuthenticated) ||
+  (gwAuth && gwConnected);
 
   // Determine IBKR status for account card
   const ibkrCardStatus = isIbkrConnected ? "LIVE" : "ERROR";
@@ -281,6 +311,7 @@ export default function HomePage() {
           ok: data.ok,
           bridge: { ok: data.bridge?.ok === true ? true : undefined },
           authenticated: data.authenticated,
+          bridge: { ok: data.bridge?.ok === true },
           gatewayAuthenticated: true,
           gateway: data.gateway,
         });
@@ -320,6 +351,7 @@ export default function HomePage() {
             ok: result.data?.ok,
             bridge: { ok: result.data?.bridge?.ok === true ? true : undefined },
             authenticated: result.data?.authenticated,
+            bridge: { ok: result.data?.bridge?.ok === true },
             gatewayAuthenticated: true,
             gateway: result.data?.gateway,
           });
@@ -349,6 +381,7 @@ export default function HomePage() {
           ok: data.ok,
           bridge: { ok: data.bridge?.ok === true ? true : undefined },
           authenticated: data.authenticated,
+          bridge: { ok: data.bridge?.ok === true },
           gatewayAuthenticated: true,
           gateway: data.gateway,
         });

@@ -88,16 +88,7 @@ export default function HomePage() {
             gatewayAuthenticated,
             gateway: ibkrRes.gateway,
           });
-  ok: ibkrRes?.ok === true,
-  bridge: { ok: ibkrRes?.bridge?.ok === true },
-  authenticated: gatewayAuthenticated,
-  gatewayAuthenticated: gatewayAuthenticated,
-  gateway: {
-    authenticated: gatewayAuthenticated,
-    connected: ibkrRes?.gateway?.connected === true,
-    status: ibkrRes?.gateway?.status,
-  },
-});
+  
           
           // Update ibkrAuth state based on authentication
           if (gatewayAuthenticated) {
@@ -149,9 +140,7 @@ export default function HomePage() {
               gatewayAuthenticated: true,
               gateway: data.gateway,
             });
-  bridge: { ok: data.bridge?.ok === true },
-  gatewayAuthenticated: true,
-});
+  
             setIbkrAuth("authed");
             // Reload to refresh all data
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -201,10 +190,7 @@ export default function HomePage() {
   // Determine IBKR status for account card
   // Determine IBKR connection status - use agentStatus.safety OR ibkrStatus
   // This is separate from overall health
-  const isIbkrConnected = 
-    (agentStatus?.safety?.ibkrConnected && agentStatus?.safety?.ibkrAuthenticated) ||
-    (ibkrStatus?.gatewayAuthenticated === true) ||
-    (ibkrStatus?.authenticated === true && ibkrStatus?.gateway?.connected === true);
+  
   const gwAuth =
   ibkrStatus?.authenticated === true ||
   ibkrStatus?.gateway?.authenticated === true;
@@ -311,7 +297,6 @@ const isIbkrConnected =
           ok: data.ok,
           bridge: { ok: data.bridge?.ok === true ? true : undefined },
           authenticated: data.authenticated,
-          bridge: { ok: data.bridge?.ok === true },
           gatewayAuthenticated: true,
           gateway: data.gateway,
         });
@@ -351,7 +336,6 @@ const isIbkrConnected =
             ok: result.data?.ok,
             bridge: { ok: result.data?.bridge?.ok === true ? true : undefined },
             authenticated: result.data?.authenticated,
-            bridge: { ok: result.data?.bridge?.ok === true },
             gatewayAuthenticated: true,
             gateway: result.data?.gateway,
           });
@@ -381,7 +365,6 @@ const isIbkrConnected =
           ok: data.ok,
           bridge: { ok: data.bridge?.ok === true ? true : undefined },
           authenticated: data.authenticated,
-          bridge: { ok: data.bridge?.ok === true },
           gatewayAuthenticated: true,
           gateway: data.gateway,
         });

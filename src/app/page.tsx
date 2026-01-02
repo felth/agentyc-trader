@@ -197,10 +197,10 @@ export default function HomePage() {
     dashboard.account.accountId.trim().length > 0;
 
   const hasRealNumber =
-    Number.isFinite(dashboard?.account?.equity) ||
-    Number.isFinite(dashboard?.account?.unrealizedPnl) ||
-    Number.isFinite(dashboard?.account?.buyingPower) ||
-    Number.isFinite(dashboard?.account?.balance);
+  Number.isFinite(Number(dashboard?.account?.equity)) ||
+  Number.isFinite(Number(dashboard?.account?.unrealizedPnl)) ||
+  Number.isFinite(Number(dashboard?.account?.buyingPower)) ||
+  Number.isFinite(Number(dashboard?.account?.balance));
 
   const isIbkrConnected = hasAccountId && hasRealNumber;
 

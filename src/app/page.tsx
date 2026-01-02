@@ -52,6 +52,8 @@ export default function HomePage() {
   const pollRef = useRef<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [imminentHighImpact, setImminentHighImpact] = useState(false);
+  const [ibkrDisconnecting, setIbkrDisconnecting] = useState(false);
+  const [ibkrDisconnectError, setIbkrDisconnectError] = useState<string | null>(null);
 
   // Fetch all data
   useEffect(() => {
@@ -187,20 +189,10 @@ export default function HomePage() {
     return "Closed";
   };
 
-  // Determine IBKR status for account card
-  // Determine IBKR connection status - use agentStatus.safety OR ibkrStatus
-  // This is separate from overall health
-  
-  const gwAuth =
-  ibkrStatus?.authenticated === true ||
-  ibkrStatus?.gateway?.authenticated === true;
-
-const gwConnected =
-  ibkrStatus?.gateway?.connected === true;
-
-const isIbkrConnected =
-  (agentStatus?.safety?.ibkrConnected && agentStatus?.safety?.ibkrAuthenticated) ||
-  (gwAuth && gwConnected);
+  // Determine IBKR connection status - use ibkrStatus ONLY (agentStatus.safety is placeholder)
+  const isIbkrConnected =
+    ibkrStatus?.authenticated === true &&
+    ibkrStatus?.gateway?.connected === true;
 
   // Determine IBKR status for account card
   const ibkrCardStatus = isIbkrConnected ? "LIVE" : "ERROR";
@@ -382,6 +374,42 @@ const isIbkrConnected =
     }
   };
 
+  async function handleDisconnectIbkr() {
+    if (ibkrDisconnecting) return;
+    setIbkrDisconnecting(true);
+    setIbkrDisconnectError(null);
+
+    // same-origin relative paths so cookies/session are included (critical)
+    const endpoints = ["/v1/api/logout", "/v1/api/iserver/auth/logout"];
+
+    let ok = false;
+    let lastStatus: number | null = null;
+
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
+        lastStatus = res.status;
+        if (res.ok) { ok = true; break; }
+      } catch (e) {
+        // continue to next endpoint
+      }
+    }
+
+    // always reload to re-poll status; show error briefly if both fail
+    if (!ok) {
+      setIbkrDisconnectError(`Logout failed${lastStatus ? ` (HTTP ${lastStatus})` : ""}`);
+      // small delay so user sees message before reload is optional; keep minimal:
+      // await new Promise(r => setTimeout(r, 600));
+    }
+
+    setIbkrDisconnecting(false);
+    window.location.reload();
+  }
+
   // Format date and time for hero section
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -558,12 +586,28 @@ const isIbkrConnected =
       )}
       </section>
 
+      {/* Disconnect IBKR Button - Only show when connected */}
+      {isIbkrConnected && (
+        <div className="fixed bottom-14 left-0 right-0 px-6 pb-2 flex flex-col items-center gap-1">
+          <button
+            onClick={handleDisconnectIbkr}
+            disabled={ibkrDisconnecting}
+            className="px-3 py-1 rounded-md text-xs border border-[#2B2F36] text-[#E6EDF3] hover:bg-[#14181F] disabled:opacity-50"
+          >
+            {ibkrDisconnecting ? "Disconnecting…" : "Disconnect"}
+          </button>
+          {ibkrDisconnectError && (
+            <div className="text-xs text-[#FF6B6B]">{ibkrDisconnectError}</div>
+          )}
+        </div>
+      )}
+
       {/* System Health Footer */}
       <SystemHealthFooter
         items={[
           {
             label: "BROKER",
-            // Use agentStatus.safety OR ibkrStatus.authenticated - NOT health.overall
+            // Use ibkrStatus only (agentStatus.safety is placeholder)
             status: isIbkrConnected ? "LIVE" : "ERROR",
           },
           {

@@ -50,6 +50,8 @@ export default function HomePage() {
   } | null>(null);
   const [ibkrAuth, setIbkrAuth] = useState<"idle" | "connecting" | "authed" | "failed">("idle");
   const pollRef = useRef<number | null>(null);
+  // Sticky IBKR connection flag (prevents UI flicker during hydration/polling)
+  const [ibkrConnectionEstablished, setIbkrConnectionEstablished] = useState(false);
   const [loading, setLoading] = useState(true);
   const [imminentHighImpact, setImminentHighImpact] = useState(false);
   const [ibkrDisconnecting, setIbkrDisconnecting] = useState(false);
@@ -204,8 +206,24 @@ export default function HomePage() {
   Number.isFinite(Number(dashboard?.account?.unrealizedPnl)) ||
   Number.isFinite(Number(dashboard?.account?.buyingPower)) ||
   Number.isFinite(Number(dashboard?.account?.balance));
+  // Determine IBKR connection status (sticky once true)
+  // Reason: dashboard/account can briefly be undefined during hydration/polling; controls must not flicker.
+  const account = dashboard?.account;
 
-  const isIbkrConnected = hasAccountId && hasRealNumber;
+  const hasCurrentConnectionEvidence = Boolean(
+    typeof account?.accountId === "string" &&
+      account.accountId.trim().length > 0 &&
+      (Number.isFinite(Number(account?.equity ?? 0)) ||
+        Number.isFinite(Number(account?.unrealizedPnl ?? 0)) ||
+        Number.isFinite(Number(account?.buyingPower ?? 0)) ||
+        Number.isFinite(Number(account?.balance ?? 0)))
+  );
+
+  useEffect(() => {
+    if (hasCurrentConnectionEvidence) setIbkrConnectionEstablished(true);
+  }, [hasCurrentConnectionEvidence]);
+
+  const isIbkrConnected = ibkrConnectionEstablished;
 
   // Determine IBKR status for account card
   const ibkrCardStatus = isIbkrConnected ? "LIVE" : "ERROR";
@@ -420,6 +438,7 @@ export default function HomePage() {
     }
 
     setIbkrDisconnecting(false);
+    setIbkrConnectionEstablished(false);
     window.location.reload();
   }
 

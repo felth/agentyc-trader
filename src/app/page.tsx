@@ -191,8 +191,10 @@ export default function HomePage() {
 
   // Determine IBKR connection status - use account data availability as source of truth
   // Account data flows through Bridge session, which is the functional indicator of connectivity
-  const hasIbkrAccountData = Boolean(dashboard?.account?.accountId);
-  const isIbkrConnected = hasIbkrAccountData;
+  // Check for real numeric data (equity/PnL) rather than accountId which may be missing
+  const isIbkrConnected =
+    typeof dashboard?.account?.equity === "number" ||
+    typeof dashboard?.account?.unrealizedPnl === "number";
 
   // Determine IBKR status for account card
   const ibkrCardStatus = isIbkrConnected ? "LIVE" : "ERROR";

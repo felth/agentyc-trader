@@ -51,7 +51,10 @@ export default function HomePage() {
   const [ibkrAuth, setIbkrAuth] = useState<"idle" | "connecting" | "authed" | "failed">("idle");
   const pollRef = useRef<number | null>(null);
   // Sticky IBKR connection flag (prevents UI flicker during hydration/polling)
-  const [ibkrConnectionEstablished, setIbkrConnectionEstablished] = useState(false);
+  const [ibkrConnectionEstablished, setIbkrConnectionEstablished] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('ibkrConnected') === '1';
+  });
   const [loading, setLoading] = useState(true);
   const [imminentHighImpact, setImminentHighImpact] = useState(false);
   const [ibkrDisconnecting, setIbkrDisconnecting] = useState(false);
@@ -220,7 +223,10 @@ export default function HomePage() {
   );
 
   useEffect(() => {
-    if (hasCurrentConnectionEvidence) setIbkrConnectionEstablished(true);
+    if (hasCurrentConnectionEvidence) {
+      setIbkrConnectionEstablished(true);
+      if (typeof window !== 'undefined') sessionStorage.setItem('ibkrConnected', '1');
+    }
   }, [hasCurrentConnectionEvidence]);
 
   const isIbkrConnected = ibkrConnectionEstablished;
@@ -410,35 +416,26 @@ export default function HomePage() {
     setIbkrDisconnecting(true);
     setIbkrDisconnectError(null);
 
-    // same-origin relative paths so cookies/session are included (critical)
-    const endpoints = ["/v1/api/logout", "/v1/api/iserver/auth/logout"];
-
     let ok = false;
     let lastStatus: number | null = null;
 
-    for (const url of endpoints) {
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        });
-        lastStatus = res.status;
-        if (res.ok) { ok = true; break; }
-      } catch (e) {
-        // continue to next endpoint
-      }
+    try {
+      const res = await fetch("/api/ibkr/logout", { method: "POST" });
+      lastStatus = res.status;
+      ok = res.ok;
+    } catch (e: any) {
+      ok = false;
     }
 
-    // always reload to re-poll status; show error briefly if both fail
     if (!ok) {
       setIbkrDisconnectError(`Logout failed${lastStatus ? ` (HTTP ${lastStatus})` : ""}`);
-      // small delay so user sees message before reload is optional; keep minimal:
-      // await new Promise(r => setTimeout(r, 600));
     }
 
-    setIbkrDisconnecting(false);
+    // Always clear sticky state locally; reload will re-evaluate real connection state
     setIbkrConnectionEstablished(false);
+    if (typeof window !== "undefined") sessionStorage.removeItem("ibkrConnected");
+
+    setIbkrDisconnecting(false);
     window.location.reload();
   }
 

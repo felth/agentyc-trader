@@ -68,8 +68,11 @@ export default function HomePage() {
         ]);
 
         if (dashboardRes.ok && dashboardRes.snapshot) {
-          setDashboard(dashboardRes.snapshot);
-        }
+  setDashboard((prev) => ({
+    ...dashboardRes.snapshot,
+    account: dashboardRes.snapshot.account ?? prev?.account,
+  }));
+}
 
         if (systemRes.systemStatus) {
           setSystemStatus(systemRes);

@@ -325,6 +325,22 @@ def session_info():
         'timestamp': cookies_data.get('timestamp'),
     })
 
+@app.route('/session-clear', methods=['POST', 'DELETE'])
+def session_clear():
+    """
+    Clear session cookie cache to force re-extraction.
+    Used when disconnecting/logging out to invalidate cached cookies.
+    """
+    global _cookie_cache, _cache_time
+    _cookie_cache = None
+    _cache_time = 0
+    debug_log("Session cookie cache cleared")
+    return jsonify({
+        'ok': True,
+        'message': 'Session cache cleared',
+        'timestamp': datetime.utcnow().isoformat(),
+    })
+
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
@@ -343,4 +359,5 @@ if __name__ == '__main__':
     print("  GET /session-info - Session information")
     print("  GET /session-cookies - Real cookies from Selenium")
     print("  GET /test-gateway - Test cookies against Gateway")
+    print("  POST/DELETE /session-clear - Clear session cache")
     app.run(host='0.0.0.0', port=5002, debug=False)

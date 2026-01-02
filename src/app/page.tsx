@@ -416,19 +416,20 @@ export default function HomePage() {
     setIbkrDisconnecting(true);
     setIbkrDisconnectError(null);
 
-    let ok = false;
-    let lastStatus: number | null = null;
-
     try {
-      const res = await fetch("/api/ibkr/logout", { method: "POST" });
-      lastStatus = res.status;
-      ok = res.ok;
+      // Call logout endpoint which proxies to Bridge /logout (clears Session API cache + Gateway logout)
+      const res = await fetch("/api/ibkr/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      const data = await res.json();
+      
+      if (!data.ok) {
+        setIbkrDisconnectError("Logout failed - session not cleared");
+      }
     } catch (e: any) {
-      ok = false;
-    }
-
-    if (!ok) {
-      setIbkrDisconnectError(`Logout failed${lastStatus ? ` (HTTP ${lastStatus})` : ""}`);
+      setIbkrDisconnectError(`Logout error: ${e?.message || "Unknown error"}`);
     }
 
     // Always clear sticky state locally; reload will re-evaluate real connection state

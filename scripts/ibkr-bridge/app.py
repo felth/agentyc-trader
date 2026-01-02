@@ -21,6 +21,7 @@ import httpx
 BRIDGE_KEY = "agentyc-bridge-9u1Px"  # MUST match Vercel IBKR_BRIDGE_KEY
 
 IB_GATEWAY_URL = "https://localhost:5000/v1/api"
+SESSION_API_URL = "http://127.0.0.1:5002"
 
 
 
@@ -1185,6 +1186,52 @@ async def cancel_order(
 # -------------------------------------------------
 
 
+
+@app.post("/logout")
+async def logout(x_bridge_key: str = Header(None)):
+    """
+    Logout from IBKR Gateway.
+    - Clears Session API cache (invalidates cookies)
+    - Calls Gateway logout endpoints
+    - Returns ok: true if successful
+    """
+    verify_key(x_bridge_key)
+    
+    # Step 1: Clear Session API cache (critical - invalidates Bridge's cookie source)
+    session_clear_ok = False
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(f"{SESSION_API_URL}/session-clear")
+            session_clear_ok = resp.status_code == 200
+    except Exception as e:
+        # Log but continue - Gateway logout is still valuable
+        print(f"Warning: Session API clear failed: {e}")
+    
+    # Step 2: Call Gateway logout endpoints
+    gateway_logout_ok = False
+    try:
+        # Gateway base URL (IB_GATEWAY_URL is "https://localhost:5000/v1/api")
+        gateway_base = IB_GATEWAY_URL.replace('/v1/api', '')
+        async with httpx.AsyncClient(verify=False, timeout=10) as client:
+            # Try primary logout endpoint
+            resp1 = await client.post(f"{gateway_base}/v1/api/iserver/auth/logout")
+            if resp1.status_code in [200, 400]:  # 400 can mean already logged out, which is fine
+                gateway_logout_ok = True
+            else:
+                # Try alternative logout endpoint
+                resp2 = await client.post(f"{gateway_base}/v1/api/logout")
+                gateway_logout_ok = resp2.status_code in [200, 400]
+    except Exception as e:
+        print(f"Warning: Gateway logout failed: {e}")
+    
+    # Return ok only if Session API was cleared (most important step)
+    if not session_clear_ok:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to clear Session API cache"
+        )
+    
+    return {"ok": True, "session_cleared": session_clear_ok, "gateway_logout": gateway_logout_ok}
 
 @app.get("/trades")
 

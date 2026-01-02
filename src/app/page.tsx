@@ -189,10 +189,10 @@ export default function HomePage() {
     return "Closed";
   };
 
-  // Determine IBKR connection status - use ibkrStatus ONLY (agentStatus.safety is placeholder)
-  const isIbkrConnected =
-    ibkrStatus?.authenticated === true &&
-    ibkrStatus?.gateway?.connected === true;
+  // Determine IBKR connection status - use account data availability as source of truth
+  // Account data flows through Bridge session, which is the functional indicator of connectivity
+  const hasIbkrAccountData = Boolean(dashboard?.account?.accountId);
+  const isIbkrConnected = hasIbkrAccountData;
 
   // Determine IBKR status for account card
   const ibkrCardStatus = isIbkrConnected ? "LIVE" : "ERROR";

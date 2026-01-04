@@ -115,7 +115,7 @@ export type DashboardSnapshot = {
 import { buildTradingContext } from "../agent/tradingContext";
 import { fetchMarketOverview as getMarketOverviewRaw, type MarketOverviewSnapshot as MarketOverviewRaw } from "./marketOverview";
 import { getTodayEconomicCalendar } from "./economicCalendar";
-import { getIbkrAccount, getIbkrPositions, getIbkrOrders } from "./ibkrBridge";
+import { getIbkrAccount, getIbkrPositions, getIbkrOrders, type BridgePositions, type BridgeOrders } from "./ibkrBridge";
 import { getXauusdCandles } from "./xauusd";
 import {
   deriveDom,
@@ -192,7 +192,7 @@ export async function buildDashboardSnapshot(hasIntent: boolean = false): Promis
   };
 
   const positions = positionsRes && positionsRes.ok && Array.isArray(positionsRes.positions)
-    ? positionsRes.positions.map((p) => ({
+    ? positionsRes.positions.map((p: NonNullable<BridgePositions['positions']>[number]) => ({
         symbol: p.symbol,
         quantity: p.quantity,
         avgPrice: p.avgPrice,
@@ -202,7 +202,7 @@ export async function buildDashboardSnapshot(hasIntent: boolean = false): Promis
     : [];
 
   const orders = ordersRes && ordersRes.ok && Array.isArray(ordersRes.orders)
-    ? ordersRes.orders.map((o) => ({
+    ? ordersRes.orders.map((o: NonNullable<BridgeOrders['orders']>[number]) => ({
         id: o.id,
         symbol: o.symbol,
         side: o.side as "BUY" | "SELL" | undefined,
@@ -289,7 +289,7 @@ export async function buildDashboardSnapshot(hasIntent: boolean = false): Promis
 
   // Correlation & Exposure - simplified from market overview and positions
   const usdExposurePct = positions.length > 0 
-    ? Math.min(100, Math.round((positions.filter((p) => p.symbol.includes("USD")).length / positions.length) * 100))
+    ? Math.min(100, Math.round((positions.filter((p: { symbol: string }) => p.symbol.includes("USD")).length / positions.length) * 100))
     : null;
 
   const correlationExposure: CorrelationExposureSnapshot = {

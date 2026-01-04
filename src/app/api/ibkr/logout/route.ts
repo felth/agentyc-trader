@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { checkIntent, getSkippedResponse } from '@/lib/ibkr/intentGate';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,11 @@ function getBridgeKey() {
   return process.env.IBKR_BRIDGE_KEY || "agentyc-bridge-9u1Px";
 }
 
-export async function POST() {
+export async function POST(req: Request) {
+  // Gate: Require explicit user intent to prevent 2FA spam
+  if (!checkIntent(req)) {
+    return NextResponse.json(getSkippedResponse());
+  }
   const bridgeUrl = getBridgeUrl();
   const bridgeKey = getBridgeKey();
 

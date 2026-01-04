@@ -124,35 +124,50 @@ import {
   deriveLiquidityZones,
 } from "./candleAnalytics";
 
-export async function buildDashboardSnapshot(): Promise<DashboardSnapshot> {
-  // Fetch IBKR data directly with timeout protection (10s timeout per call)
-  const ibkrTimeout = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error("IBKR data fetch timeout")), 10000);
-  });
+export async function buildDashboardSnapshot(hasIntent: boolean = false): Promise<DashboardSnapshot> {
+  // Fetch IBKR data ONLY if user has explicit intent (prevents 2FA spam on load)
+  // If no intent, return empty IBKR data
+  let accountRes: any = null;
+  let positionsRes: any = null;
+  let ordersRes: any = null;
 
-  // Fetch all data in parallel - catch errors but don't use fallback zeros
-  const [accountRes, positionsRes, ordersRes, mo, calendar] = await Promise.all([
-    Promise.race([
-      getIbkrAccount(),
-      ibkrTimeout,
-    ]).catch((err) => {
-      console.error("[buildDashboardSnapshot] Account fetch failed:", err?.message);
-      return null; // Return null instead of fallback zeros
-    }),
-    Promise.race([
-      getIbkrPositions(),
-      ibkrTimeout,
-    ]).catch((err) => {
-      console.error("[buildDashboardSnapshot] Positions fetch failed:", err?.message);
-      return null; // Return null instead of fallback zeros
-    }),
-    Promise.race([
-      getIbkrOrders(),
-      ibkrTimeout,
-    ]).catch((err) => {
-      console.error("[buildDashboardSnapshot] Orders fetch failed:", err?.message);
-      return null; // Return null instead of fallback zeros
-    }),
+  if (hasIntent) {
+    // Fetch IBKR data directly with timeout protection (10s timeout per call)
+    const ibkrTimeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("IBKR data fetch timeout")), 10000);
+    });
+
+    try {
+      [accountRes, positionsRes, ordersRes] = await Promise.all([
+        Promise.race([
+          getIbkrAccount(),
+          ibkrTimeout,
+        ]).catch((err) => {
+          console.error("[buildDashboardSnapshot] Account fetch failed:", err?.message);
+          return null;
+        }),
+        Promise.race([
+          getIbkrPositions(),
+          ibkrTimeout,
+        ]).catch((err) => {
+          console.error("[buildDashboardSnapshot] Positions fetch failed:", err?.message);
+          return null;
+        }),
+        Promise.race([
+          getIbkrOrders(),
+          ibkrTimeout,
+        ]).catch((err) => {
+          console.error("[buildDashboardSnapshot] Orders fetch failed:", err?.message);
+          return null;
+        }),
+      ]);
+    } catch (err) {
+      console.error("[buildDashboardSnapshot] IBKR fetch error:", err);
+    }
+  }
+
+  // Fetch non-IBKR data (market overview, calendar)
+  const [mo, calendar] = await Promise.all([
     getMarketOverviewRaw().catch(() => null),
     getTodayEconomicCalendar().catch(() => ({
       date: new Date().toISOString().slice(0, 10),

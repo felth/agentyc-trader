@@ -61,23 +61,31 @@ export default function HomePage() {
   const [ibkrDisconnecting, setIbkrDisconnecting] = useState(false);
   const [ibkrDisconnectError, setIbkrDisconnectError] = useState<string | null>(null);
 
-  // Fetch all data (NO IBKR STATUS POLLING - only dashboard/account data)
+  // Initialize state from sessionStorage on mount and fetch dashboard if connected
   useEffect(() => {
-    async function fetchAllData() {
+    if (typeof window !== 'undefined') {
+      const hasIntent = sessionStorage.getItem('ibkrIntent') === '1';
+      const wasConnected = sessionStorage.getItem('ibkrConnected') === '1';
+      
+      if (wasConnected && hasIntent) {
+        // Restore connected state if intent flag exists
+        setIbkrConnectionEstablished(true);
+        setIbkrAuth("connected");
+        // Fetch dashboard with intent (IBKR data)
+        fetchDashboardWithIntent();
+      }
+    }
+  }, []);
+
+  // Fetch NON-IBKR data only (NO IBKR calls on load to prevent 2FA spam)
+  useEffect(() => {
+    async function fetchNonIbkrData() {
       try {
-        const [dashboardRes, systemRes, planRes, agentStatusRes] = await Promise.all([
-          fetch("/api/dashboard/home").then((r) => r.json()),
+        const [systemRes, planRes, agentStatusRes] = await Promise.all([
           fetch("/api/system/status").then((r) => r.json()),
           fetch("/api/agent/trade-plan").then((r) => r.json()),
           fetch("/api/agent/status").then((r) => r.json()),
         ]);
-
-        if (dashboardRes.ok && dashboardRes.snapshot) {
-          setDashboard((prev) => ({
-            ...dashboardRes.snapshot,
-            account: dashboardRes.snapshot.account ?? prev?.account,
-          }));
-        }
 
         if (systemRes.systemStatus) {
           setSystemStatus(systemRes);
@@ -87,12 +95,12 @@ export default function HomePage() {
           setTradePlan(planRes.plan);
         }
 
-        // Get agent status for IBKR connection and overall health
+        // Get agent status for overall health (NOT IBKR connection - that's gated by intent)
         if (agentStatusRes.ok) {
           setAgentStatus({
             safety: {
-              ibkrConnected: agentStatusRes.safety?.ibkrConnected === true,
-              ibkrAuthenticated: agentStatusRes.safety?.ibkrAuthenticated === true,
+              ibkrConnected: false, // Don't use agent status for IBKR connection
+              ibkrAuthenticated: false,
             },
             health: {
               overall: agentStatusRes.health?.overall || 'unhealthy',
@@ -106,7 +114,7 @@ export default function HomePage() {
       }
     }
 
-    fetchAllData();
+    fetchNonIbkrData();
 
     // Cleanup: stop any polling on unmount
     return () => {
@@ -117,6 +125,21 @@ export default function HomePage() {
       }
     };
   }, []);
+
+  // Fetch dashboard/home WITH intent ONLY after authenticated
+  async function fetchDashboardWithIntent() {
+    try {
+      const dashboardRes = await fetch("/api/dashboard/home?intent=1").then((r) => r.json());
+      if (dashboardRes.ok && dashboardRes.snapshot) {
+        setDashboard((prev) => ({
+          ...dashboardRes.snapshot,
+          account: dashboardRes.snapshot.account ?? prev?.account,
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch dashboard with intent:", err);
+    }
+  }
 
   // Calculate open risk in R multiples
   // Assuming daily loss limit is from trade plan or default 2000
@@ -151,44 +174,9 @@ export default function HomePage() {
   Number.isFinite(Number(dashboard?.account?.unrealizedPnl)) ||
   Number.isFinite(Number(dashboard?.account?.buyingPower)) ||
   Number.isFinite(Number(dashboard?.account?.balance));
-  // Determine IBKR connection status (sticky once true)
-  // Reason: dashboard/account can briefly be undefined during hydration/polling; controls must not flicker.
-  const account = dashboard?.account;
-
-  const hasCurrentConnectionEvidence = Boolean(
-    typeof account?.accountId === "string" &&
-      account.accountId.trim().length > 0 &&
-      (Number.isFinite(Number(account?.equity ?? 0)) ||
-        Number.isFinite(Number(account?.unrealizedPnl ?? 0)) ||
-        Number.isFinite(Number(account?.buyingPower ?? 0)) ||
-        Number.isFinite(Number(account?.balance ?? 0)))
-  );
-
-  // Initialize connection state from sessionStorage if available, then sync with account data
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('ibkrConnected') === '1';
-      if (stored && !ibkrConnectionEstablished) {
-        setIbkrConnectionEstablished(true);
-        setIbkrAuth("connected");
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (hasCurrentConnectionEvidence) {
-      setIbkrConnectionEstablished(true);
-      setIbkrAuth("connected");
-      if (typeof window !== 'undefined') sessionStorage.setItem('ibkrConnected', '1');
-      // Stop polling if we're connected
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
-    }
-  }, [hasCurrentConnectionEvidence]);
-
-  const isIbkrConnected = ibkrConnectionEstablished && ibkrAuth === "connected";
+  // Determine IBKR connection status - ONLY based on auth state + intent, NOT dashboard data
+  // DO NOT infer connection from dashboard.account on load (prevents 2FA spam)
+  const isIbkrConnected = ibkrAuth === "connected" && ibkrConnectionEstablished;
 
   // Determine IBKR status for account card
   const ibkrCardStatus = isIbkrConnected ? "LIVE" : "ERROR";
@@ -233,7 +221,8 @@ export default function HomePage() {
 
   async function checkIbkrAuthStatus(): Promise<{ authenticated: boolean; data?: any }> {
     try {
-      const url = `/api/ibkr/status?ts=${Date.now()}`;
+      // REQUIRED: Include intent=1 to prevent backend from skipping the call
+      const url = `/api/ibkr/status?intent=1&ts=${Date.now()}`;
       console.log('[IBKR Check] Fetching:', url);
       
       const res = await fetch(url, { 
@@ -251,8 +240,13 @@ export default function HomePage() {
       const data = await res.json();
       console.log('[IBKR Check] Full response:', JSON.stringify(data, null, 2));
 
-      // SIMPLIFIED: Just check the top-level authenticated field that the API computes
-      // The API route already does the complex logic and sets authenticated: true/false
+      // Check if skipped (no intent)
+      if (data?.skipped === true) {
+        console.log('[IBKR Check] Skipped - no intent flag');
+        return { authenticated: false };
+      }
+
+      // Check the top-level authenticated field
       const isAuthenticated = data?.authenticated === true;
       
       console.log('[IBKR Check] Authenticated:', isAuthenticated, '(from data.authenticated:', data?.authenticated, ')');
@@ -297,7 +291,13 @@ export default function HomePage() {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
         }
+        // Clear intent and connection flags to prevent stuck state
+        setIbkrConnectionEstablished(false);
         setIbkrAuth("idle");
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('ibkrIntent');
+          sessionStorage.removeItem('ibkrConnected');
+        }
         return;
       }
 
@@ -325,8 +325,11 @@ export default function HomePage() {
         });
         setIbkrAuth("connected");
         setIbkrConnectionEstablished(true);
-        if (typeof window !== 'undefined') sessionStorage.setItem('ibkrConnected', '1');
-        // Reload to refresh all data
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('ibkrConnected', '1');
+          sessionStorage.setItem('ibkrIntent', '1'); // Keep intent flag
+        }
+        // Reload to refresh all data (dashboard will be fetched on mount if connected)
         window.location.reload();
       } else {
         console.log(`[IBKR Poll] Not authenticated yet, will check again in ${pollInterval / 1000}s...`);
@@ -343,20 +346,28 @@ export default function HomePage() {
     console.log('[IBKR] Connect button clicked');
     
     try {
-      // 1) Set state to connecting FIRST
+      // 1) Set intent flag FIRST (enables IBKR backend calls)
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('ibkrIntent', '1');
+      }
+
+      // 2) Set state to connecting
       console.log('[IBKR] Setting state to connecting');
       setIbkrAuth("connecting");
 
-      // 2) Open gateway login tab (manual login)
+      // 3) Open gateway login tab (manual login)
       const GATEWAY_URL = process.env.NEXT_PUBLIC_IBKR_GATEWAY_URL || "https://ibkr.agentyctrader.com";
       console.log('[IBKR] Opening Gateway URL:', GATEWAY_URL);
       window.open(GATEWAY_URL, "_blank", "noopener,noreferrer");
 
-      // 3) Start polling (will stop automatically when connected or timeout)
+      // 4) Start polling with intent flag (will stop automatically when connected or timeout)
       startPollingIbkrStatus(60000); // Poll for max 60 seconds
     } catch (err) {
       console.error('[IBKR] Exception in handleConnectIbkr:', err);
       setIbkrAuth("idle");
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('ibkrIntent');
+      }
     }
   };
 
@@ -383,7 +394,12 @@ export default function HomePage() {
         });
         setIbkrAuth("connected");
         setIbkrConnectionEstablished(true);
-        if (typeof window !== 'undefined') sessionStorage.setItem('ibkrConnected', '1');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('ibkrConnected', '1');
+          sessionStorage.setItem('ibkrIntent', '1'); // Keep intent flag
+        }
+        // Fetch dashboard with intent (IBKR data)
+        await fetchDashboardWithIntent();
         // Reload to refresh all data
         await new Promise(resolve => setTimeout(resolve, 200));
         window.location.reload();
@@ -412,25 +428,28 @@ export default function HomePage() {
     setIbkrAuth("disconnecting");
 
     try {
-      // Call logout endpoint which proxies to Bridge /logout (clears Session API cache + Gateway logout)
-      const res = await fetch("/api/ibkr/logout", {
+      // Call logout endpoint WITH intent flag (enables backend call)
+      const res = await fetch("/api/ibkr/logout?intent=1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
       
       const data = await res.json();
       
-      if (!data.ok) {
+      if (!data.ok || data.skipped) {
         setIbkrDisconnectError("Logout failed - session not cleared");
       }
     } catch (e: any) {
       setIbkrDisconnectError(`Logout error: ${e?.message || "Unknown error"}`);
     }
 
-    // Always clear sticky state locally; reload will re-evaluate real connection state
+    // Always clear sticky state and intent flag locally
     setIbkrConnectionEstablished(false);
     setIbkrAuth("idle");
-    if (typeof window !== "undefined") sessionStorage.removeItem("ibkrConnected");
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("ibkrConnected");
+      sessionStorage.removeItem("ibkrIntent"); // Clear intent flag
+    }
 
     setIbkrDisconnecting(false);
     window.location.reload();
@@ -478,7 +497,13 @@ export default function HomePage() {
                           clearInterval(pollIntervalRef.current);
                           pollIntervalRef.current = null;
                         }
+                        setIbkrConnectionEstablished(false);
                         setIbkrAuth("idle");
+                        // Clear intent flag on cancel to prevent stuck state
+                        if (typeof window !== 'undefined') {
+                          sessionStorage.removeItem('ibkrIntent');
+                          sessionStorage.removeItem('ibkrConnected');
+                        }
                       }}
                       className="px-4 py-2 bg-gray-600 hover:bg-gray-700 active:bg-gray-800 text-white text-xs font-bold rounded-lg transition-colors duration-200"
                     >

@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { buildDashboardSnapshot } from "@/lib/data/dashboard";
+import { checkIntent } from "@/lib/ibkr/intentGate";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const snapshot = await buildDashboardSnapshot();
+    // Only fetch IBKR data if user has explicit intent (prevents 2FA spam)
+    const hasIntent = checkIntent(req);
+    const snapshot = await buildDashboardSnapshot(hasIntent);
     return NextResponse.json({ ok: true, snapshot });
   } catch (err: any) {
     console.error("[dashboard/home] Error:", err);

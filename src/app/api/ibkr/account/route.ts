@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { checkIntent, getSkippedResponse } from '@/lib/ibkr/intentGate';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,5 +38,9 @@ async function proxyGET(req: Request, upstreamPath: string) {
 }
 
 export async function GET(req: Request) {
+  // Gate: Require explicit user intent to prevent 2FA spam
+  if (!checkIntent(req)) {
+    return NextResponse.json(getSkippedResponse());
+  }
   return proxyGET(req, "/account");
 }

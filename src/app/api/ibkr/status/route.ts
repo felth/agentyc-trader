@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getIbkrHealth } from '@/lib/data/ibkrBridge';
+import { checkIntent, getSkippedResponse } from '@/lib/ibkr/intentGate';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -57,7 +58,18 @@ async function getGatewayAuthStatus() {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  // Gate: Require explicit user intent to prevent 2FA spam
+  if (!checkIntent(req)) {
+    return NextResponse.json(getSkippedResponse(), {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
+  }
+
   let bridgeHealth: any = { ok: false, error: 'Not checked' };
   let gatewayAuth: any = { ok: false, error: 'Not checked' };
   
